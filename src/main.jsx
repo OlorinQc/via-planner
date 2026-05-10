@@ -6,11 +6,11 @@ import Auth from "./Auth";
 import Hub from "./Hub";
 import ViaPlanner from "./apps/ViaPlanner/App";
 
-function AppRouter({ session }) {
+function AppRouter({ unlocking }) {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Hub />} />
+        <Route path="/" element={<Hub unlocking={unlocking} />} />
         <Route path="/planner" element={<ViaPlanner />} />
         {/* /house will be added when House Manager is ready */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -25,7 +25,7 @@ function Root() {
   const initialDone = useRef(false);
 
   useEffect(() => {
-    // Restore existing session silently (no animation)
+    // Restore existing session silently — no animation
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       initialDone.current = true;
@@ -36,12 +36,9 @@ function Root() {
         if (!initialDone.current) return; // handled by getSession above
 
         if (_event === "SIGNED_IN" && session) {
-          // Fresh login — play door animation before switching to Hub
+          // Switch to Hub immediately; Hub handles the 1s reveal animation
           setUnlocking(true);
-          setTimeout(() => {
-            setSession(session);
-            setUnlocking(false);
-          }, 950);
+          setSession(session);
         } else if (_event === "SIGNED_OUT") {
           setUnlocking(false);
           setSession(null);
@@ -57,12 +54,11 @@ function Root() {
     return <div style={{ height: "100vh", background: "#060608" }} />;
   }
 
-  // Not logged in, or in the middle of the unlock animation
-  if (!session || unlocking) {
-    return <Auth unlocking={unlocking} />;
+  if (!session) {
+    return <Auth />;
   }
 
-  return <AppRouter session={session} />;
+  return <AppRouter unlocking={unlocking} />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(

@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabase";
 import doorImg from "./assets/KarlOS_Door.png";
+import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS.png";
 import "./Hub.css";
 
 const apps = [
@@ -35,20 +37,55 @@ const apps = [
   },
 ];
 
-export default function Hub() {
+export default function Hub({ unlocking = false }) {
   const navigate = useNavigate();
+  // If not unlocking (normal load), show immediately. If unlocking, start hidden then reveal.
+  const [revealed, setRevealed] = useState(!unlocking);
+
+  useEffect(() => {
+    if (unlocking) {
+      // Trigger CSS transition after first paint
+      const raf = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setRevealed(true))
+      );
+      return () => cancelAnimationFrame(raf);
+    }
+  }, []);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
   }
 
+  const revealTransition = "opacity 1s ease";
+
   return (
     <div className="hub-root">
-      <div className="hub-door-pane">
-        <img src={doorImg} alt="KarlOS Door" className="hub-door-img" />
+
+      {/* Door pane with stacked images */}
+      <div className="hub-door-pane" style={{ position: "relative" }}>
+        {/* Base door — always visible */}
+        <img src={doorNoKarlOSImg} alt="" className="hub-door-img" />
+        {/* KarlOS door — fades in on reveal */}
+        <img src={doorImg} alt="KarlOS" style={{
+          position: "absolute",
+          inset: 0,
+          margin: "auto",
+          maxHeight: "85vh",
+          maxWidth: "100%",
+          objectFit: "contain",
+          mixBlendMode: "lighten",
+          userSelect: "none",
+          pointerEvents: "none",
+          opacity: revealed ? 0.92 : 0,
+          transition: unlocking ? revealTransition : "none",
+        }} />
       </div>
 
-      <div className="hub-cards-pane">
+      {/* Cards pane — fades in on reveal */}
+      <div className="hub-cards-pane" style={{
+        opacity: revealed ? 1 : 0,
+        transition: unlocking ? revealTransition : "none",
+      }}>
         <div className="hub-cards-list">
           {apps.map((app) => (
             <button
@@ -82,10 +119,9 @@ export default function Hub() {
           </div>
         </div>
 
-        <button className="hub-sign-out" onClick={handleSignOut}>
-          Sign out
-        </button>
+        <button className="hub-sign-out" onClick={handleSignOut}>Sign out</button>
       </div>
+
     </div>
   );
 }

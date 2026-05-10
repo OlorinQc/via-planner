@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
-import doorImg from "./assets/KarlOS_Door.png";
 import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS.png";
+import "./Hub.css";
 
-export default function Auth({ unlocking = false }) {
+export default function Auth() {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -18,7 +18,7 @@ export default function Auth({ unlocking = false }) {
       setError(error.message);
       setLoading(false);
     }
-    // On success, main.jsx handles the unlocking delay before swapping to Hub
+    // On success, onAuthStateChange fires in main.jsx which switches to Hub immediately
   };
 
   const inputStyle = {
@@ -45,64 +45,25 @@ export default function Auth({ unlocking = false }) {
   };
 
   return (
-    <div style={{
-      display: "flex",
-      height: "100vh",
-      width: "100vw",
-      background: "#060608",
-      overflow: "hidden",
-      fontFamily: "system-ui, sans-serif",
-    }}>
+    <div className="hub-root">
 
-      {/* ── Left pane: door + overlaid form ─────────────────────── */}
-      <div style={{
-        flex: 1,
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-      }}>
+      {/* Door pane — identical layout to Hub */}
+      <div className="hub-door-pane" style={{ position: "relative" }}>
+        <img src={doorNoKarlOSImg} alt="" className="hub-door-img" />
 
-        {/* Plain door — always visible */}
-        <img src={doorNoKarlOSImg} alt="" style={{
-          position: "absolute",
-          maxHeight: "85vh",
-          maxWidth: "100%",
-          objectFit: "contain",
-          opacity: 0.92,
-          userSelect: "none",
-          pointerEvents: "none",
-          mixBlendMode: "lighten",
-        }}/>
-
-        {/* KarlOS door — fades in on success */}
-        <img src={doorImg} alt="KarlOS" style={{
-          position: "absolute",
-          maxHeight: "85vh",
-          maxWidth: "100%",
-          objectFit: "contain",
-          opacity: unlocking ? 0.92 : 0,
-          transition: "opacity 0.8s ease",
-          userSelect: "none",
-          pointerEvents: "none",
-          mixBlendMode: "lighten",
-        }}/>
-
-        {/* Login form — fades out on success */}
+        {/* Login form — centered over the door */}
         <div style={{
-          position: "relative",
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
           zIndex: 10,
-          opacity: unlocking ? 0 : 1,
-          transition: "opacity 0.4s ease",
           width: 252,
           textAlign: "center",
         }}>
-
-          {/* Tagline */}
           <div style={{
-            fontSize: 11,
-            letterSpacing: "0.22em",
+            fontSize: 15,
+            letterSpacing: "0.2em",
             textTransform: "uppercase",
             fontStyle: "italic",
             background: "linear-gradient(130deg, #dddde8 0%, #8c8ca0 100%)",
@@ -114,14 +75,13 @@ export default function Auth({ unlocking = false }) {
           </div>
 
           <form onSubmit={handleLogin}>
-
             <div style={{ marginBottom: 14, textAlign: "left" }}>
               <label style={labelStyle}>Email</label>
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
                 required autoFocus style={inputStyle}
-                onFocus={e  => e.target.style.borderColor = "rgba(180,180,200,0.45)"}
-                onBlur={e   => e.target.style.borderColor = "rgba(180,180,200,0.2)"}
+                onFocus={e => e.target.style.borderColor = "rgba(180,180,200,0.45)"}
+                onBlur={e  => e.target.style.borderColor = "rgba(180,180,200,0.2)"}
               />
             </div>
 
@@ -130,8 +90,8 @@ export default function Auth({ unlocking = false }) {
               <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••" required style={inputStyle}
-                onFocus={e  => e.target.style.borderColor = "rgba(180,180,200,0.45)"}
-                onBlur={e   => e.target.style.borderColor = "rgba(180,180,200,0.2)"}
+                onFocus={e => e.target.style.borderColor = "rgba(180,180,200,0.45)"}
+                onBlur={e  => e.target.style.borderColor = "rgba(180,180,200,0.2)"}
               />
             </div>
 
@@ -161,14 +121,13 @@ export default function Auth({ unlocking = false }) {
               onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "rgba(180,180,200,0.5)"; e.currentTarget.style.color = "#dddde8"; }}}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(180,180,200,0.22)"; e.currentTarget.style.color = loading ? "#36363e" : "#9090a4"; }}
             >
-              {loading ? "···" : "Enter"}
+              {loading ? "···" : "Mellon"}
             </button>
-
           </form>
         </div>
       </div>
 
-      {/* ── Right pane: empty during auth ───────────────────────── */}
+      {/* Right pane — empty placeholder to match Hub proportions */}
       <div style={{ flex: 1 }} />
 
     </div>
