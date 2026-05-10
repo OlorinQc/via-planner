@@ -22,6 +22,7 @@
   opacity: 0.92;
   user-select: none;
   pointer-events: none;
+  mix-blend-mode: lighten;
 }
 
 .hub-cards-pane {
