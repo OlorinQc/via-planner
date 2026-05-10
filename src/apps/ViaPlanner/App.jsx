@@ -1275,7 +1275,7 @@ export default function App() {
         <button onClick={()=>navigate("/")} title="Back to hub" style={{
           background:"#1e3a5f",border:"none",borderRadius:6,padding:"4px 10px",
           fontSize:11,fontWeight:700,color:"#fff",cursor:"pointer",marginRight:10,letterSpacing:"-0.3px"
-        }}>KH</button>
+        }}>KarlOS</button>
         <div style={{display:"flex",gap:2,marginRight:12}}>
           {NAV.map(n=>(
             <button key={n.id} onClick={()=>setView(n.id)} style={{padding:"4px 12px",fontSize:12,fontWeight:600,border:"none",background:"transparent",cursor:"pointer",color:view===n.id?"#1d4ed8":"#6b7280",borderBottom:`2px solid ${view===n.id?"#2563eb":"transparent"}`,borderRadius:0}}>
