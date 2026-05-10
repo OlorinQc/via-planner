@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./supabase";
@@ -20,36 +20,46 @@ function AppRouter({ session }) {
 }
 
 function Root() {
-  const [session, setSession] = useState(undefined);
+  const [session,   setSession]   = useState(undefined);
+  const [unlocking, setUnlocking] = useState(false);
+  const initialDone = useRef(false);
 
   useEffect(() => {
+    // Restore existing session silently (no animation)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      initialDone.current = true;
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setSession(session);
+        if (!initialDone.current) return; // handled by getSession above
+
+        if (_event === "SIGNED_IN" && session) {
+          // Fresh login — play door animation before switching to Hub
+          setUnlocking(true);
+          setTimeout(() => {
+            setSession(session);
+            setUnlocking(false);
+          }, 950);
+        } else if (_event === "SIGNED_OUT") {
+          setUnlocking(false);
+          setSession(null);
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // Initial load — black screen while checking session
   if (session === undefined) {
-    return (
-      <div style={{
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#060608",
-      }} />
-    );
+    return <div style={{ height: "100vh", background: "#060608" }} />;
   }
 
-  if (!session) {
-    return <Auth />;
+  // Not logged in, or in the middle of the unlock animation
+  if (!session || unlocking) {
+    return <Auth unlocking={unlocking} />;
   }
 
   return <AppRouter session={session} />;

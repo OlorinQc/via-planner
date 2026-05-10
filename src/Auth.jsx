@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
+import doorImg from "./assets/KarlOS_Door.png";
+import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS.png";
 
-export default function Auth() {
+export default function Auth({ unlocking = false }) {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -12,75 +14,163 @@ export default function Auth() {
     setLoading(true);
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError(error.message);
-    setLoading(false);
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+    // On success, main.jsx handles the unlocking delay before swapping to Hub
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "9px 12px",
+    background: "rgba(6,6,8,0.75)",
+    border: "1px solid rgba(180,180,200,0.2)",
+    borderRadius: 7,
+    fontSize: 13,
+    color: "#dddde8",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "border-color 0.2s",
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontSize: 10,
+    fontWeight: 600,
+    color: "#56565e",
+    textTransform: "uppercase",
+    letterSpacing: "0.18em",
+    marginBottom: 6,
   };
 
   return (
     <div style={{
-      minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
-      background:"linear-gradient(135deg,#1e3a5f 0%,#0f2027 100%)",
-      fontFamily:"system-ui,sans-serif"
+      display: "flex",
+      height: "100vh",
+      width: "100vw",
+      background: "#060608",
+      overflow: "hidden",
+      fontFamily: "system-ui, sans-serif",
     }}>
+
+      {/* ── Left pane: door + overlaid form ─────────────────────── */}
       <div style={{
-        background:"#fff", borderRadius:14, padding:"2.5rem 2rem",
-        width:340, boxShadow:"0 24px 60px rgba(0,0,0,0.35)"
+        flex: 1,
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
       }}>
-        {/* Logo area */}
-        <div style={{textAlign:"center",marginBottom:"1.75rem"}}>
+
+        {/* Plain door — always visible */}
+        <img src={doorNoKarlOSImg} alt="" style={{
+          position: "absolute",
+          maxHeight: "85vh",
+          maxWidth: "100%",
+          objectFit: "contain",
+          opacity: 0.92,
+          userSelect: "none",
+          pointerEvents: "none",
+          mixBlendMode: "lighten",
+        }}/>
+
+        {/* KarlOS door — fades in on success */}
+        <img src={doorImg} alt="KarlOS" style={{
+          position: "absolute",
+          maxHeight: "85vh",
+          maxWidth: "100%",
+          objectFit: "contain",
+          opacity: unlocking ? 0.92 : 0,
+          transition: "opacity 0.8s ease",
+          userSelect: "none",
+          pointerEvents: "none",
+          mixBlendMode: "lighten",
+        }}/>
+
+        {/* Login form — fades out on success */}
+        <div style={{
+          position: "relative",
+          zIndex: 10,
+          opacity: unlocking ? 0 : 1,
+          transition: "opacity 0.4s ease",
+          width: 252,
+          textAlign: "center",
+        }}>
+
+          {/* Tagline */}
           <div style={{
-            width:52, height:52, borderRadius:14, background:"#1e3a5f",
-            display:"inline-flex", alignItems:"center", justifyContent:"center",
-            marginBottom:12
+            fontSize: 11,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            fontStyle: "italic",
+            background: "linear-gradient(130deg, #dddde8 0%, #8c8ca0 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            marginBottom: 28,
           }}>
-            <span style={{color:"#fff",fontWeight:800,fontSize:20,letterSpacing:"-1px"}}>KH</span>
-          </div>
-          <div style={{fontSize:20,fontWeight:700,color:"#111827",marginBottom:4}}>KH Tools</div>
-          <div style={{fontSize:13,color:"#6b7280"}}>Sign in to continue</div>
-        </div>
-
-        <form onSubmit={handleLogin}>
-          <div style={{marginBottom:14}}>
-            <label style={{display:"block",fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.4px",marginBottom:5}}>
-              Email
-            </label>
-            <input
-              type="email" value={email} onChange={e=>setEmail(e.target.value)}
-              placeholder="you@example.com" required autoFocus
-              style={{width:"100%",padding:"9px 12px",border:"1px solid #e5e7eb",borderRadius:8,
-                fontSize:13,color:"#111827",background:"#f9fafb",outline:"none",boxSizing:"border-box"}}
-            />
+            Speak, friend, and enter
           </div>
 
-          <div style={{marginBottom:20}}>
-            <label style={{display:"block",fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.4px",marginBottom:5}}>
-              Password
-            </label>
-            <input
-              type="password" value={password} onChange={e=>setPassword(e.target.value)}
-              placeholder="••••••••" required
-              style={{width:"100%",padding:"9px 12px",border:"1px solid #e5e7eb",borderRadius:8,
-                fontSize:13,color:"#111827",background:"#f9fafb",outline:"none",boxSizing:"border-box"}}
-            />
-          </div>
+          <form onSubmit={handleLogin}>
 
-          {error && (
-            <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,
-              padding:"8px 12px",fontSize:12,color:"#991b1b",marginBottom:14}}>
-              {error}
+            <div style={{ marginBottom: 14, textAlign: "left" }}>
+              <label style={labelStyle}>Email</label>
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                required autoFocus style={inputStyle}
+                onFocus={e  => e.target.style.borderColor = "rgba(180,180,200,0.45)"}
+                onBlur={e   => e.target.style.borderColor = "rgba(180,180,200,0.2)"}
+              />
             </div>
-          )}
 
-          <button type="submit" disabled={loading} style={{
-            width:"100%", padding:"10px", borderRadius:8, border:"none",
-            background: loading ? "#93c5fd" : "#1e3a5f",
-            color:"#fff", fontSize:13, fontWeight:600, cursor: loading ? "not-allowed" : "pointer",
-            transition:"background .2s"
-          }}>
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+            <div style={{ marginBottom: 22, textAlign: "left" }}>
+              <label style={labelStyle}>Password</label>
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••" required style={inputStyle}
+                onFocus={e  => e.target.style.borderColor = "rgba(180,180,200,0.45)"}
+                onBlur={e   => e.target.style.borderColor = "rgba(180,180,200,0.2)"}
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                fontSize: 11, color: "#a87070", letterSpacing: "0.04em",
+                marginBottom: 14, textAlign: "left",
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" disabled={loading} style={{
+              width: "100%",
+              padding: "9px",
+              background: "rgba(6,6,8,0.9)",
+              border: "1px solid rgba(180,180,200,0.22)",
+              borderRadius: 7,
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              color: loading ? "#36363e" : "#9090a4",
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "border-color 0.2s, color 0.2s",
+            }}
+              onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "rgba(180,180,200,0.5)"; e.currentTarget.style.color = "#dddde8"; }}}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(180,180,200,0.22)"; e.currentTarget.style.color = loading ? "#36363e" : "#9090a4"; }}
+            >
+              {loading ? "···" : "Enter"}
+            </button>
+
+          </form>
+        </div>
       </div>
+
+      {/* ── Right pane: empty during auth ───────────────────────── */}
+      <div style={{ flex: 1 }} />
+
     </div>
   );
 }
