@@ -1,48 +1,62 @@
-import { StrictMode, useState, useEffect } from "react";
-import { createRoot } from "react-dom/client";
+import React, { useEffect, useState } from "react";
+import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./supabase";
 import Auth from "./Auth";
 import Hub from "./Hub";
 import ViaPlanner from "./apps/ViaPlanner/App";
 
-function AppRouter() {
+function AppRouter({ session }) {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Hub />} />
+        <Route path="/planner" element={<ViaPlanner />} />
+        {/* /house will be added when House Manager is ready */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function Root() {
   const [session, setSession] = useState(undefined);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
     return () => subscription.unsubscribe();
   }, []);
 
   if (session === undefined) {
     return (
-      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
-        background:"#0f2027",fontFamily:"system-ui,sans-serif"}}>
-        <div style={{color:"rgba(255,255,255,0.4)",fontSize:13}}>Loading…</div>
-      </div>
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#060608",
+      }} />
     );
   }
 
-  if (!session) return <Auth />;
+  if (!session) {
+    return <Auth />;
+  }
 
-  return (
-    <Routes>
-      <Route path="/"            element={<Hub />} />
-      <Route path="/via-planner" element={<ViaPlanner />} />
-      <Route path="*"            element={<Navigate to="/" replace />} />
-    </Routes>
-  );
+  return <AppRouter session={session} />;
 }
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <BrowserRouter>
-      <AppRouter />
-    </BrowserRouter>
-  </StrictMode>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <Root />
+  </React.StrictMode>
 );

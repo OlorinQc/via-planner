@@ -25,7 +25,7 @@ const apps = [
     title: "House Manager",
     desc: "Track renovations and maintenance.",
     route: "/house",
-    active: true,
+    active: false,
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
@@ -53,14 +53,16 @@ export default function Hub() {
           {apps.map((app) => (
             <button
               key={app.id}
-              className="hub-card"
+              className={`hub-card${app.active ? "" : " hub-card-soon"}`}
               onClick={() => app.active && navigate(app.route)}
+              disabled={!app.active}
             >
               <div className="hub-card-header">
-                <span className="hub-card-icon">{app.icon}</span>
-                <span className="hub-card-title">{app.title}</span>
+                <span className="hub-card-icon" style={app.active ? undefined : { opacity: 0.25 }}>{app.icon}</span>
+                <span className="hub-card-title" style={app.active ? undefined : { opacity: 0.25 }}>{app.title}</span>
+                {!app.active && <span className="hub-soon-badge">Soon</span>}
               </div>
-              <div className="hub-card-desc">{app.desc}</div>
+              <div className="hub-card-desc" style={app.active ? undefined : { opacity: 0.25 }}>{app.desc}</div>
             </button>
           ))}
 
