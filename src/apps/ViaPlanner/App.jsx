@@ -219,14 +219,17 @@ function RichTextEditor({value, onChange, minHeight=80}) {
   const btnStyle = extra => ({...ss.btn,fontSize:11,padding:"1px 7px",lineHeight:"18px",...extra});
   return (
     <div style={{border:"1px solid #e5e7eb",borderRadius:6,background:"#f9fafb",overflow:"hidden"}}>
+      <style>{`.kh-rte ul,.kh-rte ol{padding-left:28px;margin:4px 0}.kh-rte li{margin:2px 0}.kh-rte ul ul,.kh-rte ol ol,.kh-rte ul ol,.kh-rte ol ul{padding-left:20px}`}</style>
       <div style={{display:"flex",gap:3,padding:"4px 6px",borderBottom:"1px solid #f3f4f6",background:"#fff",flexWrap:"wrap"}}>
         <button onMouseDown={e=>{e.preventDefault();exec("bold");}} style={btnStyle({fontWeight:700})}>B</button>
         <button onMouseDown={e=>{e.preventDefault();exec("italic");}} style={btnStyle({fontStyle:"italic"})}>I</button>
         <button onMouseDown={e=>{e.preventDefault();exec("underline");}} style={btnStyle({textDecoration:"underline"})}>U</button>
         <button onMouseDown={e=>{e.preventDefault();exec("insertUnorderedList");}} style={btnStyle({})}>• List</button>
         <button onMouseDown={e=>{e.preventDefault();exec("insertOrderedList");}} style={btnStyle({})}>1. List</button>
+        <button onMouseDown={e=>{e.preventDefault();exec("indent");}} style={btnStyle({})}>→</button>
+        <button onMouseDown={e=>{e.preventDefault();exec("outdent");}} style={btnStyle({})}>←</button>
       </div>
-      <div ref={ref} contentEditable suppressContentEditableWarning
+      <div ref={ref} contentEditable suppressContentEditableWarning className="kh-rte"
         onFocus={()=>{focused.current=true;}}
         onBlur={()=>{focused.current=false;onChange(ref.current.innerHTML);}}
         onInput={()=>onChange(ref.current.innerHTML)}
@@ -235,17 +238,27 @@ function RichTextEditor({value, onChange, minHeight=80}) {
   );
 }
 
-function ResizeHandle({onResize}) {
-  const dragging = useRef(false), startX = useRef(0);
+function ResizeHandle({currentWidth, onResizeLive, onResizeEnd}) {
+  const startX = useRef(0), startW = useRef(0);
   const onMouseDown = e => {
     e.preventDefault();
-    dragging.current=true; startX.current=e.clientX;
-    const onMove = e => { if(!dragging.current)return; const d=e.clientX-startX.current; startX.current=e.clientX; onResize(d); };
-    const onUp   = () => { dragging.current=false; document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
-    document.addEventListener("mousemove",onMove); document.addEventListener("mouseup",onUp);
+    startX.current = e.clientX;
+    startW.current = currentWidth;
+    const onMove = e => {
+      const w = Math.max(160, startW.current + (e.clientX - startX.current));
+      onResizeLive(w);
+    };
+    const onUp = e => {
+      const w = Math.max(160, startW.current + (e.clientX - startX.current));
+      onResizeEnd(w);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
   return <div onMouseDown={onMouseDown} title="Drag to resize"
-    style={{width:5,cursor:"col-resize",flexShrink:0,background:"transparent",transition:"background .15s",zIndex:10}}
+    style={{width:6,cursor:"col-resize",flexShrink:0,background:"transparent",transition:"background .1s",zIndex:10}}
     onMouseEnter={e=>e.currentTarget.style.background="#3b82f6"}
     onMouseLeave={e=>e.currentTarget.style.background="transparent"}/>;
 }
@@ -265,15 +278,100 @@ const ModalH = ({title,onClose}) => (
   </div>
 );
 
+// ─── APPROVER SEARCH ─────────────────────────────────────────────────────────
+function ApproverSearch({pool, existing, onSelect, onOpenTeam}) {
+  const [query, setQuery] = useState("");
+  const [open,  setOpen]  = useState(false);
+  const ref = useRef(null);
+  useEffect(()=>{
+    const handler = e => { if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return ()=>document.removeEventListener("mousedown", handler);
+  },[]);
+  const filtered = pool
+    .filter(c=>!existing.includes(c.name))
+    .filter(c=>!query || c.name.toLowerCase().includes(query.toLowerCase()) || (c.title||"").toLowerCase().includes(query.toLowerCase()));
+  return (
+    <div ref={ref} style={{position:"relative"}}>
+      <input value={query} onChange={e=>{setQuery(e.target.value);setOpen(true);}}
+        onFocus={()=>setOpen(true)} placeholder="Search approver…"
+        style={{...ss.input,width:"100%"}}/>
+      {open && (
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"#fff",
+          border:"1px solid #e5e7eb",borderRadius:6,zIndex:30,maxHeight:180,overflowY:"auto",
+          boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>
+          {filtered.length===0 && query && (
+            <div style={{padding:"8px 12px",fontSize:12,color:"#9ca3af",fontStyle:"italic"}}>No matches</div>
+          )}
+          {filtered.map(c=>(
+            <div key={c.name} onMouseDown={()=>{onSelect(c.name);setQuery("");setOpen(false);}}
+              style={{padding:"7px 12px",cursor:"pointer",fontSize:12,color:"#111827",borderBottom:"1px solid #f9fafb"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#f0f6ff"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <span style={{fontWeight:500}}>{c.name}</span>
+              {c.title&&<span style={{color:"#9ca3af",marginLeft:6}}>— {c.title}</span>}
+            </div>
+          ))}
+          <div onMouseDown={()=>{onOpenTeam();setOpen(false);}}
+            style={{padding:"7px 12px",cursor:"pointer",fontSize:12,color:"#2563eb",fontWeight:600,borderTop:"1px solid #f3f4f6"}}
+            onMouseEnter={e=>e.currentTarget.style.background="#f0f6ff"}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            + Add new contact
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CALENDAR PROJECT PANEL ───────────────────────────────────────────────────
+function CalendarProjectPanel({proj, data, onSelectTask, onClose}) {
+  const tasks = data.tasks.filter(t=>t.projectId===proj.id).sort((a,b)=>{
+    const order={"Urgent":0,"In Progress":1,"To Plan":2,"Waiting":3,"Done":4};
+    return (order[a.status]||0)-(order[b.status]||0);
+  });
+  return (
+    <div style={{width:320,flexShrink:0,borderLeft:"1px solid #e5e7eb",background:"#fff",display:"flex",flexDirection:"column",overflowY:"auto"}}>
+      <div style={{padding:"10px 14px",borderBottom:"1px solid #e5e7eb",background:"#f8faff",flexShrink:0,display:"flex",alignItems:"flex-start",gap:8}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginBottom:3}}>Project</div>
+          <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>{proj.title}</div>
+          <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{tasks.length} tasks</div>
+        </div>
+        <button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:2}}>×</button>
+      </div>
+      <div style={{overflowY:"auto",flex:1}}>
+        {tasks.map(t=>{
+          const c = SC[t.status];
+          const blocked = isBlocked(t, data.tasks);
+          return (
+            <div key={t.id} onClick={()=>onSelectTask(t.id)}
+              style={{padding:"8px 14px",borderBottom:"1px solid #f9fafb",cursor:"pointer"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#f8faff"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div style={{fontSize:12,color:"#111827",lineHeight:1.4,marginBottom:4}}>{t.title}</div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+                <Chip text={t.status} bg={c.bg} tx={c.tx} small/>
+                {blocked && <Chip text="⛔ Blocked" bg="#fee2e2" tx="#991b1b" small/>}
+                {t.dueDate && <DueChip date={t.dueDate}/>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── TASK DETAIL PANEL ────────────────────────────────────────────────────────
-function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask}) {
+function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenTeam}) {
   const task = data.tasks.find(t=>t.id===taskId);
   if (!task) return null;
   const proj = data.projects.find(p=>p.id===task.projectId);
   const projTasks = data.tasks.filter(t=>t.projectId===task.projectId&&t.id!==taskId);
   const blocked = isBlocked(task, data.tasks);
   const appr = approvalDisplay(task);
-  const [newApprName,setNewApprName] = useState("");
+  const [newApprName,setNewApprName] = useState(""); // kept for compatibility
 
   const upd = ch => saveTask(taskId, ch);
 
@@ -381,14 +479,13 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask}) {
               </div>
             );
           })}
-          <div style={{display:"flex",gap:4,marginTop:4}}>
-            <select value={newApprName} onChange={e=>setNewApprName(e.target.value)} style={{...ss.sel,flex:1}}>
-              <option value="">Select approver...</option>
-              {approverPool.filter(c=>!task.approvalChain.find(a=>a.name===c.name)).map(c=>(
-                <option key={c.name} value={c.name}>{c.name}{c.title?` — ${c.title}`:""}</option>
-              ))}
-            </select>
-            <button onClick={()=>{addApprover(newApprName);setNewApprName("");}} disabled={!newApprName} style={{...ss.btnPrimary,fontSize:11}}>Add</button>
+          <div style={{marginTop:4}}>
+            <ApproverSearch
+              pool={approverPool}
+              existing={task.approvalChain.map(a=>a.name)}
+              onSelect={name=>{addApprover(name);}}
+              onOpenTeam={onOpenTeam||(() => {})}
+            />
           </div>
         </Fld>
 
@@ -401,15 +498,12 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask}) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({data,filter,setFilter,selTask,setSelTask,saveTask,delTask,saveUiPref}) {
+function Dashboard({data,filter,setFilter,selTask,setSelTask,saveTask,delTask,saveUiPref,onOpenTeam}) {
   const cols = T_ST;
   const filtered = filter==="All" ? data.tasks : data.tasks.filter(t=>t.assignees.includes(filter));
-  const colWidths = data.uiPrefs?.dashColWidths || INIT_COL_WIDTHS;
-
-  const resizeCol = (col, delta) => {
-    const current = colWidths[col] || 250;
-    saveUiPref("dashColWidths", {...colWidths, [col]: Math.max(160, current+delta)});
-  };
+  const savedWidths = data.uiPrefs?.dashColWidths || INIT_COL_WIDTHS;
+  const [liveWidths, setLiveWidths] = useState(null);
+  const colWidths = liveWidths || savedWidths;
 
   return (
     <div style={{display:"flex",height:"100%",overflow:"hidden"}}>
@@ -432,7 +526,7 @@ function Dashboard({data,filter,setFilter,selTask,setSelTask,saveTask,delTask,sa
                   <div style={{padding:6,display:"flex",flexDirection:"column",gap:5,flex:1,overflowY:"auto",minHeight:0}}>
                     {colTasks.map(task=>{
                       const proj = data.projects.find(p=>p.id===task.projectId);
-                      const blocked = isBlocked(task, data.tasks);
+                      const blockingTask = isBlocked(task,data.tasks) ? data.tasks.find(t=>task.dependsOn.includes(t.id)&&t.status!=="Done") : null;
                       const appr = approvalDisplay(task);
                       const dstatus = ds(task.dueDate);
                       return (
@@ -442,8 +536,13 @@ function Dashboard({data,filter,setFilter,selTask,setSelTask,saveTask,delTask,sa
                           <div style={{fontSize:12,color:"#111827",lineHeight:1.4,marginBottom:6}}>{task.title}</div>
                           <div style={{display:"flex",flexWrap:"wrap",gap:3,alignItems:"center"}}>
                             {task.assignees.map(a=><Chip key={a} text={a} bg="#dbeafe" tx="#1e40af" small/>)}
-                            {blocked && <Chip text="⛔ Blocked" bg="#fee2e2" tx="#991b1b" small/>}
-                            {appr && !blocked && <Chip text="📋 Review" bg="#fef3c7" tx="#92400e" small/>}
+                            {blockingTask && (
+                              <span onClick={e=>{e.stopPropagation();setSelTask(blockingTask.id);}}
+                                style={{fontSize:9,fontWeight:600,padding:"1px 5px",borderRadius:10,background:"#fee2e2",color:"#991b1b",cursor:"pointer",display:"inline-block",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                                ⛔ {blockingTask.title}
+                              </span>
+                            )}
+                            {appr && !blockingTask && <Chip text="📋 Review" bg="#fef3c7" tx="#92400e" small/>}
                             {task.dueDate && dstatus && <span style={{marginLeft:"auto"}}><DueChip date={task.dueDate}/></span>}
                           </div>
                         </div>
@@ -451,23 +550,27 @@ function Dashboard({data,filter,setFilter,selTask,setSelTask,saveTask,delTask,sa
                     })}
                   </div>
                 </div>
-                <ResizeHandle onResize={d=>resizeCol(col,d)}/>
+                <ResizeHandle
+                  currentWidth={w}
+                  onResizeLive={nw=>setLiveWidths(prev=>({...(prev||savedWidths),[col]:nw}))}
+                  onResizeEnd={nw=>{setLiveWidths(null);saveUiPref("dashColWidths",{...savedWidths,[col]:nw});}}
+                />
               </div>
             );
           })}
         </div>
       </div>
-      {selTask && <TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={delTask} onOpenTask={setSelTask}/>}
+      {selTask && <TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={delTask} onOpenTask={setSelTask} onOpenTeam={onOpenTeam}/>}
     </div>
   );
 }
 
 // ─── CONTEXT PANEL ────────────────────────────────────────────────────────────
-function ContextPanel({proj,data,saveProject,addLog,onClose,width}) {
+function ContextPanel({proj,data,saveProject,addLog,onClose,panelWidth}) {
   const [addingLog,setAddingLog] = useState(false);
   const [logText,setLogText]     = useState("");
   return (
-    <div style={{flex:1,borderLeft:"1px solid #e5e7eb",display:"flex",flexDirection:"column",background:"#fff",minWidth:0}}>
+    <div style={{width:panelWidth||420,flexShrink:0,borderLeft:"1px solid #e5e7eb",display:"flex",flexDirection:"column",background:"#fff",overflow:"hidden"}}>
       <div style={{padding:"10px 14px",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:8,flexShrink:0,background:"#f8faff"}}>
         <span style={{fontSize:13,fontWeight:700,flex:1,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
         <button onClick={onClose} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:2}}>×</button>
@@ -504,7 +607,7 @@ function ContextPanel({proj,data,saveProject,addLog,onClose,width}) {
 }
 
 // ─── PROJECT ACCORDION ────────────────────────────────────────────────────────
-function ProjectAccordion({proj,data,expanded,onToggle,saveProject,saveTask,delTask,newTask,saveContact,newContact,delContact,addLog}) {
+function ProjectAccordion({proj,data,expanded,onToggle,saveProject,saveTask,delTask,newTask,saveContact,newContact,delContact,addLog,onOpenTeam}) {
   const [newContactF,setNCF] = useState({name:"",title:"",type:"internal",businessUnit:"",organization:"",externalType:"Media",notes:""});
   const [addingTask,setAddingTask] = useState(false);
   const [newTaskTitle,setNTT] = useState("");
@@ -620,7 +723,7 @@ function ProjectAccordion({proj,data,expanded,onToggle,saveProject,saveTask,delT
             </table>
             {selTask && data.tasks.find(t=>t.id===selTask)?.projectId===proj.id && (
               <div style={{marginTop:8,border:"1px solid #e5e7eb",borderRadius:8,overflow:"hidden"}}>
-                <TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}}/>
+                <TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask} onOpenTeam={onOpenTeam}/>
               </div>
             )}
             {addingTask ? (
@@ -645,20 +748,22 @@ function ProjectAccordion({proj,data,expanded,onToggle,saveProject,saveTask,delT
   );
 }
 
-function ProjectsView({data,saveProject,saveTask,delTask,newTask,saveContact,newContact,delContact,addLog,showAddProject,saveUiPref}) {
+function ProjectsView({data,saveProject,saveTask,delTask,newTask,saveContact,newContact,delContact,addLog,showAddProject,saveUiPref,onOpenTeam}) {
   const [expanded,setExpanded] = useState(null);
   const [filter,setFilter] = useState("all");
   const projects = data.projects.filter(p=>!p.archived);
   const filtered = filter==="all" ? projects : projects.filter(p=>p.status===filter);
   const activeProj = expanded ? data.projects.find(p=>p.id===expanded) : null;
-  const splitW = data.uiPrefs?.projectSplit || 360;
+  const savedSplit = data.uiPrefs?.projectSplit || 400;
+  const [liveSplit, setLiveSplit] = useState(null);
+  const splitW = liveSplit ?? savedSplit;
 
   const handleToggle = id => setExpanded(e => e===id ? null : id);
 
   return (
     <div style={{display:"flex",height:"100%",overflow:"hidden"}}>
-      {/* Left: fixed-width accordion list */}
-      <div style={{width:splitW,flexShrink:0,overflowY:"auto",padding:12,borderRight:"1px solid #e5e7eb"}}>
+      {/* Left: scrollable accordion list */}
+      <div style={{width:splitW,flexShrink:0,overflowY:"auto",padding:12,borderRight:"1px solid #e5e7eb",minWidth:200}}>
         <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
           {["all",...P_ST].map(s=>(
             <button key={s} onClick={()=>setFilter(s)} style={{...ss.btn,background:filter===s?"#1e40af":"#fff",color:filter===s?"#fff":"#374151",border:`1px solid ${filter===s?"#1e40af":"#e5e7eb"}`}}>
@@ -671,13 +776,21 @@ function ProjectsView({data,saveProject,saveTask,delTask,newTask,saveContact,new
           <ProjectAccordion key={p.id} proj={p} data={data} expanded={expanded===p.id}
             onToggle={()=>handleToggle(p.id)}
             saveProject={saveProject} saveTask={saveTask} delTask={delTask} newTask={newTask}
-            saveContact={saveContact} newContact={newContact} delContact={delContact} addLog={addLog}/>
+            saveContact={saveContact} newContact={newContact} delContact={delContact} addLog={addLog}
+            onOpenTeam={onOpenTeam}/>
         ))}
       </div>
-      {/* Resize handle */}
-      {activeProj && <ResizeHandle onResize={d=>saveUiPref("projectSplit", Math.max(240, splitW+d))}/>}
-      {/* Right: context panel */}
-      {activeProj && <ContextPanel proj={activeProj} data={data} saveProject={saveProject} addLog={addLog} onClose={()=>setExpanded(null)}/>}
+      {/* Resize handle — always visible */}
+      <ResizeHandle
+        currentWidth={splitW}
+        onResizeLive={nw=>setLiveSplit(Math.max(200,nw))}
+        onResizeEnd={nw=>{setLiveSplit(null);saveUiPref("projectSplit",Math.max(200,nw));}}
+      />
+      {/* Right: context panel or empty state */}
+      {activeProj
+        ? <ContextPanel proj={activeProj} data={data} saveProject={saveProject} addLog={addLog} onClose={()=>setExpanded(null)}/>
+        : <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af",fontSize:13,fontStyle:"italic"}}>Select a project to view context</div>
+      }
     </div>
   );
 }
@@ -737,6 +850,7 @@ function MyTasksView({data,saveTask,delTask}) {
 function CalendarView({data,calView,setCalView,saveTask,delTask}) {
   const [refDate,setRefDate] = useState(TODAY);
   const [selTask,setSelTask] = useState(null);
+  const [selProj,setSelProj] = useState(null); // for calendar project panel
   const yr = refDate.getFullYear(), mo = refDate.getMonth();
 
   const tasksByDate = useMemo(()=>{
@@ -817,13 +931,19 @@ function CalendarView({data,calView,setCalView,saveTask,delTask}) {
                     <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,flex:1}}>
                       {wk.map((day,di)=>{
                         const dStr=toStr(day), isToday=dStr===TODAY_STR, inMonth=day.getMonth()===m;
-                        const dayTasks=(tasksByDate[dStr]||[]).slice(0,3);
+                        const dayTasks=(tasksByDate[dStr]||[]).slice(0,4);
                         return (
-                          <div key={di} style={{padding:"3px 4px",background:isToday?"#eff6ff":inMonth?"#fff":"#fafafa",border:`1px solid ${isToday?"#3b82f6":"#f3f4f6"}`,borderRadius:3,minHeight:52}}>
+                          <div key={di} style={{padding:"3px 4px",background:isToday?"#eff6ff":inMonth?"#fff":"#fafafa",border:`1px solid ${isToday?"#3b82f6":"#f3f4f6"}`,borderRadius:3,minHeight:52,overflow:"hidden"}}>
                             <div style={{fontSize:11,fontWeight:isToday?700:400,color:inMonth?"#374151":"#d1d5db",marginBottom:2}}>{day.getDate()}</div>
                             {dayTasks.map(t=>{
+                              const proj=data.projects.find(p=>p.id===t.projectId);
                               const c=SC[t.status];
-                              return <div key={t.id} onClick={()=>setSelTask(selTask===t.id?null:t.id)} style={{fontSize:10,background:selTask===t.id?"#3b82f6":c.bg,color:selTask===t.id?"#fff":c.tx,borderRadius:2,padding:"1px 4px",marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}}>{t.title.slice(0,18)}</div>;
+                              return (
+                                <div key={t.id} onClick={()=>{setSelProj(t.projectId);setSelTask(null);}}
+                                  style={{fontSize:10,background:selProj===t.projectId?"#3b82f6":c.bg,color:selProj===t.projectId?"#fff":c.tx,borderRadius:2,padding:"2px 4px",marginBottom:2,cursor:"pointer",lineHeight:1.3,wordBreak:"break-word"}}>
+                                  {proj&&<span style={{opacity:0.7,marginRight:3}}>{proj.title.slice(0,12)}·</span>}{t.title}
+                                </div>
+                              );
                             })}
                           </div>
                         );
@@ -836,7 +956,8 @@ function CalendarView({data,calView,setCalView,saveTask,delTask}) {
           })}
         </div>
       </div>
-      {selTask && <TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}
+      {selTask && <TaskPanel taskId={selTask} data={data} onClose={()=>{setSelTask(null);}} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={id=>{setSelTask(id);setSelProj(null);}}/>}
+      {!selTask && selProj && (() => { const proj=data.projects.find(p=>p.id===selProj); return proj ? <CalendarProjectPanel proj={proj} data={data} onSelectTask={id=>{setSelTask(id);}} onClose={()=>setSelProj(null)}/> : null; })()}
       </div>
     );
   }
@@ -1155,8 +1276,8 @@ export default function App() {
 
       {/* Body */}
       <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-        {view==="dashboard" && <Dashboard data={data} filter={filter} setFilter={setFilter} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref}/>}
-        {view==="projects"  && <div style={{flex:1,overflow:"hidden",display:"flex"}}><ProjectsView data={data} saveProject={saveProject} saveTask={saveTask} delTask={delTask} newTask={newTask} saveContact={saveContact} newContact={newContact} delContact={delContact} addLog={addLog} showAddProject={()=>setModal("addProject")} saveUiPref={saveUiPref}/></div>}
+        {view==="dashboard" && <Dashboard data={data} filter={filter} setFilter={setFilter} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref} onOpenTeam={()=>setModal("team")}/>}
+        {view==="projects"  && <div style={{flex:1,overflow:"hidden",display:"flex"}}><ProjectsView data={data} saveProject={saveProject} saveTask={saveTask} delTask={delTask} newTask={newTask} saveContact={saveContact} newContact={newContact} delContact={delContact} addLog={addLog} showAddProject={()=>setModal("addProject")} saveUiPref={saveUiPref} onOpenTeam={()=>setModal("team")}/></div>}
         {view==="mytasks"   && <MyTasksView data={data} saveTask={saveTask} delTask={delTask}/>}
         {view==="calendar"  && <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}><CalendarView data={data} calView={calView} setCalView={setCalView} saveTask={saveTask} delTask={delTask}/></div>}
       </div>
