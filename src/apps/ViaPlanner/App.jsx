@@ -189,7 +189,8 @@ const INIT_TEMPLATES = [
 ];
 
 const INIT_COL_WIDTHS = {Urgent:250,"In Progress":250,"To Plan":250,Waiting:250,Done:250};
-const INIT_STATE = { teamMembers: INIT_TEAM, projects: IP, tasks: IT, contacts: [], templates: INIT_TEMPLATES, globalContacts: [], uiPrefs: { dashColWidths: INIT_COL_WIDTHS, projectSplit: 360 } };
+const INIT_MT_COL_WIDTHS = {Project:120,Task:260,Status:90,Due:90,Blocker:160};
+const INIT_STATE = { teamMembers: INIT_TEAM, projects: IP, tasks: IT, contacts: [], templates: INIT_TEMPLATES, globalContacts: [], uiPrefs: { dashColWidths: INIT_COL_WIDTHS, projectSplit: 360, myTasksColWidths: INIT_MT_COL_WIDTHS } };
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const ss = {
@@ -796,30 +797,66 @@ function ProjectsView({data,saveProject,saveTask,delTask,newTask,saveContact,new
 }
 
 // ─── MY TASKS ─────────────────────────────────────────────────────────────────
-function MyTasksView({data,saveTask,delTask}) {
+function MyTasksView({data,saveTask,delTask,saveUiPref}) {
   const [selTask,setSelTask] = useState(null);
   const [sortBy,setSortBy] = useState("status");
+  const [sortDir,setSortDir] = useState(1);
+  const savedWidths = data.uiPrefs?.myTasksColWidths || INIT_MT_COL_WIDTHS;
+  const [liveWidths,setLiveWidths] = useState(null);
+  const colWidths = liveWidths || savedWidths;
+
   const myTasks = data.tasks.filter(t=>t.assignees.includes("Karl")&&t.status!=="Done");
+
+  const handleSort = key => {
+    if(sortBy===key) setSortDir(d=>-d);
+    else { setSortBy(key); setSortDir(1); }
+  };
+
   const sorted = [...myTasks].sort((a,b)=>{
-    if(sortBy==="date") { if(!a.dueDate&&!b.dueDate)return 0; if(!a.dueDate)return 1; if(!b.dueDate)return -1; return a.dueDate.localeCompare(b.dueDate); }
-    const order = {"Urgent":0,"In Progress":1,"To Plan":2,"Waiting":3,"Done":4};
-    return (order[a.status]||0)-(order[b.status]||0);
+    let cmp=0;
+    if(sortBy==="date") { if(!a.dueDate&&!b.dueDate) cmp=0; else if(!a.dueDate) cmp=1; else if(!b.dueDate) cmp=-1; else cmp=a.dueDate.localeCompare(b.dueDate); }
+    else if(sortBy==="status") { const order={"Urgent":0,"In Progress":1,"To Plan":2,"Waiting":3,"Done":4}; cmp=(order[a.status]||0)-(order[b.status]||0); }
+    else if(sortBy==="title") { cmp=a.title.localeCompare(b.title); }
+    else if(sortBy==="project") { const pa=data.projects.find(p=>p.id===a.projectId)?.title||""; const pb=data.projects.find(p=>p.id===b.projectId)?.title||""; cmp=pa.localeCompare(pb); }
+    else if(sortBy==="blocker") { const ba=isBlocked(a,data.tasks)?1:0; const bb=isBlocked(b,data.tasks)?1:0; cmp=bb-ba; }
+    return cmp*sortDir;
   });
+
+  const COL_DEFS = [
+    {label:"Project",key:"project"},
+    {label:"Task",   key:"title"},
+    {label:"Status", key:"status"},
+    {label:"Due",    key:"date"},
+    {label:"Blocker",key:"blocker"},
+  ];
+
+  const mkResizeHandler = label => e => {
+    e.stopPropagation(); e.preventDefault();
+    const startX=e.clientX, startW=colWidths[label];
+    const onMove=e=>{ const nw=Math.max(60,startW+(e.clientX-startX)); setLiveWidths(prev=>({...(prev||savedWidths),[label]:nw})); };
+    const onUp=e=>{ const nw=Math.max(60,startW+(e.clientX-startX)); setLiveWidths(null); saveUiPref("myTasksColWidths",{...savedWidths,[label]:nw}); document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
+    document.addEventListener("mousemove",onMove);
+    document.addEventListener("mouseup",onUp);
+  };
 
   return (
     <div style={{display:"flex",height:"100%",overflow:"hidden"}}>
-      <div style={{flex:1,padding:12,overflowY:"auto"}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+      <div style={{flex:1,padding:12,overflowY:"auto",overflowX:"auto"}}>
+        <div style={{marginBottom:8}}>
           <span style={{fontSize:12,fontWeight:600,color:"#374151"}}>Karl's tasks ({myTasks.length} open)</span>
-          <div style={{marginLeft:"auto",display:"flex",gap:4}}>
-            {["status","date"].map(s=><button key={s} onClick={()=>setSortBy(s)} style={{...ss.btn,background:sortBy===s?"#1e40af":"#fff",color:sortBy===s?"#fff":"#374151",border:`1px solid ${sortBy===s?"#1e40af":"#e5e7eb"}`}}>Sort by {s}</button>)}
-          </div>
         </div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <table style={{borderCollapse:"collapse",fontSize:12,tableLayout:"fixed",width:"max-content",minWidth:"100%"}}>
           <thead>
             <tr style={{borderBottom:"2px solid #e5e7eb"}}>
-              {["Project","Task","Status","Due","Blocker"].map(h=>(
-                <th key={h} style={{textAlign:"left",padding:"4px 8px",fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>{h}</th>
+              {COL_DEFS.map(({label,key})=>(
+                <th key={label} onClick={()=>handleSort(key)}
+                  style={{position:"relative",width:colWidths[label],minWidth:colWidths[label],textAlign:"left",padding:"4px 8px",fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
+                  {label}{sortBy===key?(sortDir===1?" ▴":" ▾"):""}
+                  <div style={{position:"absolute",right:0,top:0,height:"100%",width:6,cursor:"col-resize",zIndex:5,background:"transparent",transition:"background .1s"}}
+                    onMouseDown={mkResizeHandler(label)}
+                    onMouseEnter={e=>e.currentTarget.style.background="#3b82f6"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}/>
+                </th>
               ))}
             </tr>
           </thead>
@@ -830,11 +867,11 @@ function MyTasksView({data,saveTask,delTask}) {
               return (
                 <tr key={task.id} onClick={()=>setSelTask(selTask===task.id?null:task.id)}
                   style={{borderBottom:"1px solid #f3f4f6",cursor:"pointer",background:selTask===task.id?"#f0f6ff":"transparent"}}>
-                  <td style={{padding:"6px 8px",color:"#6b7280",fontSize:11,whiteSpace:"nowrap"}}>{proj?.title}</td>
-                  <td style={{padding:"6px 8px",color:"#111827",fontWeight:500}}>{task.title}</td>
+                  <td style={{padding:"6px 8px",color:"#6b7280",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj?.title}</td>
+                  <td style={{padding:"6px 8px",color:"#111827",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</td>
                   <td style={{padding:"6px 8px",whiteSpace:"nowrap"}}><DotSt status={task.status}/></td>
                   <td style={{padding:"6px 8px",whiteSpace:"nowrap"}}>{task.dueDate?<DueChip date={task.dueDate}/>:<span style={{color:"#d1d5db"}}>—</span>}</td>
-                  <td style={{padding:"6px 8px"}}>{blocked?<Chip text="⛔ Blocked" bg="#fee2e2" tx="#991b1b" small/>:task.gate?<span style={{fontSize:10,color:"#9ca3af",fontStyle:"italic"}}>{task.gate.slice(0,30)}</span>:<span style={{color:"#d1d5db"}}>—</span>}</td>
+                  <td style={{padding:"6px 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{blocked?<Chip text="⛔ Blocked" bg="#fee2e2" tx="#991b1b" small/>:task.gate?<span style={{fontSize:10,color:"#9ca3af",fontStyle:"italic"}}>{task.gate.slice(0,30)}</span>:<span style={{color:"#d1d5db"}}>—</span>}</td>
                 </tr>
               );
             })}
@@ -1271,14 +1308,13 @@ export default function App() {
         <button onClick={()=>setModal("import")} style={{...ss.btn,fontSize:11,marginRight:4}}>From Notes</button>
         <button onClick={()=>setModal("team")} style={{...ss.btn,fontSize:11,marginRight:6}}>Team</button>
         <span style={{fontSize:10,color:saved?"#22c55e":"#9ca3af"}}>{saved?"✓ Saved":"..."}</span>
-        <button onClick={()=>{if(window.confirm("Reset all data to defaults?"))setData(INIT_STATE);}} title="Reset" style={{...ss.btn,marginLeft:6,fontSize:10,padding:"2px 6px"}}>↺</button>
       </div>
 
       {/* Body */}
       <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
         {view==="dashboard" && <Dashboard data={data} filter={filter} setFilter={setFilter} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref} onOpenTeam={()=>setModal("team")}/>}
         {view==="projects"  && <div style={{flex:1,overflow:"hidden",display:"flex"}}><ProjectsView data={data} saveProject={saveProject} saveTask={saveTask} delTask={delTask} newTask={newTask} saveContact={saveContact} newContact={newContact} delContact={delContact} addLog={addLog} showAddProject={()=>setModal("addProject")} saveUiPref={saveUiPref} onOpenTeam={()=>setModal("team")}/></div>}
-        {view==="mytasks"   && <MyTasksView data={data} saveTask={saveTask} delTask={delTask}/>}
+        {view==="mytasks"   && <MyTasksView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref}/>}
         {view==="calendar"  && <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}><CalendarView data={data} calView={calView} setCalView={setCalView} saveTask={saveTask} delTask={delTask}/></div>}
       </div>
 
