@@ -833,8 +833,8 @@ function MyTasksView({data,saveTask,delTask,saveUiPref}) {
   const mkResizeHandler = label => e => {
     e.stopPropagation(); e.preventDefault();
     const startX=e.clientX, startW=colWidths[label];
-    const onMove=e=>{ const nw=Math.max(60,startW+(e.clientX-startX)); setLiveWidths(prev=>({...(prev||savedWidths),[label]:nw})); };
-    const onUp=e=>{ const nw=Math.max(60,startW+(e.clientX-startX)); setLiveWidths(null); saveUiPref("myTasksColWidths",{...savedWidths,[label]:nw}); document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
+    const onMove=e=>{ const nw=Math.max(40,startW+(e.clientX-startX)); setLiveWidths(prev=>({...(prev||savedWidths),[label]:nw})); };
+    const onUp=e=>{ const nw=Math.max(40,startW+(e.clientX-startX)); setLiveWidths(null); saveUiPref("myTasksColWidths",{...savedWidths,[label]:nw}); document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
     document.addEventListener("mousemove",onMove);
     document.addEventListener("mouseup",onUp);
   };
@@ -845,12 +845,13 @@ function MyTasksView({data,saveTask,delTask,saveUiPref}) {
         <div style={{marginBottom:8}}>
           <span style={{fontSize:12,fontWeight:600,color:"#374151"}}>Karl's tasks ({myTasks.length} open)</span>
         </div>
-        <table style={{borderCollapse:"collapse",fontSize:12,tableLayout:"fixed",width:"max-content",minWidth:"100%"}}>
+        {(()=>{ const totalW=COL_DEFS.reduce((s,{label})=>s+colWidths[label],0); return (
+        <table style={{borderCollapse:"collapse",fontSize:12,tableLayout:"fixed",width:totalW}}>
           <thead>
             <tr style={{borderBottom:"2px solid #e5e7eb"}}>
               {COL_DEFS.map(({label,key})=>(
                 <th key={label} onClick={()=>handleSort(key)}
-                  style={{position:"relative",width:colWidths[label],minWidth:colWidths[label],textAlign:"left",padding:"4px 8px",fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
+                  style={{position:"relative",width:colWidths[label],textAlign:"left",padding:"4px 8px",fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
                   {label}{sortBy===key?(sortDir===1?" ▴":" ▾"):""}
                   <div style={{position:"absolute",right:0,top:0,height:"100%",width:6,cursor:"col-resize",zIndex:5,background:"transparent",transition:"background .1s"}}
                     onMouseDown={mkResizeHandler(label)}
@@ -876,7 +877,7 @@ function MyTasksView({data,saveTask,delTask,saveUiPref}) {
               );
             })}
           </tbody>
-        </table>
+        </table>); })()}
       </div>
       {selTask && <TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}}/>}
     </div>
