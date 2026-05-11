@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
-import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS.png";
+import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS1.png";
 import "./Hub.css";
 
 export default function Auth() {

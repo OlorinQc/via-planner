@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabase";
-import doorImg from "./assets/KarlOS_Door.png";
-import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS.png";
+import doorImg from "./assets/KarlOS_Door1.png";
+import doorNoKarlOSImg from "./assets/KarlOS_Door_NoKarlOS1.png";
 import "./Hub.css";
 
 const apps = [
