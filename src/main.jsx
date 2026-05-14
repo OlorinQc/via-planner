@@ -5,6 +5,7 @@ import { supabase } from "./supabase";
 import Auth from "./Auth";
 import Hub from "./Hub";
 import ViaPlanner from "./apps/ViaPlanner/App";
+import PalantirApp from "./apps/Palantir/App";
 
 function AppRouter({ unlocking }) {
   return (
@@ -12,6 +13,7 @@ function AppRouter({ unlocking }) {
       <Routes>
         <Route path="/" element={<Hub unlocking={unlocking} />} />
         <Route path="/planner" element={<ViaPlanner />} />
+        <Route path="/palantir" element={<PalantirApp />} />
         {/* /house will be added when House Manager is ready */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

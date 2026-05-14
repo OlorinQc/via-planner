@@ -23,6 +23,23 @@ const apps = [
     ),
   },
   {
+    id: "palantir",
+    title: "Palantír",
+    desc: "File control · deliverables · team workload",
+    route: "/palantir",
+    active: true,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <ellipse cx="12" cy="12" rx="9" ry="9" />
+        <ellipse cx="12" cy="12" rx="4" ry="4" />
+        <line x1="12" y1="3" x2="12" y2="8" />
+        <line x1="12" y1="16" x2="12" y2="21" />
+        <line x1="3" y1="12" x2="8" y2="12" />
+        <line x1="16" y1="12" x2="21" y2="12" />
+      </svg>
+    ),
+  },
+  {
     id: "house",
     title: "House Manager",
     desc: "Track renovations and maintenance.",
