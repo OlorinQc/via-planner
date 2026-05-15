@@ -192,12 +192,30 @@ function DeliverablePanel({dvId,data,onClose,saveDeliverable,delDeliverable,save
   const dv=data.deliverables?.find(d=>d.id===dvId);
   if(!dv)return null;
   const file=getFile(data.files,dv.fileId);
-  const dvTasks=data.tasks.filter(t=>t.deliverableId===dvId);
+  const dvTasksAll=data.tasks.filter(t=>t.deliverableId===dvId);
   const [selTask,setSelTask]=useState(null);
   const [addingTask,setAddingTask]=useState(false);
   const [newTaskTitle,setNTT]=useState('');
+  const [panelDragId,setPanelDragId]=useState(null);
+  const [panelDragOver,setPanelDragOver]=useState(null);
   const upd=ch=>saveDeliverable(dvId,ch);
   const people=allPeopleFrom(data);
+
+  // Ordered open tasks using dv.taskIds as the authority
+  const openDvTasks=useMemo(()=>{
+    const open=dvTasksAll.filter(t=>!isDone(t));
+    const ord=dv.taskIds||[];
+    return[...ord.map(id=>open.find(t=>t.id===id)).filter(Boolean),...open.filter(t=>!ord.includes(t.id))];
+  },[dvTasksAll,dv.taskIds]);
+
+  const dropPanelTask=(toTaskId)=>{
+    if(!panelDragId||panelDragId===toTaskId)return;
+    const base=[...new Set([...(dv.taskIds||[]),...dvTasksAll.map(t=>t.id)])];
+    const fi=base.indexOf(panelDragId),ti=base.indexOf(toTaskId);
+    if(fi!==-1&&ti!==-1){base.splice(fi,1);base.splice(ti,0,panelDragId);}
+    saveDeliverable(dvId,{taskIds:base});
+    setPanelDragId(null);setPanelDragOver(null);
+  };
   return(
     <div style={{width:400,flexShrink:0,borderLeft:`1px solid ${T.bd}`,background:T.s1,overflowY:'auto',maxHeight:'100%',display:'flex',flexDirection:'column'}}>
       <div style={{padding:'12px 14px',borderBottom:`1px solid ${T.bd}`,position:'sticky',top:0,background:T.s1,zIndex:5}}>
@@ -222,10 +240,28 @@ function DeliverablePanel({dvId,data,onClose,saveDeliverable,delDeliverable,save
         <Fld label="SharePoint Link"><Inp value={dv.sharePointUrl||''} onChange={v=>upd({sharePointUrl:v})} placeholder="https://viarailonline.sharepoint.com/…"/></Fld>
         <Fld label="Notes"><Inp value={dv.notes||''} onChange={v=>upd({notes:v})} placeholder="Notes…" rows={2}/></Fld>
         <div style={{borderTop:`1px solid ${T.bd}`,paddingTop:10,marginTop:4}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}><span style={ss.lbl}>TASKS ({dvTasks.filter(t=>!isDone(t)).length} open)</span><button onClick={()=>setAddingTask(true)} style={{...ss.btn,fontSize:10}}>+ Add task</button></div>
-          {addingTask&&<div style={{display:'flex',gap:4,marginBottom:8}}><input autoFocus value={newTaskTitle} onChange={e=>setNTT(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTaskTitle.trim()){newTask({title:newTaskTitle.trim(),fileId:dv.fileId,projectId:dv.fileId,deliverableId:dvId,assignees:['Karl'],status:'not_started',dueDate:null,dependsOn:[],dependencies:[],gate:'',notes:'',link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});setNTT('');setAddingTask(false);}if(e.key==='Escape')setAddingTask(false);}} placeholder="Task title…" style={{...ss.inp,flex:1}}/><button onClick={()=>setAddingTask(false)} style={ss.btn}>Cancel</button></div>}
-          {dvTasks.map(t=>(<div key={t.id} onClick={()=>setSelTask(selTask===t.id?null:t.id)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 0',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:isDone(t)?T.tx3:T.tx,textDecoration:isDone(t)?'line-through':'none',lineHeight:1.3,...wrap2}}>{t.title}</div><div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}><StatusDot map={TS} val={t.status}/>{t.dueDate&&<DueChip date={t.dueDate}/>}</div></div>{!isDone(t)&&<button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed'});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.25)',flexShrink:0}}>✓</button>}</div>))}
-          {selTask&&<div style={{marginTop:8,border:`1px solid ${T.bd}`,borderRadius:8,overflow:'hidden'}}><TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/></div>}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}><span style={ss.lbl}>TASKS ({openDvTasks.length} open)</span><button onClick={()=>setAddingTask(true)} style={{...ss.btn,fontSize:10}}>+ Add task</button></div>
+          {addingTask&&<div style={{display:'flex',gap:4,marginBottom:8}}><input autoFocus value={newTaskTitle} onChange={e=>setNTT(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTaskTitle.trim()){const newId=`p${Date.now()}`;newTask({id:newId,title:newTaskTitle.trim(),fileId:dv.fileId,projectId:dv.fileId,deliverableId:dvId,assignees:['Karl'],status:'not_started',dueDate:null,dependsOn:[],dependencies:[],gate:'',notes:'',link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});upd({taskIds:[...(dv.taskIds||[]),newId]});setNTT('');setAddingTask(false);}if(e.key==='Escape')setAddingTask(false);}} placeholder="Task title…" style={{...ss.inp,flex:1}}/><button onClick={()=>setAddingTask(false)} style={ss.btn}>Cancel</button></div>}
+          {openDvTasks.map(t=>{
+            const isOver=panelDragOver===t.id&&panelDragId!==t.id;
+            return(
+              <div key={t.id} style={{borderTop:isOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:panelDragId===t.id?0.4:1}}>
+                <div style={{display:'flex',alignItems:'center',gap:4,padding:'6px 0',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer'}}
+                  onDragOver={e=>{e.preventDefault();setPanelDragOver(t.id);}}
+                  onDragLeave={()=>setPanelDragOver(null)}
+                  onDrop={e=>{e.preventDefault();dropPanelTask(t.id);}}
+                >
+                  <span draggable onDragStart={e=>{e.stopPropagation();setPanelDragId(t.id);}} onDragEnd={()=>{setPanelDragId(null);setPanelDragOver(null);}} style={{color:T.tx3,fontSize:12,cursor:'grab',flexShrink:0,userSelect:'none',padding:'0 2px'}}>⠿</span>
+                  <div style={{flex:1,minWidth:0}} onClick={()=>setSelTask(selTask===t.id?null:t.id)}>
+                    <div style={{fontSize:11,color:isDone(t)?T.tx3:T.tx,textDecoration:isDone(t)?'line-through':'none',lineHeight:1.3,...wrap2}}>{t.title}</div>
+                    <div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}><StatusDot map={TS} val={t.status}/>{t.dueDate&&<DueChip date={t.dueDate}/>}</div>
+                  </div>
+                  {!isDone(t)&&<button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed'});upd({taskIds:(dv.taskIds||[]).filter(id=>id!==t.id)});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.25)',flexShrink:0}}>✓</button>}
+                </div>
+              </div>
+            );
+          })}
+          {selTask&&<div style={{marginTop:8,border:`1px solid ${T.bd}`,borderRadius:8,overflow:'hidden'}}><TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);upd({taskIds:(dv.taskIds||[]).filter(tid=>tid!==id)});setSelTask(null);}} onOpenTask={setSelTask}/></div>}
         </div>
         <button onClick={()=>{if(window.confirm(`Delete "${dv.title}"?`)){delDeliverable(dvId);onClose();}}} style={{width:'100%',padding:7,background:'transparent',border:`1px solid rgba(217,95,95,0.25)`,borderRadius:5,color:T.r,fontSize:11,cursor:'pointer',marginTop:12,fontFamily:T.font}}>Delete deliverable</button>
       </div>
@@ -350,6 +386,76 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
   const people=allPeopleFrom(data);
   const sens=SENS_C[file.sensitivity||'normal'];
 
+  // ── DRAG STATE ─────────────────────────────────────────────────────────────
+  const [dragInfo,setDragInfo]=useState(null); // {type:'task'|'deliverable', id, fromDvId}
+  const [dragOver,setDragOver]=useState(null); // {id} — item being hovered
+  const stopDrag=()=>{setDragInfo(null);setDragOver(null);};
+
+  // ── ORDERED LISTS (use stored order arrays, fall back to natural order) ────
+  const orderedDvList=useMemo(()=>{
+    const open=fileDeliverables.filter(d=>!isDoneDV(d));
+    const ord=file.deliverableOrder||[];
+    return[...ord.map(id=>open.find(d=>d.id===id)).filter(Boolean),...open.filter(d=>!ord.includes(d.id))];
+  },[fileDeliverables,file.deliverableOrder]);
+
+  const orderedStandalone=useMemo(()=>{
+    const tasks=fileTasks.filter(t=>!isDone(t)&&!t.deliverableId);
+    const ord=file.standaloneTaskOrder||[];
+    return[...ord.map(id=>tasks.find(t=>t.id===id)).filter(Boolean),...tasks.filter(t=>!ord.includes(t.id))];
+  },[fileTasks,file.standaloneTaskOrder]);
+
+  const getOrderedDvTasks=dv=>{
+    const dvTasks=fileTasks.filter(t=>t.deliverableId===dv.id&&!isDone(t));
+    const ord=dv.taskIds||[];
+    return[...ord.map(id=>dvTasks.find(t=>t.id===id)).filter(Boolean),...dvTasks.filter(t=>!ord.includes(t.id))];
+  };
+
+  // ── DROP HANDLERS ──────────────────────────────────────────────────────────
+  // Reorder tasks within same scope (dv-to-dv or standalone-to-standalone)
+  const dropOnTask=(toTaskId,toDvId)=>{
+    if(!dragInfo||dragInfo.type!=='task'||dragInfo.id===toTaskId||dragInfo.fromDvId!==toDvId){stopDrag();return;}
+    if(toDvId){
+      const dv=(data.deliverables||[]).find(d=>d.id===toDvId);
+      const dvTasks=fileTasks.filter(t=>t.deliverableId===toDvId);
+      const base=[...new Set([...(dv?.taskIds||[]),...dvTasks.map(t=>t.id)])];
+      const fi=base.indexOf(dragInfo.id),ti=base.indexOf(toTaskId);
+      if(fi!==-1&&ti!==-1){base.splice(fi,1);base.splice(ti,0,dragInfo.id);}
+      saveDeliverable(toDvId,{taskIds:base});
+    } else {
+      const tasks=fileTasks.filter(t=>!isDone(t)&&!t.deliverableId);
+      const base=[...new Set([...(file.standaloneTaskOrder||[]),...tasks.map(t=>t.id)])];
+      const fi=base.indexOf(dragInfo.id),ti=base.indexOf(toTaskId);
+      if(fi!==-1&&ti!==-1){base.splice(fi,1);base.splice(ti,0,dragInfo.id);}
+      saveFile(file.id,{standaloneTaskOrder:base});
+    }
+    stopDrag();
+  };
+
+  // Reorder deliverables OR link a task to a deliverable
+  const dropOnDeliverable=(toDvId)=>{
+    if(!dragInfo){stopDrag();return;}
+    if(dragInfo.type==='deliverable'&&dragInfo.id!==toDvId){
+      const open=fileDeliverables.filter(d=>!isDoneDV(d)).map(d=>d.id);
+      const base=[...new Set([...(file.deliverableOrder||[]),...open])];
+      const fi=base.indexOf(dragInfo.id),ti=base.indexOf(toDvId);
+      if(fi!==-1&&ti!==-1){base.splice(fi,1);base.splice(ti,0,dragInfo.id);}
+      saveFile(file.id,{deliverableOrder:base});
+    } else if(dragInfo.type==='task'&&dragInfo.fromDvId!==toDvId){
+      // Unlink from source
+      if(dragInfo.fromDvId){
+        const srcDv=(data.deliverables||[]).find(d=>d.id===dragInfo.fromDvId);
+        if(srcDv)saveDeliverable(dragInfo.fromDvId,{taskIds:(srcDv.taskIds||[]).filter(id=>id!==dragInfo.id)});
+      } else {
+        saveFile(file.id,{standaloneTaskOrder:(file.standaloneTaskOrder||[]).filter(id=>id!==dragInfo.id)});
+      }
+      // Link to target
+      const toDv=(data.deliverables||[]).find(d=>d.id===toDvId);
+      if(toDv)saveDeliverable(toDvId,{taskIds:[...(toDv.taskIds||[]),dragInfo.id]});
+      saveTask(dragInfo.id,{deliverableId:toDvId});
+    }
+    stopDrag();
+  };
+
   const saveRisk=(rid,ch)=>saveFile(file.id,{risks:risks.map(r=>r.id===rid?{...r,...ch}:r)});
   const delRisk=rid=>saveFile(file.id,{risks:risks.filter(r=>r.id!==rid)});
   const saveQ=(qid,ch)=>saveFile(file.id,{openQuestions:questions.map(q=>q.id===qid?{...q,...ch}:q)});
@@ -410,7 +516,38 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
             badge={openDVs.length?`${openDVs.length} open · ${fileDeliverables.filter(isDoneDV).length} done`:null}
             action={<><button onClick={()=>setShowTemplateModal(true)} style={{...ss.btn,fontSize:9,padding:'2px 7px',color:T.acc}}>From template</button><button onClick={()=>setAddingDv(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button></>}
           />
-          {isOpen('deliverables')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingDv&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Title" mb={0}><Inp value={newDvForm.title} onChange={v=>setNewDvForm(x=>({...x,title:v}))} placeholder="Deliverable name"/></Fld><Fld label="Type" mb={0}><select value={newDvForm.type} onChange={e=>setNewDvForm(x=>({...x,type:e.target.value}))} style={ss.sel}>{DELIVERABLE_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></Fld><Fld label="Owner" mb={0}><select value={newDvForm.ownerName} onChange={e=>setNewDvForm(x=>({...x,ownerName:e.target.value}))} style={ss.sel}><option value="">—</option>{people.map(m=><option key={m}>{m}</option>)}</select></Fld><Fld label="Status" mb={0}><select value={newDvForm.status} onChange={e=>setNewDvForm(x=>({...x,status:e.target.value}))} style={ss.sel}>{DELIVERABLE_STATUS_OPTS.map(s=><option key={s} value={s}>{DVS[s]?.label||s}</option>)}</select></Fld></div><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newDvForm.title.trim()){newDeliverable({...newDvForm,fileId:file.id,taskIds:[],sharePointUrl:'',notes:'',approvalStatus:'not_required',approverNames:[],supportNames:[],dueDate:null,publicationDate:null,createdAt:TODAY_STR,updatedAt:TODAY_STR});setNewDvForm({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});setAddingDv(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingDv(false)} style={ss.btn}>Cancel</button></div></div>)}{fileDeliverables.length===0&&!addingDv&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'10px 0',textAlign:'center'}}>No deliverables yet. Add one manually or use a template.</div>}{fileDeliverables.filter(d=>!isDoneDV(d)).map(dv=>{const dvTasks=data.tasks.filter(t=>t.deliverableId===dv.id);const openT=dvTasks.filter(t=>!isDone(t)).length;return(<div key={dv.id} onClick={()=>setSelDv(selDv===dv.id?null:dv.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',border:`1px solid ${selDv===dv.id?T.acc:T.bd}`,borderRadius:6,marginBottom:5,cursor:'pointer',background:selDv===dv.id?T.s3:T.s2}} onMouseEnter={e=>{if(selDv!==dv.id)e.currentTarget.style.borderColor=T.bd2;}} onMouseLeave={e=>{if(selDv!==dv.id)e.currentTarget.style.borderColor=T.bd;}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:3,...wrap2}}>{dv.title}</div><div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}><StatusDot map={DVS} val={dv.status}/>{dv.type&&<Chip text={dvLabel(dv.type)} bg={T.s1} tx={T.acc2} small/>}{dv.ownerName&&<Chip text={dv.ownerName} bg="rgba(91,156,246,0.09)" tx={T.acc} small/>}{dv.dueDate&&<FlexChip fd={dv.dueDate}/>}{dv.approvalStatus==='pending'&&<Chip text="Approval pending" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div><div style={{textAlign:'right',flexShrink:0}}><div style={{fontSize:10,color:T.tx3}}>{openT}t</div></div></div>);})}
+          {isOpen('deliverables')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingDv&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Title" mb={0}><Inp value={newDvForm.title} onChange={v=>setNewDvForm(x=>({...x,title:v}))} placeholder="Deliverable name"/></Fld><Fld label="Type" mb={0}><select value={newDvForm.type} onChange={e=>setNewDvForm(x=>({...x,type:e.target.value}))} style={ss.sel}>{DELIVERABLE_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></Fld><Fld label="Owner" mb={0}><select value={newDvForm.ownerName} onChange={e=>setNewDvForm(x=>({...x,ownerName:e.target.value}))} style={ss.sel}><option value="">—</option>{people.map(m=><option key={m}>{m}</option>)}</select></Fld><Fld label="Status" mb={0}><select value={newDvForm.status} onChange={e=>setNewDvForm(x=>({...x,status:e.target.value}))} style={ss.sel}>{DELIVERABLE_STATUS_OPTS.map(s=><option key={s} value={s}>{DVS[s]?.label||s}</option>)}</select></Fld></div><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newDvForm.title.trim()){newDeliverable({...newDvForm,fileId:file.id,taskIds:[],sharePointUrl:'',notes:'',approvalStatus:'not_required',approverNames:[],supportNames:[],dueDate:null,publicationDate:null,createdAt:TODAY_STR,updatedAt:TODAY_STR});setNewDvForm({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});setAddingDv(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingDv(false)} style={ss.btn}>Cancel</button></div></div>)}{fileDeliverables.length===0&&!addingDv&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'10px 0',textAlign:'center'}}>No deliverables yet. Add one manually or use a template.</div>}{orderedDvList.map(dv=>{
+            const openT=data.tasks.filter(t=>t.deliverableId===dv.id&&!isDone(t)).length;
+            const isTaskDragTarget=dragInfo?.type==='task'&&dragOver?.id===dv.id;
+            const isDvReorderTarget=dragInfo?.type==='deliverable'&&dragOver?.id===dv.id&&dragInfo.id!==dv.id;
+            const isSelf=dragInfo?.type==='deliverable'&&dragInfo.id===dv.id;
+            return(
+              <div key={dv.id}
+                draggable
+                onDragStart={e=>{e.stopPropagation();setDragInfo({type:'deliverable',id:dv.id});}}
+                onDragEnd={stopDrag}
+                onDragOver={e=>{e.preventDefault();setDragOver({id:dv.id});}}
+                onDragLeave={()=>setDragOver(null)}
+                onDrop={e=>{e.preventDefault();dropOnDeliverable(dv.id);}}
+                onClick={()=>setSelDv(selDv===dv.id?null:dv.id)}
+                style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',border:`1px solid ${isTaskDragTarget?T.acc:isDvReorderTarget?T.y:selDv===dv.id?T.acc:T.bd}`,borderRadius:6,marginBottom:5,cursor:'pointer',background:isSelf?'rgba(91,156,246,0.04)':isTaskDragTarget?'rgba(91,156,246,0.06)':selDv===dv.id?T.s3:T.s2,opacity:isSelf?0.45:1,transition:'border-color .1s,background .1s'}}
+              >
+                <span style={{color:T.tx3,fontSize:13,cursor:'grab',flexShrink:0,userSelect:'none'}} onClick={e=>e.stopPropagation()}>⠿</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:3,...wrap2}}>{dv.title}</div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+                    <StatusDot map={DVS} val={dv.status}/>
+                    {dv.type&&<Chip text={dvLabel(dv.type)} bg={T.s1} tx={T.acc2} small/>}
+                    {dv.ownerName&&<Chip text={dv.ownerName} bg="rgba(91,156,246,0.09)" tx={T.acc} small/>}
+                    {dv.dueDate&&<FlexChip fd={dv.dueDate}/>}
+                    {dv.approvalStatus==='pending'&&<Chip text="Approval pending" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}
+                    {isTaskDragTarget&&<Chip text="↙ drop to link" bg="rgba(91,156,246,0.15)" tx={T.acc} small/>}
+                  </div>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}><div style={{fontSize:10,color:T.tx3}}>{openT}t</div></div>
+              </div>
+            );
+          })}
           {fileDeliverables.filter(isDoneDV).length>0&&<details style={{marginTop:6}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileDeliverables.filter(isDoneDV).length})</summary>{fileDeliverables.filter(isDoneDV).map(dv=>(<div key={dv.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...trunc}}>{dv.title}</span><StatusDot map={DVS} val={dv.status}/></div>))}</details>}</div>)}
 
           {/* ── TASKS ── */}
@@ -419,8 +556,12 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
             action={<button onClick={()=>setAddingTask(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button>}
           />
           {isOpen('tasks')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingTask&&<div style={{display:'flex',gap:4,marginBottom:10}}><input autoFocus value={newTaskTitle} onChange={e=>setNTT(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTaskTitle.trim()){newTask({title:newTaskTitle.trim(),fileId:file.id,projectId:file.id,assignees:['Karl'],status:'not_started',dueDate:null,dependsOn:[],dependencies:[],gate:'',notes:'',link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});setNTT('');setAddingTask(false);}if(e.key==='Escape')setAddingTask(false);}} placeholder="Task title…" style={{...ss.inp,flex:1}}/><button onClick={()=>setAddingTask(false)} style={ss.btn}>Cancel</button></div>}
-          {(data.deliverables||[]).filter(d=>d.fileId===file.id).map(dv=>{const dvTasks=fileTasks.filter(t=>t.deliverableId===dv.id&&!isDone(t));if(!dvTasks.length)return null;return(<div key={dv.id} style={{marginBottom:10}}><div style={{fontSize:9,fontWeight:700,color:T.acc,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4,paddingLeft:2,...trunc}}>↳ {dv.title}</div>{dvTasks.map(task=><TaskRow key={task.id} task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/>)}</div>);})}
-          {fileTasks.filter(t=>!isDone(t)&&!t.deliverableId).length>0&&(<div style={{marginBottom:10}}>{(data.deliverables||[]).filter(d=>d.fileId===file.id).length>0&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4,paddingLeft:2}}>File tasks</div>}{fileTasks.filter(t=>!isDone(t)&&!t.deliverableId).map(task=><TaskRow key={task.id} task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/>)}</div>)}
+          {orderedDvList.map(dv=>{const dvTasks=getOrderedDvTasks(dv);if(!dvTasks.length)return null;return(<div key={dv.id} style={{marginBottom:10}}><div
+            onDragOver={e=>{e.preventDefault();setDragOver({id:dv.id+'hdr'});}}
+            onDragLeave={()=>setDragOver(null)}
+            onDrop={e=>{e.preventDefault();dropOnDeliverable(dv.id);}}
+            style={{fontSize:9,fontWeight:700,color:dragInfo?.type==='task'&&dragOver?.id===dv.id+'hdr'?T.acc:T.acc,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4,paddingLeft:2,paddingRight:4,paddingTop:2,paddingBottom:2,borderRadius:3,background:dragInfo?.type==='task'&&dragOver?.id===dv.id+'hdr'?'rgba(91,156,246,0.12)':'transparent',display:'inline-block',...trunc}}>↳ {dv.title}{dragInfo?.type==='task'&&dragOver?.id===dv.id+'hdr'?' ↙ link':''}</div>{dvTasks.map(task=>{const isOver=dragOver?.id===task.id&&dragInfo?.type==='task'&&dragInfo.fromDvId===dv.id;return(<div key={task.id} style={{borderTop:isOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragInfo?.id===task.id?0.4:1}}><div style={{display:'flex',alignItems:'flex-start'}}><span draggable onDragStart={e=>{e.stopPropagation();setDragInfo({type:'task',id:task.id,fromDvId:dv.id});}} onDragEnd={stopDrag} style={{color:T.tx3,fontSize:12,cursor:'grab',padding:'8px 4px 0 2px',flexShrink:0,userSelect:'none'}}>⠿</span><div style={{flex:1}} onDragOver={e=>{e.preventDefault();setDragOver({id:task.id});}} onDragLeave={()=>setDragOver(null)} onDrop={e=>{e.preventDefault();dropOnTask(task.id,dv.id);}}><TaskRow task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/></div></div></div>);})}</div>);})}
+          {orderedStandalone.length>0&&(<div style={{marginBottom:10}}>{orderedDvList.length>0&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4,paddingLeft:2}}>File tasks</div>}{orderedStandalone.map(task=>{const isOver=dragOver?.id===task.id&&dragInfo?.type==='task'&&!dragInfo.fromDvId;return(<div key={task.id} style={{borderTop:isOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragInfo?.id===task.id?0.4:1}}><div style={{display:'flex',alignItems:'flex-start'}}><span draggable onDragStart={e=>{e.stopPropagation();setDragInfo({type:'task',id:task.id,fromDvId:null});}} onDragEnd={stopDrag} style={{color:T.tx3,fontSize:12,cursor:'grab',padding:'8px 4px 0 2px',flexShrink:0,userSelect:'none'}}>⠿</span><div style={{flex:1}} onDragOver={e=>{e.preventDefault();setDragOver({id:task.id});}} onDragLeave={()=>setDragOver(null)} onDrop={e=>{e.preventDefault();dropOnTask(task.id,null);}}><TaskRow task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/></div></div></div>);})}</div>)}
           {fileTasks.filter(isDone).length>0&&<details style={{marginTop:6}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileTasks.filter(isDone).length})</summary>{fileTasks.filter(isDone).map(task=><div key={task.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...wrap2,textDecoration:'line-through'}}>{task.title}</span><StatusDot map={TS} val={task.status}/></div>)}</details>}
           {selTask&&<div style={{marginTop:10,border:`1px solid ${T.bd}`,borderRadius:8,overflow:'hidden'}}><TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/></div>}</div>)}
 
