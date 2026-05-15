@@ -276,7 +276,9 @@ function TaskRow({task,data,selTask,setSelTask,saveTask}){
 
 // ─── FILE PAGE ────────────────────────────────────────────────────────────────
 function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate}){
-  const [tab,setTab]=useState('memory');
+  const [open,setOpen]=useState(()=>new Set(['memory','deliverables','tasks','issues','milestones','links','log']));
+  const toggle=id=>setOpen(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const isOpen=id=>open.has(id);
   const [selTask,setSelTask]=useState(null);
   const [selDv,setSelDv]=useState(null);
   const [addingTask,setAddingTask]=useState(false);
@@ -312,28 +314,26 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
   const people=allPeopleFrom(data);
   const sens=SENS_C[file.sensitivity||'normal'];
 
-  const TABS=[
-    {id:'memory',    label:'Memory'},
-    {id:'deliverables',label:`Deliverables${openDVs.length?` (${openDVs.length})`:''}` },
-    {id:'tasks',     label:`Tasks${openTasks.length?` (${openTasks.length})`:''}` },
-    {id:'issues',    label:`Risks & Questions${(openRisks.length+openQs.length)?` (${openRisks.length+openQs.length})`:''}` },
-    {id:'milestones',label:'Milestones'},
-    {id:'links',     label:'Links'},
-    {id:'log',       label:`Log${(file.log||[]).length?` (${(file.log||[]).length})`:''}` },
-  ];
-
-  const tabBtn=id=>({padding:'5px 10px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',color:tab===id?T.acc:T.tx3,borderBottom:`2px solid ${tab===id?T.acc:'transparent'}`,background:'transparent',transition:'color .1s',fontFamily:T.font,whiteSpace:'nowrap'});
-
   const saveRisk=(rid,ch)=>saveFile(file.id,{risks:risks.map(r=>r.id===rid?{...r,...ch}:r)});
   const delRisk=rid=>saveFile(file.id,{risks:risks.filter(r=>r.id!==rid)});
   const saveQ=(qid,ch)=>saveFile(file.id,{openQuestions:questions.map(q=>q.id===qid?{...q,...ch}:q)});
   const delQ=qid=>saveFile(file.id,{openQuestions:questions.filter(q=>q.id!==qid)});
 
+  // Accordion header
+  const AHead=({id,label,badge,badgeColor,action})=>(
+    <div onClick={()=>toggle(id)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 16px',cursor:'pointer',background:isOpen(id)?T.s2:T.s1,borderBottom:`1px solid ${T.bd}`,position:'sticky',top:0,zIndex:4,userSelect:'none',flexShrink:0}}>
+      <span style={{fontSize:8,color:T.tx3,display:'inline-block',transform:isOpen(id)?'rotate(90deg)':'rotate(0deg)',transition:'transform .15s',flexShrink:0}}>▶</span>
+      <span style={{fontSize:12,fontWeight:600,color:isOpen(id)?T.acc:T.tx,flex:1,fontFamily:T.font}}>{label}</span>
+      {badge!=null&&<span style={{fontSize:10,color:badgeColor||T.tx3,flexShrink:0}}>{badge}</span>}
+      {action&&<div onClick={e=>e.stopPropagation()} style={{display:'flex',gap:4,flexShrink:0}}>{action}</div>}
+    </div>
+  );
+
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
       {/* Header */}
-      <div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`,background:T.hdr,flexShrink:0}}>
-        <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:8}}>
+      <div style={{padding:'11px 14px',borderBottom:`1px solid ${T.bd}`,background:T.hdr,flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:7}}>
           <div style={{flex:1,minWidth:0}}>
             {editingTitle
               ?<input autoFocus value={titleVal} onChange={e=>setTitleVal(e.target.value)} onBlur={()=>{saveFile(file.id,{title:titleVal});setEditingTitle(false);}} onKeyDown={e=>{if(e.key==='Enter'){saveFile(file.id,{title:titleVal});setEditingTitle(false);}if(e.key==='Escape')setEditingTitle(false);}} style={{...ss.inp,fontSize:15,fontWeight:700,background:'transparent',borderColor:T.acc,width:'100%'}}/>
@@ -341,22 +341,17 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
             }
           </div>
           <div style={{display:'flex',gap:4,flexShrink:0,alignItems:'center'}}>
-            {file.archived
-              ?<button onClick={()=>saveFile(file.id,{archived:false,archivedAt:null})} style={{...ss.btn,fontSize:10,color:T.g}}>Restore</button>
-              :<button onClick={()=>{if(window.confirm(`Archive "${file.title}"?`))saveFile(file.id,{archived:true,archivedAt:TODAY_STR});}} style={{...ss.btn,fontSize:10}}>Archive</button>
-            }
+            {file.archived?<button onClick={()=>saveFile(file.id,{archived:false,archivedAt:null})} style={{...ss.btn,fontSize:10,color:T.g}}>Restore</button>:<button onClick={()=>{if(window.confirm(`Archive "${file.title}"?`))saveFile(file.id,{archived:true,archivedAt:TODAY_STR});}} style={{...ss.btn,fontSize:10}}>Archive</button>}
             <button onClick={onClose} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:20,color:T.tx3,lineHeight:1,padding:0}}>×</button>
           </div>
         </div>
-        {/* Badges */}
-        <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:8,alignItems:'center'}}>
+        <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:7,alignItems:'center'}}>
           <StatusDot map={FS} val={file.status}/>
           <StatusDot map={FH} val={file.health}/>
           <StatusDot map={FP} val={file.priority}/>
           {file.lead&&<span style={{fontSize:10,color:T.tx2,padding:'2px 7px',borderRadius:10,background:T.s2,border:`1px solid ${T.bd}`,maxWidth:120,...trunc}}>👤 {file.lead}</span>}
           {file.sensitivity&&file.sensitivity!=='normal'&&<span style={{fontSize:10,fontWeight:600,color:sens.color,padding:'2px 7px',borderRadius:10,background:`${sens.color}15`,border:`1px solid ${sens.color}30`}}>{sens.label}</span>}
         </div>
-        {/* Meta row */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:5}}>
           <Fld label="Status" mb={0}><select value={file.status} onChange={e=>saveFile(file.id,{status:e.target.value})} style={ss.sel}>{FILE_STATUS_OPTS.map(s=><option key={s} value={s}>{FS[s]?.label||s}</option>)}</select></Fld>
           <Fld label="Health" mb={0}><select value={file.health||'unknown'} onChange={e=>saveFile(file.id,{health:e.target.value})} style={ss.sel}>{HEALTH_OPTS.map(s=><option key={s} value={s}>{FH[s]?.label||s}</option>)}</select></Fld>
@@ -364,30 +359,41 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
           <Fld label="Sensitivity" mb={0}><select value={file.sensitivity||'normal'} onChange={e=>saveFile(file.id,{sensitivity:e.target.value})} style={ss.sel}>{SENSITIVITY_OPTS.map(s=><option key={s} value={s}>{SENS_C[s]?.label||s}</option>)}</select></Fld>
         </div>
       </div>
-      {/* Tabs */}
-      <div style={{display:'flex',gap:0,borderBottom:`1px solid ${T.bd}`,background:T.s1,flexShrink:0,paddingLeft:4,overflowX:'auto'}}>
-        {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={tabBtn(t.id)}>{t.label}</button>)}
-      </div>
-      {/* Content + optional side panel */}
+      {/* Accordion content + optional side panel */}
       <div style={{flex:1,overflow:'hidden',display:'flex'}}>
-        <div style={{flex:1,overflowY:'auto',padding:'14px 16px'}}>
+        <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column'}}>
 
           {/* ── MEMORY ── */}
-          {tab==='memory'&&(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><span style={ss.lbl}>CURRENT FILE STATE</span><button onClick={()=>setAddingLog(true)} style={{...ss.btn,fontSize:10}}>+ Log entry</button></div><RichTextEditor value={file.memory||""} onChange={v=>saveFile(file.id,{memory:v})} minHeight={200}/>{file.latestUpdate&&<div style={{marginTop:10,padding:'8px 10px',background:T.s2,borderRadius:5,borderLeft:`2px solid ${T.acc}50`}}><span style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',display:'block',marginBottom:2}}>Latest update</span><span style={{fontSize:12,color:T.tx2}}>{file.latestUpdate}</span></div>}{addingLog&&(<div style={{marginTop:14,border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px'}}><Fld label="Entry title"><Inp value={logTitle} onChange={setLogTitle} placeholder="What changed?"/></Fld><Fld label="Summary" mb={6}><Inp value={logText} onChange={setLogText} placeholder="Describe what changed and who confirmed it…" rows={3}/></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(logText.trim()){addLogEntry(file.id,logText,logTitle||'Update');setLogText('');setLogTitle('');setAddingLog(false);}}} style={ss.btnP}>Add entry</button><button onClick={()=>{setAddingLog(false);setLogText('');setLogTitle('');}} style={ss.btn}>Cancel</button></div></div>)}<button onClick={()=>setTab('log')} style={{...ss.btn,marginTop:10,fontSize:10,color:T.tx3}}>View log ({(file.log||[]).length} entries) →</button></div>)}
+          <AHead id="memory" label="Memory"
+            action={<button onClick={()=>setAddingLog(true)} style={{...ss.btn,fontSize:9,padding:'2px 7px'}}>+ Log entry</button>}
+          />
+          {isOpen('memory')&&(<div style={{padding:'14px 16px',borderBottom:`1px solid ${T.bd}`}}><RichTextEditor value={file.memory||""} onChange={v=>saveFile(file.id,{memory:v})} minHeight={180}/>{file.latestUpdate&&<div style={{marginTop:10,padding:'8px 10px',background:T.s2,borderRadius:5,borderLeft:`2px solid ${T.acc}50`}}><span style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',display:'block',marginBottom:2}}>Latest update</span><span style={{fontSize:12,color:T.tx2}}>{file.latestUpdate}</span></div>}{addingLog&&(<div style={{marginTop:12,border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px'}}><Fld label="Entry title"><Inp value={logTitle} onChange={setLogTitle} placeholder="What changed?"/></Fld><Fld label="Summary" mb={6}><Inp value={logText} onChange={setLogText} placeholder="Describe what changed and who confirmed it…" rows={3}/></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(logText.trim()){addLogEntry(file.id,logText,logTitle||'Update');setLogText('');setLogTitle('');setAddingLog(false);}}} style={ss.btnP}>Add</button><button onClick={()=>{setAddingLog(false);setLogText('');setLogTitle('');}} style={ss.btn}>Cancel</button></div></div>)}</div>)}
 
           {/* ── DELIVERABLES ── */}
-          {tab==='deliverables'&&(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={{fontSize:11,color:T.tx2}}>{openDVs.length} open · {fileDeliverables.filter(isDoneDV).length} done</span><div style={{display:'flex',gap:4}}><button onClick={()=>setShowTemplateModal(true)} style={{...ss.btn,fontSize:10,color:T.acc,borderColor:'rgba(91,156,246,0.3)'}}>From template</button><button onClick={()=>setAddingDv(true)} style={ss.btnP}>+ Add</button></div></div>{addingDv&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Title" mb={0}><Inp value={newDvForm.title} onChange={v=>setNewDvForm(x=>({...x,title:v}))} placeholder="Deliverable name"/></Fld><Fld label="Type" mb={0}><select value={newDvForm.type} onChange={e=>setNewDvForm(x=>({...x,type:e.target.value}))} style={ss.sel}>{DELIVERABLE_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></Fld><Fld label="Owner" mb={0}><select value={newDvForm.ownerName} onChange={e=>setNewDvForm(x=>({...x,ownerName:e.target.value}))} style={ss.sel}><option value="">—</option>{people.map(m=><option key={m}>{m}</option>)}</select></Fld><Fld label="Status" mb={0}><select value={newDvForm.status} onChange={e=>setNewDvForm(x=>({...x,status:e.target.value}))} style={ss.sel}>{DELIVERABLE_STATUS_OPTS.map(s=><option key={s} value={s}>{DVS[s]?.label||s}</option>)}</select></Fld></div><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newDvForm.title.trim()){newDeliverable({...newDvForm,fileId:file.id,taskIds:[],sharePointUrl:'',notes:'',approvalStatus:'not_required',approverNames:[],supportNames:[],dueDate:null,publicationDate:null,createdAt:TODAY_STR,updatedAt:TODAY_STR});setNewDvForm({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});setAddingDv(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingDv(false)} style={ss.btn}>Cancel</button></div></div>)}{fileDeliverables.length===0&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'20px 0',textAlign:'center'}}>No deliverables yet. Add one manually or use a template.</div>}{fileDeliverables.filter(d=>!isDoneDV(d)).map(dv=>{const dvTasks=data.tasks.filter(t=>t.deliverableId===dv.id);const openT=dvTasks.filter(t=>!isDone(t)).length;return(<div key={dv.id} onClick={()=>setSelDv(selDv===dv.id?null:dv.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',border:`1px solid ${selDv===dv.id?T.acc:T.bd}`,borderRadius:6,marginBottom:5,cursor:'pointer',background:selDv===dv.id?T.s3:T.s2}} onMouseEnter={e=>{if(selDv!==dv.id)e.currentTarget.style.borderColor=T.bd2;}} onMouseLeave={e=>{if(selDv!==dv.id)e.currentTarget.style.borderColor=T.bd;}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:4,...wrap2}}>{dv.title}</div><div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}><StatusDot map={DVS} val={dv.status}/>{dv.type&&<Chip text={dvLabel(dv.type)} bg={T.s1} tx={T.acc2} small/>}{dv.ownerName&&<Chip text={dv.ownerName} bg="rgba(91,156,246,0.09)" tx={T.acc} small/>}{dv.dueDate&&<FlexChip fd={dv.dueDate}/>}{dv.approvalStatus==='pending'&&<Chip text="Approval pending" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div><div style={{textAlign:'right',flexShrink:0}}><div style={{fontSize:10,color:T.tx3}}>{openT} task{openT!==1?'s':''}</div></div></div>);})}
-          {fileDeliverables.filter(isDoneDV).length>0&&<details style={{marginTop:8}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileDeliverables.filter(isDoneDV).length})</summary>{fileDeliverables.filter(isDoneDV).map(dv=>(<div key={dv.id} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...trunc}}>{dv.title}</span><StatusDot map={DVS} val={dv.status}/></div>))}</details>}</div>)}
+          <AHead id="deliverables" label="Deliverables"
+            badge={openDVs.length?`${openDVs.length} open · ${fileDeliverables.filter(isDoneDV).length} done`:null}
+            action={<><button onClick={()=>setShowTemplateModal(true)} style={{...ss.btn,fontSize:9,padding:'2px 7px',color:T.acc}}>From template</button><button onClick={()=>setAddingDv(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button></>}
+          />
+          {isOpen('deliverables')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingDv&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Title" mb={0}><Inp value={newDvForm.title} onChange={v=>setNewDvForm(x=>({...x,title:v}))} placeholder="Deliverable name"/></Fld><Fld label="Type" mb={0}><select value={newDvForm.type} onChange={e=>setNewDvForm(x=>({...x,type:e.target.value}))} style={ss.sel}>{DELIVERABLE_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></Fld><Fld label="Owner" mb={0}><select value={newDvForm.ownerName} onChange={e=>setNewDvForm(x=>({...x,ownerName:e.target.value}))} style={ss.sel}><option value="">—</option>{people.map(m=><option key={m}>{m}</option>)}</select></Fld><Fld label="Status" mb={0}><select value={newDvForm.status} onChange={e=>setNewDvForm(x=>({...x,status:e.target.value}))} style={ss.sel}>{DELIVERABLE_STATUS_OPTS.map(s=><option key={s} value={s}>{DVS[s]?.label||s}</option>)}</select></Fld></div><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newDvForm.title.trim()){newDeliverable({...newDvForm,fileId:file.id,taskIds:[],sharePointUrl:'',notes:'',approvalStatus:'not_required',approverNames:[],supportNames:[],dueDate:null,publicationDate:null,createdAt:TODAY_STR,updatedAt:TODAY_STR});setNewDvForm({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});setAddingDv(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingDv(false)} style={ss.btn}>Cancel</button></div></div>)}{fileDeliverables.length===0&&!addingDv&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'10px 0',textAlign:'center'}}>No deliverables yet. Add one manually or use a template.</div>}{fileDeliverables.filter(d=>!isDoneDV(d)).map(dv=>{const dvTasks=data.tasks.filter(t=>t.deliverableId===dv.id);const openT=dvTasks.filter(t=>!isDone(t)).length;return(<div key={dv.id} onClick={()=>setSelDv(selDv===dv.id?null:dv.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',border:`1px solid ${selDv===dv.id?T.acc:T.bd}`,borderRadius:6,marginBottom:5,cursor:'pointer',background:selDv===dv.id?T.s3:T.s2}} onMouseEnter={e=>{if(selDv!==dv.id)e.currentTarget.style.borderColor=T.bd2;}} onMouseLeave={e=>{if(selDv!==dv.id)e.currentTarget.style.borderColor=T.bd;}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:3,...wrap2}}>{dv.title}</div><div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}><StatusDot map={DVS} val={dv.status}/>{dv.type&&<Chip text={dvLabel(dv.type)} bg={T.s1} tx={T.acc2} small/>}{dv.ownerName&&<Chip text={dv.ownerName} bg="rgba(91,156,246,0.09)" tx={T.acc} small/>}{dv.dueDate&&<FlexChip fd={dv.dueDate}/>}{dv.approvalStatus==='pending'&&<Chip text="Approval pending" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div><div style={{textAlign:'right',flexShrink:0}}><div style={{fontSize:10,color:T.tx3}}>{openT}t</div></div></div>);})}
+          {fileDeliverables.filter(isDoneDV).length>0&&<details style={{marginTop:6}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileDeliverables.filter(isDoneDV).length})</summary>{fileDeliverables.filter(isDoneDV).map(dv=>(<div key={dv.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...trunc}}>{dv.title}</span><StatusDot map={DVS} val={dv.status}/></div>))}</details>}</div>)}
 
           {/* ── TASKS ── */}
-          {tab==='tasks'&&(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={{fontSize:11,color:T.tx2}}>{openTasks.length} open · {fileTasks.filter(isDone).length} done</span><button onClick={()=>setAddingTask(true)} style={ss.btnP}>+ Add task</button></div>{addingTask&&<div style={{display:'flex',gap:4,marginBottom:10}}><input autoFocus value={newTaskTitle} onChange={e=>setNTT(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTaskTitle.trim()){newTask({title:newTaskTitle.trim(),fileId:file.id,projectId:file.id,assignees:['Karl'],status:'not_started',dueDate:null,dependsOn:[],dependencies:[],gate:'',notes:'',link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});setNTT('');setAddingTask(false);}if(e.key==='Escape')setAddingTask(false);}} placeholder="Task title…" style={{...ss.inp,flex:1}}/><button onClick={()=>setAddingTask(false)} style={ss.btn}>Cancel</button></div>}
+          <AHead id="tasks" label="Tasks"
+            badge={openTasks.length?`${openTasks.length} open · ${fileTasks.filter(isDone).length} done`:null}
+            action={<button onClick={()=>setAddingTask(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button>}
+          />
+          {isOpen('tasks')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingTask&&<div style={{display:'flex',gap:4,marginBottom:10}}><input autoFocus value={newTaskTitle} onChange={e=>setNTT(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTaskTitle.trim()){newTask({title:newTaskTitle.trim(),fileId:file.id,projectId:file.id,assignees:['Karl'],status:'not_started',dueDate:null,dependsOn:[],dependencies:[],gate:'',notes:'',link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});setNTT('');setAddingTask(false);}if(e.key==='Escape')setAddingTask(false);}} placeholder="Task title…" style={{...ss.inp,flex:1}}/><button onClick={()=>setAddingTask(false)} style={ss.btn}>Cancel</button></div>}
           {(data.deliverables||[]).filter(d=>d.fileId===file.id).map(dv=>{const dvTasks=fileTasks.filter(t=>t.deliverableId===dv.id&&!isDone(t));if(!dvTasks.length)return null;return(<div key={dv.id} style={{marginBottom:10}}><div style={{fontSize:9,fontWeight:700,color:T.acc,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4,paddingLeft:2,...trunc}}>↳ {dv.title}</div>{dvTasks.map(task=><TaskRow key={task.id} task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/>)}</div>);})}
           {fileTasks.filter(t=>!isDone(t)&&!t.deliverableId).length>0&&(<div style={{marginBottom:10}}>{(data.deliverables||[]).filter(d=>d.fileId===file.id).length>0&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4,paddingLeft:2}}>File tasks</div>}{fileTasks.filter(t=>!isDone(t)&&!t.deliverableId).map(task=><TaskRow key={task.id} task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/>)}</div>)}
-          {fileTasks.filter(isDone).length>0&&<details style={{marginTop:8}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileTasks.filter(isDone).length})</summary>{fileTasks.filter(isDone).map(task=><div key={task.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...wrap2,textDecoration:'line-through'}}>{task.title}</span><StatusDot map={TS} val={task.status}/></div>)}</details>}
+          {fileTasks.filter(isDone).length>0&&<details style={{marginTop:6}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileTasks.filter(isDone).length})</summary>{fileTasks.filter(isDone).map(task=><div key={task.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...wrap2,textDecoration:'line-through'}}>{task.title}</span><StatusDot map={TS} val={task.status}/></div>)}</details>}
           {selTask&&<div style={{marginTop:10,border:`1px solid ${T.bd}`,borderRadius:8,overflow:'hidden'}}><TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/></div>}</div>)}
 
           {/* ── RISKS & OPEN QUESTIONS ── */}
-          {tab==='issues'&&(<div>
+          <AHead id="issues" label="Risks & Questions"
+            badge={(openRisks.length+openQs.length)?`${openRisks.length} risk${openRisks.length!==1?'s':''} · ${openQs.length} question${openQs.length!==1?'s':''}`:null}
+            badgeColor={openRisks.length?T.r:T.tx3}
+          />
+          {isOpen('issues')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>
             {/* Risks */}
             <div style={{marginBottom:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><span style={ss.lbl}>RISKS & ISSUES ({openRisks.length} open)</span><button onClick={()=>setAddingRisk(true)} style={ss.btnP}>+ Add risk</button></div>
@@ -455,17 +461,29 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
           </div>)}
 
           {/* ── MILESTONES ── */}
-          {tab==='milestones'&&(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={ss.lbl}>KEY MILESTONES & DATES</span><button onClick={()=>setAddingMilestone(true)} style={ss.btnP}>+ Add milestone</button></div>{addingMilestone&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Title" mb={0}><Inp value={newMilestone.title} onChange={v=>setNM(x=>({...x,title:v}))} placeholder="Milestone name"/></Fld><Fld label="Date (optional)" mb={0}><input type="date" value={newMilestone.date} onChange={e=>setNM(x=>({...x,date:e.target.value}))} style={ss.inp}/></Fld></div><Fld label="Status" mb={8}><select value={newMilestone.status} onChange={e=>setNM(x=>({...x,status:e.target.value}))} style={ss.sel}>{MILESTONE_STATUS.map(s=><option key={s} value={s}>{MS_LABEL[s]}</option>)}</select></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newMilestone.title.trim()){saveFile(file.id,{milestones:[...(file.milestones||[]),{id:uid(),...newMilestone}]});setNM({title:'',status:'not_started',date:''});setAddingMilestone(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingMilestone(false)} style={ss.btn}>Cancel</button></div></div>)}{(file.milestones||[]).length===0&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic'}}>No milestones yet.</div>}{(file.milestones||[]).map(m=>(<div key={m.id} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderBottom:`1px solid ${T.bd3}`}}><span style={{flex:1,fontSize:12,color:m.status==='completed'?T.tx3:T.tx,textDecoration:m.status==='completed'?'line-through':'none',wordBreak:'break-word'}}>{m.title}</span>{m.date&&<DueChip date={m.date}/>}<select value={m.status} onChange={e=>saveFile(file.id,{milestones:(file.milestones||[]).map(x=>x.id===m.id?{...x,status:e.target.value}:x)})} style={{...ss.sel,width:'auto',fontSize:10,padding:'2px 6px',flexShrink:0}}>{MILESTONE_STATUS.map(s=><option key={s} value={s}>{MS_LABEL[s]}</option>)}</select><button onClick={()=>saveFile(file.id,{milestones:(file.milestones||[]).filter(x=>x.id!==m.id)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:13,flexShrink:0}}>×</button></div>))}</div>)}
+          <AHead id="milestones" label="Milestones"
+            badge={(file.milestones||[]).filter(m=>m.status!=='completed').length||null}
+            action={<button onClick={()=>setAddingMilestone(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button>}
+          />
+          {isOpen('milestones')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingMilestone&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Title" mb={0}><Inp value={newMilestone.title} onChange={v=>setNM(x=>({...x,title:v}))} placeholder="Milestone name"/></Fld><Fld label="Date (optional)" mb={0}><input type="date" value={newMilestone.date} onChange={e=>setNM(x=>({...x,date:e.target.value}))} style={ss.inp}/></Fld></div><Fld label="Status" mb={8}><select value={newMilestone.status} onChange={e=>setNM(x=>({...x,status:e.target.value}))} style={ss.sel}>{MILESTONE_STATUS.map(s=><option key={s} value={s}>{MS_LABEL[s]}</option>)}</select></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newMilestone.title.trim()){saveFile(file.id,{milestones:[...(file.milestones||[]),{id:uid(),...newMilestone}]});setNM({title:'',status:'not_started',date:''});setAddingMilestone(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingMilestone(false)} style={ss.btn}>Cancel</button></div></div>)}{(file.milestones||[]).length===0&&!addingMilestone&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic'}}>No milestones yet.</div>}{(file.milestones||[]).map(m=>(<div key={m.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 8px',borderBottom:`1px solid ${T.bd3}`}}><span style={{flex:1,fontSize:12,color:m.status==='completed'?T.tx3:T.tx,textDecoration:m.status==='completed'?'line-through':'none',wordBreak:'break-word'}}>{m.title}</span>{m.date&&<DueChip date={m.date}/>}<select value={m.status} onChange={e=>saveFile(file.id,{milestones:(file.milestones||[]).map(x=>x.id===m.id?{...x,status:e.target.value}:x)})} style={{...ss.sel,width:'auto',fontSize:10,padding:'2px 6px',flexShrink:0}}>{MILESTONE_STATUS.map(s=><option key={s} value={s}>{MS_LABEL[s]}</option>)}</select><button onClick={()=>saveFile(file.id,{milestones:(file.milestones||[]).filter(x=>x.id!==m.id)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:13,flexShrink:0}}>×</button></div>))}</div>)}
 
           {/* ── LINKS ── */}
-          {tab==='links'&&(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={ss.lbl}>SHAREPOINT LINKS</span><button onClick={()=>setAddingLink(true)} style={ss.btnP}>+ Add link</button></div>{addingLink&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Label" mb={0}><Inp value={newLink.label} onChange={v=>setNL(x=>({...x,label:v}))} placeholder="e.g. SharePoint folder"/></Fld><Fld label="Type" mb={0}><select value={newLink.type} onChange={e=>setNL(x=>({...x,type:e.target.value}))} style={ss.sel}>{LINK_TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}</select></Fld></div><Fld label="URL" mb={8}><Inp value={newLink.url} onChange={v=>setNL(x=>({...x,url:v}))} placeholder="https://viarailonline.sharepoint.com/…"/></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newLink.url.trim()){saveFile(file.id,{sharePointLinks:[...(file.sharePointLinks||[]),{id:uid(),createdAt:TODAY_STR,...newLink}]});setNL({label:'',url:'',type:'folder'});setAddingLink(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingLink(false)} style={ss.btn}>Cancel</button></div></div>)}{(file.sharePointLinks||[]).length===0&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic'}}>No links yet.</div>}{(file.sharePointLinks||[]).map(lnk=>(<div key={lnk.id} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',border:`1px solid ${T.bd}`,borderRadius:5,marginBottom:5,background:T.s2}}><div style={{flex:1,minWidth:0}}><a href={lnk.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:T.acc,fontWeight:500,display:'block',marginBottom:2,...trunc}}>{lnk.label||lnk.url}</a><span style={{fontSize:9,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px'}}>{(lnk.type||'folder').replace(/_/g,' ')}</span></div><button onClick={()=>saveFile(file.id,{sharePointLinks:(file.sharePointLinks||[]).filter(l=>l.id!==lnk.id)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:13,flexShrink:0}}>×</button></div>))}</div>)}
+          <AHead id="links" label="SharePoint Links"
+            badge={(file.sharePointLinks||[]).length||null}
+            action={<button onClick={()=>setAddingLink(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button>}
+          />
+          {isOpen('links')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>{addingLink&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}><Fld label="Label" mb={0}><Inp value={newLink.label} onChange={v=>setNL(x=>({...x,label:v}))} placeholder="e.g. SharePoint folder"/></Fld><Fld label="Type" mb={0}><select value={newLink.type} onChange={e=>setNL(x=>({...x,type:e.target.value}))} style={ss.sel}>{LINK_TYPES.map(t=><option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}</select></Fld></div><Fld label="URL" mb={8}><Inp value={newLink.url} onChange={v=>setNL(x=>({...x,url:v}))} placeholder="https://viarailonline.sharepoint.com/…"/></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(newLink.url.trim()){saveFile(file.id,{sharePointLinks:[...(file.sharePointLinks||[]),{id:uid(),createdAt:TODAY_STR,...newLink}]});setNL({label:'',url:'',type:'folder'});setAddingLink(false);}}} style={ss.btnP}>Add</button><button onClick={()=>setAddingLink(false)} style={ss.btn}>Cancel</button></div></div>)}{(file.sharePointLinks||[]).length===0&&!addingLink&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic'}}>No links yet.</div>}{(file.sharePointLinks||[]).map(lnk=>(<div key={lnk.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 8px',border:`1px solid ${T.bd}`,borderRadius:5,marginBottom:5,background:T.s2}}><div style={{flex:1,minWidth:0}}><a href={lnk.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:T.acc,fontWeight:500,display:'block',marginBottom:2,...trunc}}>{lnk.label||lnk.url}</a><span style={{fontSize:9,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px'}}>{(lnk.type||'folder').replace(/_/g,' ')}</span></div><button onClick={()=>saveFile(file.id,{sharePointLinks:(file.sharePointLinks||[]).filter(l=>l.id!==lnk.id)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:13,flexShrink:0}}>×</button></div>))}</div>)}
 
           {/* ── LOG ── */}
-          {tab==='log'&&(<div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}><span style={ss.lbl}>CHANGE LOG</span><button onClick={()=>setAddingLog(true)} style={ss.btnP}>+ Add entry</button></div>{addingLog&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><Fld label="Title"><Inp value={logTitle} onChange={setLogTitle} placeholder="What changed?"/></Fld><Fld label="Summary" mb={6}><Inp value={logText} onChange={setLogText} placeholder="Describe what changed and who confirmed it…" rows={3}/></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(logText.trim()){addLogEntry(file.id,logText,logTitle||'Update');setLogText('');setLogTitle('');setAddingLog(false);}}} style={ss.btnP}>Add</button><button onClick={()=>{setAddingLog(false);setLogText('');setLogTitle('');}} style={ss.btn}>Cancel</button></div></div>)}{(file.log||[]).length===0&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic'}}>No log entries yet.</div>}{(file.log||[]).map(entry=>(<div key={entry.id} style={{padding:'10px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:3}}><span style={{fontSize:11,fontWeight:600,color:T.tx,...trunc,maxWidth:'70%'}}>{entry.title||'Update'}</span><span style={{fontSize:10,color:T.tx3,fontFamily:T.mono,flexShrink:0}}>{fmt(entry.date)}</span></div><p style={{margin:0,fontSize:12,color:T.tx2,lineHeight:1.6,wordBreak:'break-word'}}>{entry.summary}</p></div>))}</div>)}
+          <AHead id="log" label="Change Log"
+            badge={(file.log||[]).length||null}
+            action={<button onClick={()=>setAddingLog(true)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Add</button>}
+          />
+          {isOpen('log')&&(<div style={{padding:'12px 16px'}}>{addingLog&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}><Fld label="Title"><Inp value={logTitle} onChange={setLogTitle} placeholder="What changed?"/></Fld><Fld label="Summary" mb={6}><Inp value={logText} onChange={setLogText} placeholder="Describe what changed and who confirmed it…" rows={3}/></Fld><div style={{display:'flex',gap:4}}><button onClick={()=>{if(logText.trim()){addLogEntry(file.id,logText,logTitle||'Update');setLogText('');setLogTitle('');setAddingLog(false);}}} style={ss.btnP}>Add</button><button onClick={()=>{setAddingLog(false);setLogText('');setLogTitle('');}} style={ss.btn}>Cancel</button></div></div>)}{(file.log||[]).length===0&&!addingLog&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic'}}>No log entries yet.</div>}{(file.log||[]).map(entry=>(<div key={entry.id} style={{padding:'9px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:3}}><span style={{fontSize:11,fontWeight:600,color:T.tx,...trunc,maxWidth:'70%'}}>{entry.title||'Update'}</span><span style={{fontSize:10,color:T.tx3,fontFamily:T.mono,flexShrink:0}}>{fmt(entry.date)}</span></div><p style={{margin:0,fontSize:12,color:T.tx2,lineHeight:1.6,wordBreak:'break-word'}}>{entry.summary}</p></div>))}</div>)}
         </div>
 
-        {/* Side panel for deliverable detail */}
-        {selDv&&tab==='deliverables'&&(<DeliverablePanel dvId={selDv} data={data} onClose={()=>setSelDv(null)} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} saveTask={saveTask} delTask={delTask} newTask={newTask}/>)}
+        {/* Side panel — shows whenever a deliverable is selected, regardless of section */}
+        {selDv&&(<DeliverablePanel dvId={selDv} data={data} onClose={()=>setSelDv(null)} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} saveTask={saveTask} delTask={delTask} newTask={newTask}/>)}
       </div>
       {showTemplateModal&&<ApplyTemplateModal file={file} data={data} onClose={()=>setShowTemplateModal(false)} onApply={applyTemplate}/>}
     </div>
@@ -620,8 +638,36 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask}){
     return(<div style={{display:'flex',height:'100%',overflow:'hidden'}}><div style={{flex:1,padding:10,display:'flex',flexDirection:'column',overflow:'hidden'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,flexShrink:0}}><button onClick={()=>setRefDate(d=>{const x=new Date(d);x.setDate(d.getDate()-7);return x;})} style={ss.btn}>‹</button><span style={{fontSize:13,fontWeight:600,color:T.tx}}>{fmt(toStr(days[0]))} – {fmt(toStr(days[6]))}</span><button onClick={()=>setRefDate(d=>{const x=new Date(d);x.setDate(d.getDate()+7);return x;})} style={ss.btn}>›</button><button onClick={()=>setRefDate(TODAY)} style={{...ss.btn,fontSize:10}}>Today</button></div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,flex:1,minHeight:0,overflow:'auto'}}>{days.map((day,di)=>{const dStr=toStr(day),isToday=dStr===TODAY_STR;const dayTasks=tasksByDate[dStr]||[];const dayDVs=dvsByDate[dStr]||[];return(<div key={di} style={{background:isToday?'rgba(91,156,246,0.06)':T.s1,border:`1px solid ${isToday?T.acc:T.bd}`,borderRadius:5,padding:'7px',display:'flex',flexDirection:'column'}}><div style={{fontSize:11,fontWeight:700,color:isToday?T.acc:T.tx2,marginBottom:4,flexShrink:0}}>{WD[di]}<br/><span style={{fontSize:13}}>{day.getDate()}</span></div><div style={{flex:1,overflowY:'auto',minHeight:0}}>{dayDVs.map(d=><div key={d.id} style={{background:'rgba(212,146,42,0.10)',borderRadius:3,padding:'2px 5px',marginBottom:2,fontSize:9,color:T.y,fontWeight:600,...trunc}}>{dvLabel(d.type)}: {d.title}</div>)}{dayTasks.map(t=>{const file=fileForTask(t);return(<div key={t.id} onClick={()=>setSelTask(selTask===t.id?null:t.id)} style={{background:selTask===t.id?T.s3:T.s2,border:`1px solid ${selTask===t.id?T.acc:T.bd}`,borderRadius:3,padding:'3px 5px',marginBottom:2,cursor:'pointer'}}>{file&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,...trunc}}>{file.title}</div>}<div style={{fontSize:10,color:T.tx,lineHeight:1.3,wordBreak:'break-word'}}>{t.title}</div></div>);})}</div></div>);})} </div></div>{selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}</div>);
   }
 
-  const wks=weeksOfMonth(yr,mo);
-  return(<div style={{display:'flex',height:'100%',overflow:'hidden'}}><div style={{flex:1,padding:10,display:'flex',flexDirection:'column',overflow:'hidden'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,flexShrink:0}}><button onClick={()=>setRefDate(d=>{const x=new Date(d);x.setMonth(d.getMonth()-1);return x;})} style={ss.btn}>‹</button><span style={{fontSize:13,fontWeight:600,color:T.tx}}>{MONTHS_FULL[mo]} {yr}</span><button onClick={()=>setRefDate(d=>{const x=new Date(d);x.setMonth(d.getMonth()+1);return x;})} style={ss.btn}>›</button></div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,marginBottom:2,flexShrink:0}}>{WD.map(d=><div key={d} style={{fontSize:10,fontWeight:700,color:T.tx3,textAlign:'center',padding:'2px 0'}}>{d}</div>)}</div><div style={{flex:1,display:'flex',flexDirection:'column',gap:1,overflow:'auto'}}>{wks.map((wk,wi)=>(<div key={wi} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,flex:1}}>{wk.map((day,di)=>{const dStr=toStr(day),isToday=dStr===TODAY_STR,inMonth=day.getMonth()===mo;const dayTasks=(tasksByDate[dStr]||[]).slice(0,2);const dayDVs=(dvsByDate[dStr]||[]).slice(0,1);return(<div key={di} style={{padding:'3px 3px',background:isToday?'rgba(91,156,246,0.06)':inMonth?T.s1:T.s2,border:`1px solid ${isToday?T.acc:T.bd3}`,borderRadius:3,minHeight:50,overflow:'hidden'}}><div style={{fontSize:10,fontWeight:isToday?700:400,color:inMonth?T.tx2:T.tx3,marginBottom:1}}>{day.getDate()}</div>{dayDVs.map(d=><div key={d.id} style={{fontSize:9,background:'rgba(212,146,42,0.12)',color:T.y,borderRadius:2,padding:'1px 3px',marginBottom:1,...trunc}}>{d.title}</div>)}{dayTasks.map(t=>{const ts=TS[t.status];return(<div key={t.id} onClick={()=>setSelTask(selTask===t.id?null:t.id)} style={{fontSize:9,background:ts?.bg||T.s2,color:ts?.tx||T.tx2,borderRadius:2,padding:'1px 3px',marginBottom:1,cursor:'pointer',...trunc}}>{t.title}</div>);})}</div>);})}</div>))}</div></div>{selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}</div>);
+  const wks1=weeksOfMonth(yr,mo);
+  const mo2=mo===11?0:mo+1; const yr2=mo===11?yr+1:yr;
+  const wks2=weeksOfMonth(yr2,mo2);
+
+  const MonthGrid=({wks,monthMo,monthYr})=>(
+    <div style={{display:'flex',flexDirection:'column',minWidth:0}}>
+      <div style={{fontSize:12,fontWeight:700,color:T.tx,marginBottom:5,textTransform:'uppercase',letterSpacing:'0.5px'}}>{MONTHS_FULL[monthMo]} {monthYr}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,marginBottom:2}}>{WD.map(d=><div key={d} style={{fontSize:9,fontWeight:700,color:T.tx3,textAlign:'center',padding:'2px 0'}}>{d}</div>)}</div>
+      <div style={{display:'flex',flexDirection:'column',gap:1}}>
+        {wks.map((wk,wi)=>(
+          <div key={wi} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1}}>
+            {wk.map((day,di)=>{
+              const dStr=toStr(day),isToday=dStr===TODAY_STR,inMonth=day.getMonth()===monthMo;
+              const dayTasks=(tasksByDate[dStr]||[]).slice(0,2);
+              const dayDVs=(dvsByDate[dStr]||[]).slice(0,1);
+              return(
+                <div key={di} style={{padding:'3px 3px',background:isToday?'rgba(91,156,246,0.06)':inMonth?T.s1:T.s2,border:`1px solid ${isToday?T.acc:T.bd3}`,borderRadius:3,minHeight:48,overflow:'hidden'}}>
+                  <div style={{fontSize:10,fontWeight:isToday?700:400,color:inMonth?T.tx2:T.tx3,marginBottom:1}}>{day.getDate()}</div>
+                  {dayDVs.map(d=><div key={d.id} style={{fontSize:9,background:'rgba(212,146,42,0.12)',color:T.y,borderRadius:2,padding:'1px 3px',marginBottom:1,...trunc}}>{d.title}</div>)}
+                  {dayTasks.map(t=>{const ts=TS[t.status];return(<div key={t.id} onClick={()=>setSelTask(selTask===t.id?null:t.id)} style={{fontSize:9,background:ts?.bg||T.s2,color:ts?.tx||T.tx2,borderRadius:2,padding:'1px 3px',marginBottom:1,cursor:'pointer',...trunc}}>{t.title}</div>);})}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return(<div style={{display:'flex',height:'100%',overflow:'hidden'}}><div style={{flex:1,padding:10,display:'flex',flexDirection:'column',overflow:'hidden'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexShrink:0}}><button onClick={()=>setRefDate(d=>{const x=new Date(d);x.setMonth(d.getMonth()-1);return x;})} style={ss.btn}>‹</button><span style={{fontSize:13,fontWeight:600,color:T.tx}}>{MONTHS_FULL[mo]} – {MONTHS_FULL[mo2]} {mo2===0?yr2:yr}</span><button onClick={()=>setRefDate(d=>{const x=new Date(d);x.setMonth(d.getMonth()+1);return x;})} style={ss.btn}>›</button><button onClick={()=>setRefDate(TODAY)} style={{...ss.btn,fontSize:10}}>Today</button></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,overflow:'auto'}}><MonthGrid wks={wks1} monthMo={mo} monthYr={yr}/><MonthGrid wks={wks2} monthMo={mo2} monthYr={yr2}/></div></div>{selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}</div>);
 }
 
 // ─── PEOPLE VIEW ──────────────────────────────────────────────────────────────
@@ -780,46 +826,55 @@ export default function App(){
   const NAV=[{id:'dashboard',label:'Dashboard'},{id:'files',label:'Files'},{id:'today',label:'Today'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
 
   return(
-    <div style={{fontFamily:T.font,height:'100vh',display:'flex',flexDirection:'column',background:T.bg,overflow:'hidden',color:T.tx,zoom:fontScale}}>
-      {/* HEADER */}
-      <div style={{background:T.hdr,borderBottom:`1px solid ${T.bd}`,padding:'0 12px',display:'flex',alignItems:'center',height:44,flexShrink:0,gap:0}}>
-        <button onClick={()=>navigate('/')} style={{background:'rgba(91,156,246,0.12)',border:`1px solid rgba(91,156,246,0.2)`,borderRadius:5,padding:'3px 9px',fontSize:10,fontWeight:700,color:T.acc,cursor:'pointer',marginRight:10,fontFamily:T.font,letterSpacing:'0.02em',flexShrink:0}}>KarlOS</button>
-        <span style={{fontFamily:T.serif,fontSize:14,fontWeight:600,color:T.acc2,letterSpacing:'0.06em',marginRight:14,flexShrink:0}}>Palantír</span>
-        <div style={{display:'flex',gap:0,overflow:'hidden'}}>
-          {NAV.map(n=><button key={n.id} onClick={()=>setView(n.id)} style={{padding:'4px 10px',fontSize:11,fontWeight:500,border:'none',background:'transparent',cursor:'pointer',color:view===n.id?T.acc:T.tx2,borderBottom:`2px solid ${view===n.id?T.acc:'transparent'}`,borderRadius:0,fontFamily:T.font,transition:'color .1s',whiteSpace:'nowrap'}}>{n.label}</button>)}
-        </div>
-        {view==='calendar'&&<div style={{display:'flex',gap:3,marginLeft:8,flexShrink:0}}>{['monthly','weekly'].map(m=><button key={m} onClick={()=>setCalMode(m)} style={{...ss.btn,fontSize:10,background:calMode===m?T.acc:'transparent',color:calMode===m?'#fff':T.tx2,border:`1px solid ${calMode===m?T.acc:T.bd}`,textTransform:'capitalize'}}>{m}</button>)}</div>}
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
-          {urgentFiles>0&&<span style={{fontSize:10,background:'rgba(217,95,95,0.15)',color:T.r,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{urgentFiles} urgent</span>}
-          {overdueCount>0&&<span style={{fontSize:10,background:'rgba(212,146,42,0.15)',color:T.y,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{overdueCount} overdue</span>}
-          {/* Font size slider */}
-          <div style={{display:'flex',alignItems:'center',gap:4,padding:'2px 7px',border:`1px solid ${T.bd}`,borderRadius:5,background:T.s2}}>
-            <span style={{fontSize:9,color:T.tx3,userSelect:'none'}}>A</span>
-            <input type="range" min={0.75} max={1.4} step={0.05} value={fontScale}
-              onChange={e=>saveFontScale(parseFloat(e.target.value))}
-              style={{width:52,cursor:'pointer',accentColor:T.acc,verticalAlign:'middle'}}
-              title={`Font scale: ${Math.round(fontScale*100)}%`}/>
-            <span style={{fontSize:11,color:T.tx3,userSelect:'none'}}>A</span>
+    <>
+      {/* ── Outer shell (no zoom) — flex column filling viewport ── */}
+      <div style={{fontFamily:T.font,display:'flex',flexDirection:'column',height:'100vh',background:T.bg,overflow:'hidden',color:T.tx}}>
+        {/* Zoomed inner area — flex:1 shrinks to leave room for bottom bar */}
+        <div style={{flex:1,zoom:fontScale,display:'flex',flexDirection:'column',overflow:'hidden',background:T.bg,color:T.tx}}>
+          {/* HEADER */}
+          <div style={{background:T.hdr,borderBottom:`1px solid ${T.bd}`,padding:'0 12px',display:'flex',alignItems:'center',height:44,flexShrink:0,gap:0}}>
+            <button onClick={()=>navigate('/')} style={{background:'rgba(91,156,246,0.12)',border:`1px solid rgba(91,156,246,0.2)`,borderRadius:5,padding:'3px 9px',fontSize:10,fontWeight:700,color:T.acc,cursor:'pointer',marginRight:10,fontFamily:T.font,letterSpacing:'0.02em',flexShrink:0}}>KarlOS</button>
+            <span style={{fontFamily:T.serif,fontSize:14,fontWeight:600,color:T.acc2,letterSpacing:'0.06em',marginRight:14,flexShrink:0}}>Palantír</span>
+            <div style={{display:'flex',gap:0,overflow:'hidden'}}>
+              {NAV.map(n=><button key={n.id} onClick={()=>setView(n.id)} style={{padding:'4px 10px',fontSize:11,fontWeight:500,border:'none',background:'transparent',cursor:'pointer',color:view===n.id?T.acc:T.tx2,borderBottom:`2px solid ${view===n.id?T.acc:'transparent'}`,borderRadius:0,fontFamily:T.font,transition:'color .1s',whiteSpace:'nowrap'}}>{n.label}</button>)}
+            </div>
+            {view==='calendar'&&<div style={{display:'flex',gap:3,marginLeft:8,flexShrink:0}}>{['monthly','weekly'].map(m=><button key={m} onClick={()=>setCalMode(m)} style={{...ss.btn,fontSize:10,background:calMode===m?T.acc:'transparent',color:calMode===m?'#fff':T.tx2,border:`1px solid ${calMode===m?T.acc:T.bd}`,textTransform:'capitalize'}}>{m}</button>)}</div>}
+            <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+              {urgentFiles>0&&<span style={{fontSize:10,background:'rgba(217,95,95,0.15)',color:T.r,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{urgentFiles} urgent</span>}
+              {overdueCount>0&&<span style={{fontSize:10,background:'rgba(212,146,42,0.15)',color:T.y,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{overdueCount} overdue</span>}
+              <button onClick={()=>setView('claude')} style={{...ss.btn,fontSize:11,color:view==='claude'?T.acc:T.tx2,background:view==='claude'?'rgba(91,156,246,0.10)':'transparent',border:`1px solid ${view==='claude'?T.acc:T.bd}`}}>Claude</button>
+              <button onClick={()=>setModal('team')} style={{...ss.btn,fontSize:11}}>Team</button>
+              <span style={{fontSize:10,color:saved?T.g:T.tx3,fontFamily:T.mono}}>{saved?'✓':'…'}</span>
+            </div>
           </div>
-          <button onClick={()=>setView('claude')} style={{...ss.btn,fontSize:11,color:view==='claude'?T.acc:T.tx2,background:view==='claude'?'rgba(91,156,246,0.10)':'transparent',border:`1px solid ${view==='claude'?T.acc:T.bd}`}}>Claude</button>
-          <button onClick={()=>setModal('team')} style={{...ss.btn,fontSize:11}}>Team</button>
-          <span style={{fontSize:10,color:saved?T.g:T.tx3,fontFamily:T.mono}}>{saved?'✓':'…'}</span>
+          {/* BODY */}
+          <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+            {view==='dashboard' &&<Dashboard data={data} {...sharedFileProps}/>}
+            {view==='files'     &&<FilesView data={data} {...sharedFileProps} showAddFile={()=>setModal('addFile')}/>}
+            {view==='today'     &&<TodayView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref}/>}
+            {view==='calendar'  &&<CalendarView data={data} calMode={calMode} setCalMode={setCalMode} saveTask={saveTask} delTask={delTask}/>}
+            {view==='people'    &&<PeopleView data={data}/>}
+            {view==='templates' &&<TemplatesView/>}
+            {view==='claude'    &&<ClaudeView data={data} onImport={applyClaudeImport}/>}
+          </div>
+          {modal==='addFile'&&<AddFileModal data={data} onClose={()=>setModal(null)} onCreate={f=>{createFile(f);setModal(null);}}/>}
+          {modal==='team'   &&<TeamModal data={data} onClose={()=>setModal(null)} setData={setData}/>}
+        </div>
+
+        {/* ── BOTTOM BAR — outside zoom, unaffected by scale ── */}
+        <div style={{height:30,background:T.hdr,borderTop:`1px solid ${T.bd}`,display:'flex',alignItems:'center',justifyContent:'center',gap:10,flexShrink:0,userSelect:'none'}}>
+          <span style={{fontSize:11,fontFamily:T.serif,color:T.tx3,letterSpacing:'0.04em'}}>Palantír</span>
+          <span style={{color:T.bd2,fontSize:12}}>·</span>
+          <span style={{fontSize:10,color:T.tx3}}>A</span>
+          <input type="range" min={0.75} max={1.4} step={0.05} value={fontScale}
+            onChange={e=>saveFontScale(parseFloat(e.target.value))}
+            style={{width:200,cursor:'pointer',accentColor:T.acc}}
+            title={`Zoom: ${Math.round(fontScale*100)}%`}
+          />
+          <span style={{fontSize:14,color:T.tx3}}>A</span>
+          <span style={{fontSize:10,color:T.tx3,fontFamily:T.mono,minWidth:34}}>{Math.round(fontScale*100)}%</span>
         </div>
       </div>
-
-      {/* BODY */}
-      <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-        {view==='dashboard' &&<Dashboard data={data} {...sharedFileProps}/>}
-        {view==='files'     &&<FilesView data={data} {...sharedFileProps} showAddFile={()=>setModal('addFile')}/>}
-        {view==='today'     &&<TodayView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref}/>}
-        {view==='calendar'  &&<CalendarView data={data} calMode={calMode} setCalMode={setCalMode} saveTask={saveTask} delTask={delTask}/>}
-        {view==='people'    &&<PeopleView data={data}/>}
-        {view==='templates' &&<TemplatesView/>}
-        {view==='claude'    &&<ClaudeView data={data} onImport={applyClaudeImport}/>}
-      </div>
-
-      {modal==='addFile'&&<AddFileModal data={data} onClose={()=>setModal(null)} onCreate={f=>{createFile(f);setModal(null);}}/>}
-      {modal==='team'   &&<TeamModal data={data} onClose={()=>setModal(null)} setData={setData}/>}
-    </div>
+    </>
   );
 }
