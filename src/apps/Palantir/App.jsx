@@ -701,6 +701,124 @@ function FileCard({file,data,onClick,selected}){
   );
 }
 
+// ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
+function KanbanView({data,saveTask,delTask}){
+  const [selTask,setSelTask]=useState(null);
+  const myOpen=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
+  const urgentFiles=new Set(data.files.filter(f=>f.priority==='urgent'||f.health==='blocked').map(f=>f.id));
+  const urgent=myOpen.filter(t=>urgentFiles.has(t.fileId||t.projectId));
+  const urgentSet=new Set(urgent.map(t=>t.id));
+  const rest=myOpen.filter(t=>!urgentSet.has(t.id));
+  const doneTasks=data.tasks.filter(t=>isMyTask(t)&&isDone(t)&&t.completedAt===TODAY_STR).slice(0,15);
+  const COLS=[
+    {id:'urgent',  label:'Urgent',      color:T.r,   tasks:urgent},
+    {id:'inprog',  label:'In Progress', color:T.acc, tasks:rest.filter(t=>t.status==='in_progress')},
+    {id:'toplan',  label:'To Plan',     color:T.tx2, tasks:rest.filter(t=>t.status==='not_started')},
+    {id:'waiting', label:'Waiting',     color:T.y,   tasks:rest.filter(t=>t.status==='waiting'||t.status==='blocked')},
+    {id:'done',    label:'Done Today',  color:T.g,   tasks:doneTasks},
+  ];
+  const Card=({task})=>{
+    const file=getFile(data.files,task.fileId||task.projectId);
+    const blocked=isBlocked(task,data.tasks);
+    const active=selTask===task.id;
+    return(
+      <div onClick={()=>setSelTask(active?null:task.id)} style={{background:active?T.s3:T.s2,border:`1px solid ${active?T.acc:T.bd}`,borderRadius:6,padding:'9px 10px',marginBottom:5,cursor:'pointer',transition:'border-color .1s'}} onMouseEnter={e=>{if(!active)e.currentTarget.style.borderColor=T.bd2;}} onMouseLeave={e=>{if(!active)e.currentTarget.style.borderColor=T.bd;}}>
+        {file&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px',marginBottom:3,...trunc}}>{file.title}</div>}
+        <div style={{fontSize:12,color:T.tx,fontWeight:500,lineHeight:1.3,marginBottom:5,...wrap2}}>{task.title}</div>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap',alignItems:'center'}}>
+          {blocked&&<Chip text="⛔ Blocked" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
+          {task.dueDate&&<DueChip date={task.dueDate}/>}
+          {taskAssignees(task).filter(a=>a!=='Karl').map(a=><Chip key={a} text={a.split(' ')[0]} bg="rgba(91,156,246,0.10)" tx={T.acc} small/>)}
+        </div>
+      </div>
+    );
+  };
+  return(
+    <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
+      <div style={{flex:1,overflowX:'auto',overflowY:'hidden',padding:'10px',display:'flex',gap:8,alignItems:'flex-start',minWidth:0}}>
+        {COLS.map(col=>(
+          <div key={col.id} style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%'}}>
+            <div style={{padding:'5px 8px',marginBottom:6,borderBottom:`2px solid ${col.color}`,display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+              <span style={{fontSize:11,fontWeight:700,color:col.color}}>{col.label}</span>
+              <span style={{fontSize:10,color:T.tx3,fontFamily:T.mono}}>{col.tasks.length}</span>
+            </div>
+            <div style={{overflowY:'auto',flex:1}}>
+              {col.tasks.map(task=><Card key={task.id} task={task}/>)}
+              {col.tasks.length===0&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic',padding:'10px 4px',textAlign:'center'}}>—</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}
+    </div>
+  );
+}
+
+// ─── MY TASKS VIEW ────────────────────────────────────────────────────────────
+function MyTasksView({data,saveTask,delTask}){
+  const [sort,setSort]=useState({col:'due',dir:'asc'});
+  const [selTask,setSelTask]=useState(null);
+  const [filter,setFilter]=useState('all'); // all | mine | overdue
+  const toggleSort=col=>setSort(s=>({col,dir:s.col===col&&s.dir==='asc'?'desc':'asc'}));
+  const myTasks=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
+  const filtered=filter==='overdue'?myTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue'):myTasks;
+  const sorted=[...filtered].sort((a,b)=>{
+    const d=sort.dir==='asc'?1:-1;
+    if(sort.col==='file'){const fa=getFile(data.files,a.fileId||a.projectId)?.title||'';const fb=getFile(data.files,b.fileId||b.projectId)?.title||'';return fa.localeCompare(fb)*d;}
+    if(sort.col==='task')return a.title.localeCompare(b.title)*d;
+    if(sort.col==='status')return(a.status||'').localeCompare(b.status||'')*d;
+    if(sort.col==='due'){if(!a.dueDate&&!b.dueDate)return 0;if(!a.dueDate)return d;if(!b.dueDate)return-d;return a.dueDate.localeCompare(b.dueDate)*d;}
+    return 0;
+  });
+  const getBlocker=task=>{if(isBlocked(task,data.tasks))return'⛔ Dependencies';if(task.gate&&task.gate.trim())return task.gate;if(task.status==='blocked')return'⛔ Blocked';return null;};
+  const ColH=({id,label,w})=>{const active=sort.col===id;return(<th onClick={()=>toggleSort(id)} style={{padding:'6px 10px',textAlign:'left',fontSize:10,fontWeight:700,color:active?T.acc:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',cursor:'pointer',userSelect:'none',borderBottom:`1px solid ${T.bd}`,whiteSpace:'nowrap',background:T.hdr,position:'sticky',top:0,zIndex:2,width:w||'auto'}}>{label}{active?sort.dir==='asc'?' ↑':' ↓':''}</th>);};
+  return(
+    <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        {/* Filter bar */}
+        <div style={{padding:'7px 12px',borderBottom:`1px solid ${T.bd}`,background:T.s1,display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+          {[['all','All'],['overdue','Overdue']].map(([k,l])=><button key={k} onClick={()=>setFilter(k)} style={{...ss.btn,fontSize:10,padding:'2px 8px',background:filter===k?T.acc:'transparent',color:filter===k?'#fff':T.tx2,border:`1px solid ${filter===k?T.acc:T.bd}`}}>{l}</button>)}
+          <span style={{marginLeft:'auto',fontSize:10,color:T.tx3}}>{sorted.length} task{sorted.length!==1?'s':''}</span>
+        </div>
+        {/* Table */}
+        <div style={{flex:1,overflowY:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontFamily:T.font}}>
+            <thead>
+              <tr>
+                <ColH id="file"   label="File"    w="22%"/>
+                <ColH id="task"   label="Task"    w="34%"/>
+                <ColH id="status" label="Status"  w="12%"/>
+                <ColH id="due"    label="Due"     w="10%"/>
+                <th style={{padding:'6px 10px',fontSize:10,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',borderBottom:`1px solid ${T.bd}`,background:T.hdr,position:'sticky',top:0,zIndex:2,width:'18%'}}>Blocker</th>
+                <th style={{padding:'6px 10px',background:T.hdr,position:'sticky',top:0,zIndex:2,borderBottom:`1px solid ${T.bd}`,width:50}}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(task=>{
+                const file=getFile(data.files,task.fileId||task.projectId);
+                const blocker=getBlocker(task);
+                const active=selTask===task.id;
+                return(
+                  <tr key={task.id} onClick={()=>setSelTask(active?null:task.id)} style={{background:active?T.s3:'transparent',cursor:'pointer',borderBottom:`1px solid ${T.bd3}`}} onMouseEnter={e=>{if(!active)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(!active)e.currentTarget.style.background='transparent';}}>
+                    <td style={{padding:'7px 10px',maxWidth:0}}><div style={{fontSize:11,color:T.tx3,...trunc}}>{file?.title||'—'}</div></td>
+                    <td style={{padding:'7px 10px',maxWidth:0}}><div style={{fontSize:12,color:T.tx,...wrap2}}>{task.title}</div></td>
+                    <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}><StatusDot map={TS} val={task.status}/></td>
+                    <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}>{task.dueDate?<DueChip date={task.dueDate}/>:<span style={{color:T.tx3,fontSize:10}}>—</span>}</td>
+                    <td style={{padding:'7px 10px',maxWidth:0}}>{blocker?<div style={{fontSize:10,color:T.r,...trunc}}>{blocker}</div>:<span style={{color:T.tx3,fontSize:10}}>—</span>}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right'}}><button onClick={e=>{e.stopPropagation();saveTask(task.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.25)'}}>✓</button></td>
+                  </tr>
+                );
+              })}
+              {sorted.length===0&&<tr><td colSpan={6} style={{padding:'24px',textAlign:'center',color:T.tx3,fontStyle:'italic',fontSize:12}}>No open tasks assigned to you{filter==='overdue'?' that are overdue':''}.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}
+    </div>
+  );
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard({data,saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate}){
   const [filter,setFilter]=useState('active');
@@ -1151,7 +1269,7 @@ export default function App(){
   const urgentFiles=data.files.filter(f=>!f.archived&&(f.priority==='urgent'||f.health==='blocked'||f.health==='at_risk')).length;
   const overdueCount=data.tasks.filter(t=>isMyTask(t)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue').length;
   const sharedFileProps={saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate};
-  const NAV=[{id:'dashboard',label:'Dashboard'},{id:'files',label:'Files'},{id:'today',label:'Today'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
+  const NAV=[{id:'dashboard',label:'Dashboard'},{id:'files',label:'Files'},{id:'today',label:'Today'},{id:'kanban',label:'Kanban'},{id:'mytasks',label:'My Tasks'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
 
   return(
     <>
@@ -1182,6 +1300,8 @@ export default function App(){
             {view==='dashboard' &&<Dashboard data={data} {...sharedFileProps}/>}
             {view==='files'     &&<FilesView data={data} {...sharedFileProps} showAddFile={()=>setModal('addFile')}/>}
             {view==='today'     &&<TodayView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref}/>}
+            {view==='kanban'    &&<KanbanView data={data} saveTask={saveTask} delTask={delTask}/>}
+            {view==='mytasks'   &&<MyTasksView data={data} saveTask={saveTask} delTask={delTask}/>}
             {view==='calendar'  &&<CalendarView data={data} calMode={calMode} setCalMode={setCalMode} saveTask={saveTask} delTask={delTask}/>}
             {view==='people'    &&<PeopleView data={data}/>}
             {view==='templates' &&<TemplatesView/>}
