@@ -243,14 +243,50 @@ function ApplyTemplateModal({file,data,onClose,onApply}){
   const [preview,setPreview]=useState(null);
   const people=allPeopleFrom(data);
   const tpl=BUILT_IN_TEMPLATES.find(t=>t.id===selTpl);
-  const buildPreview=()=>{if(!tpl)return;const exactDate=flexToExact(targetDate);const tasks=tpl.taskTemplates.filter(tt=>skipFoundational?!FOUNDATIONAL_TASKS.find(ft=>ft.title===tt.title):true).map((tt,i)=>({id:`preview-${i}`,title:tt.title,notes:tt.notes,dueDate:exactDate?addDays(exactDate,tt.offsetDays):null,status:'not_started',assignees:[ownerName],requiresApproval:tt.requiresApproval}));setPreview(tasks);setStep(3);};
-  const handleApply=()=>{if(!tpl)return;const exactDate=flexToExact(targetDate);const dvId=uid();const deliverable={id:dvId,fileId:file.id,title:tpl.name+(file.title?` — ${file.title}`:''),type:tpl.deliverableType==='foundational_phase'?'other':tpl.deliverableType,ownerName,supportNames:[],status:'not_started',priority:'medium',dueDate:targetDate,publicationDate:null,approvalStatus:'not_required',approverNames:[],taskIds:[],sharePointUrl:'',templateId:tpl.id,notes:'',createdAt:TODAY_STR,updatedAt:TODAY_STR};const tasks=tpl.taskTemplates.filter(tt=>skipFoundational?!FOUNDATIONAL_TASKS.find(ft=>ft.title===tt.title):true).map(tt=>({id:uid(),title:tt.title,notes:tt.notes||'',fileId:file.id,projectId:file.id,deliverableId:dvId,dueDate:exactDate?addDays(exactDate,tt.offsetDays):null,status:'not_started',assignees:[ownerName],dependsOn:[],dependencies:[],gate:'',link:null,approvalChain:[],source:'template',templateId:tpl.id,createdAt:TODAY_STR}));deliverable.taskIds=tasks.map(t=>t.id);onApply(deliverable,tasks);onClose();};
+
+  // Is this the foundational template itself?
+  const tplIsFoundational=tpl?.id==='tpl-foundational';
+  // Does this template already embed foundational tasks?
+  const tplHasFoundational=!tplIsFoundational&&tpl?.taskTemplates.some(tt=>FOUNDATIONAL_TASKS.find(ft=>ft.title===tt.title));
+  // Show skip toggle for every template except the foundational phase itself
+  const showSkipToggle=tpl&&!tplIsFoundational;
+
+  // Build the ordered task list, respecting skipFoundational
+  const buildTaskSources=()=>{
+    if(!tpl)return[];
+    if(tplIsFoundational)return tpl.taskTemplates;
+    if(tplHasFoundational){
+      // template already embeds foundational (e.g. press release) — optionally remove them
+      return skipFoundational?tpl.taskTemplates.filter(tt=>!FOUNDATIONAL_TASKS.find(ft=>ft.title===tt.title)):tpl.taskTemplates;
+    }
+    // template has no foundational tasks — optionally prepend them
+    return skipFoundational?tpl.taskTemplates:[...FOUNDATIONAL_TASKS,...tpl.taskTemplates];
+  };
+
+  const buildPreview=()=>{
+    const sources=buildTaskSources();
+    const exactDate=flexToExact(targetDate);
+    const tasks=sources.map((tt,i)=>({id:`preview-${i}`,title:tt.title,notes:tt.notes,dueDate:exactDate?addDays(exactDate,tt.offsetDays):null,status:'not_started',assignees:[ownerName],requiresApproval:tt.requiresApproval}));
+    setPreview(tasks);setStep(3);
+  };
+
+  const handleApply=()=>{
+    if(!tpl)return;
+    const sources=buildTaskSources();
+    const exactDate=flexToExact(targetDate);
+    const dvId=uid();
+    const deliverable={id:dvId,fileId:file.id,title:tpl.name+(file.title?` — ${file.title}`:''),type:tpl.deliverableType==='foundational_phase'?'other':tpl.deliverableType,ownerName,supportNames:[],status:'not_started',priority:'medium',dueDate:targetDate,publicationDate:null,approvalStatus:'not_required',approverNames:[],taskIds:[],sharePointUrl:'',templateId:tpl.id,notes:'',createdAt:TODAY_STR,updatedAt:TODAY_STR};
+    const tasks=sources.map(tt=>({id:uid(),title:tt.title,notes:tt.notes||'',fileId:file.id,projectId:file.id,deliverableId:dvId,dueDate:exactDate?addDays(exactDate,tt.offsetDays):null,status:'not_started',assignees:[ownerName],dependsOn:[],dependencies:[],gate:'',link:null,approvalChain:[],source:'template',templateId:tpl.id,createdAt:TODAY_STR}));
+    deliverable.taskIds=tasks.map(t=>t.id);
+    onApply(deliverable,tasks);onClose();
+  };
+
   return(
     <Overlay onClose={onClose} wide>
       <ModalH title={`Apply Template — ${file.title}`} onClose={onClose}/>
-      {step===1&&(<div><p style={{fontSize:12,color:T.tx2,margin:'0 0 14px'}}>Select a template to generate a deliverable and its tasks.</p><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>{BUILT_IN_TEMPLATES.map(t=>(<div key={t.id} onClick={()=>setSelTpl(t.id)} style={{padding:'10px 12px',border:`1.5px solid ${selTpl===t.id?T.acc:T.bd}`,borderRadius:7,cursor:'pointer',background:selTpl===t.id?T.s3:T.s2}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:2,...trunc}}>{t.name}</div><div style={{fontSize:10,color:T.tx3,lineHeight:1.4,marginBottom:4,...wrap2}}>{t.description}</div><div style={{fontSize:9,color:T.acc}}>{t.taskTemplates.length} tasks</div></div>))}</div><div style={{marginTop:14,display:'flex',justifyContent:'flex-end'}}><button onClick={()=>{if(selTpl)setStep(2);}} disabled={!selTpl} style={{...ss.btnP,opacity:selTpl?1:0.4}}>Configure →</button></div></div>)}
-      {step===2&&tpl&&(<div><div style={{marginBottom:12,padding:'8px 10px',background:T.s2,borderRadius:5,border:`1px solid ${T.bd}`}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:2}}>{tpl.name}</div><div style={{fontSize:10,color:T.tx3}}>{tpl.taskTemplates.length} tasks · {tpl.defaultDurationDays} day default timeline</div></div><Fld label="Target date (due date or publication date)"><FlexDateInput value={targetDate} onChange={setTargetDate}/></Fld><Fld label="Deliverable owner"><select value={ownerName} onChange={e=>setOwnerName(e.target.value)} style={ss.sel}>{people.map(m=><option key={m}>{m}</option>)}</select></Fld>{tpl.includesFoundational&&(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}><input type="checkbox" id="skipf" checked={skipFoundational} onChange={e=>setSkipFoundational(e.target.checked)}/><label htmlFor="skipf" style={{fontSize:12,color:T.tx2,cursor:'pointer'}}>Skip foundational phase — already done for this file</label></div>)}<div style={{display:'flex',gap:6,justifyContent:'space-between',marginTop:4}}><button onClick={()=>setStep(1)} style={ss.btn}>← Back</button><button onClick={buildPreview} style={ss.btnP}>Preview tasks →</button></div></div>)}
-      {step===3&&preview&&(<div><div style={{marginBottom:10}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:4}}>Tasks to be created ({preview.length})</div><div style={{fontSize:10,color:T.tx3,marginBottom:8}}>Dates are calculated backward from your target date. You can edit them after creating.</div></div><div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',marginBottom:12}}>{preview.map((t,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderBottom:`1px solid ${T.bd3}`,background:i%2===0?T.s1:T.s2}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.tx,fontWeight:500,...wrap2}}>{t.title}</div>{t.notes&&<div style={{fontSize:10,color:T.tx3,marginTop:1,...trunc}}>{t.notes}</div>}</div><div style={{display:'flex',gap:4,flexShrink:0,alignItems:'center'}}>{t.dueDate?<DueChip date={t.dueDate}/>:<span style={{fontSize:9,color:T.tx3}}>No date</span>}{t.requiresApproval&&<Chip text="Approval" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div>))}</div><div style={{display:'flex',gap:6,justifyContent:'space-between'}}><button onClick={()=>setStep(2)} style={ss.btn}>← Back</button><button onClick={handleApply} style={ss.btnP}>✓ Create deliverable & tasks</button></div></div>)}
+      {step===1&&(<div><p style={{fontSize:12,color:T.tx2,margin:'0 0 14px'}}>Select a template to generate a deliverable and its tasks.</p><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>{BUILT_IN_TEMPLATES.map(t=>(<div key={t.id} onClick={()=>{setSelTpl(t.id);setSkipFoundational(false);}} style={{padding:'10px 12px',border:`1.5px solid ${selTpl===t.id?T.acc:T.bd}`,borderRadius:7,cursor:'pointer',background:selTpl===t.id?T.s3:T.s2}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:2,...trunc}}>{t.name}</div><div style={{fontSize:10,color:T.tx3,lineHeight:1.4,marginBottom:4,...wrap2}}>{t.description}</div><div style={{fontSize:9,color:T.acc}}>{t.taskTemplates.length} tasks</div></div>))}</div><div style={{marginTop:14,display:'flex',justifyContent:'flex-end'}}><button onClick={()=>{if(selTpl)setStep(2);}} disabled={!selTpl} style={{...ss.btnP,opacity:selTpl?1:0.4}}>Configure →</button></div></div>)}
+      {step===2&&tpl&&(<div><div style={{marginBottom:12,padding:'8px 10px',background:T.s2,borderRadius:5,border:`1px solid ${T.bd}`}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:2}}>{tpl.name}</div><div style={{fontSize:10,color:T.tx3}}>{tpl.taskTemplates.length} tasks · {tpl.defaultDurationDays} day default timeline</div></div><Fld label="Target date (due date or publication date)"><FlexDateInput value={targetDate} onChange={setTargetDate}/></Fld><Fld label="Deliverable owner"><select value={ownerName} onChange={e=>setOwnerName(e.target.value)} style={ss.sel}>{people.map(m=><option key={m}>{m}</option>)}</select></Fld>{showSkipToggle&&(<div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:T.s2,borderRadius:5,border:`1px solid ${T.bd}`,marginBottom:10}}><input type="checkbox" id="skipf" checked={skipFoundational} onChange={e=>setSkipFoundational(e.target.checked)}/><label htmlFor="skipf" style={{fontSize:12,color:T.tx2,cursor:'pointer',lineHeight:1.4}}>Skip foundational phase — mandate, source material, key messages and validation already done for this file</label></div>)}<div style={{display:'flex',gap:6,justifyContent:'space-between',marginTop:4}}><button onClick={()=>setStep(1)} style={ss.btn}>← Back</button><button onClick={buildPreview} style={ss.btnP}>Preview tasks →</button></div></div>)}
+      {step===3&&preview&&(<div><div style={{marginBottom:10}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:4}}>Tasks to be created ({preview.length})</div><div style={{fontSize:10,color:T.tx3,marginBottom:8}}>Dates are calculated backward from your target date. You can edit them after creating.</div></div><div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',marginBottom:12}}>{preview.map((t,i)=>{const isFoundational=!!FOUNDATIONAL_TASKS.find(ft=>ft.title===t.title);return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderBottom:`1px solid ${T.bd3}`,background:i%2===0?T.s1:T.s2}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.tx,fontWeight:500,...wrap2}}>{t.title}</div>{t.notes&&<div style={{fontSize:10,color:T.tx3,marginTop:1,...trunc}}>{t.notes}</div>}</div><div style={{display:'flex',gap:4,flexShrink:0,alignItems:'center'}}>{isFoundational&&<Chip text="Foundational" bg="rgba(91,156,246,0.09)" tx={T.acc2} small/>}{t.dueDate?<DueChip date={t.dueDate}/>:<span style={{fontSize:9,color:T.tx3}}>No date</span>}{t.requiresApproval&&<Chip text="Approval" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div>);})}</div><div style={{display:'flex',gap:6,justifyContent:'space-between'}}><button onClick={()=>setStep(2)} style={ss.btn}>← Back</button><button onClick={handleApply} style={ss.btnP}>✓ Create deliverable & tasks</button></div></div>)}
     </Overlay>
   );
 }
@@ -686,57 +722,184 @@ function TemplatesView(){
 }
 
 // ─── CLAUDE VIEW ──────────────────────────────────────────────────────────────
-const CLAUDE_SYSTEM_PROMPT=`You are helping me manage communications files using Palantír, my file-control app.
-
-CONTEXT: I will paste the current Palantír state JSON, followed by my notes (meeting notes, transcripts, or bullet points from my week).
-
-YOUR TASK:
-1. Read the current state carefully.
-2. Parse my notes. Identify: completed tasks, new tasks, memory updates, log entries, changed dates, milestone updates, deliverable updates, new SharePoint links, status/health changes, new risks, new open questions.
-3. Walk me through proposed changes FILE BY FILE. Ask clarifying questions when needed.
-4. Once I confirm, produce a final JSON update package.
-
-RULES:
-- Only create a separate task when it has a distinct owner, deadline, approval, dependency, or follow-up.
-- Put supporting details in notes, not as separate tasks.
-- Memory = current live state. Log = what changed and who confirmed it.
-- Always group tasks under their file.
-- Use FlexibleDate language for uncertain dates.
-- Final output must be a single valid JSON block.
-
-IMPORT SCHEMA:
-{
-  "importType":"palantir_update_package","version":"1.0","sourceDate":"YYYY-MM-DD","summary":"...",
-  "filesToCreate":[],"filesToUpdate":[{"fileId":"...","fileTitle":"...","changes":{}}],
-  "memoryUpdates":[{"fileId":"...","fileTitle":"...","newMemory":"...","reasonForChange":"..."}],
-  "logEntriesToCreate":[{"fileId":"...","fileTitle":"...","date":"YYYY-MM-DD","title":"...","summary":"..."}],
-  "tasksToCreate":[{"fileId":"...","title":"...","assignees":["Karl"],"status":"not_started","dueDate":null,"notes":""}],
-  "tasksToUpdate":[{"taskId":"...","taskTitle":"...","changes":{}}],
-  "tasksToComplete":[{"taskId":"...","taskTitle":"..."}],
-  "deliverablesToUpdate":[{"deliverableId":"...","deliverableTitle":"...","changes":{}}],
-  "milestonesToCreate":[{"fileId":"...","fileTitle":"...","title":"...","status":"not_started","date":null}],
-  "risksToCreate":[{"fileId":"...","fileTitle":"...","title":"...","description":"...","severity":"medium","status":"open"}],
-  "questionsToCreate":[{"fileId":"...","fileTitle":"...","question":"...","ownerName":""}],
-  "warnings":[]
-}`;
-
 function ClaudeView({data,onImport}){
-  const [tab,setTab]=useState('export');
-  const [exportScope,setExportScope]=useState('active');
-  const [incLogs,setIncLogs]=useState(false);
-  const [copied,setCopied]=useState(false);
   const [importJson,setImportJson]=useState('');
   const [importErr,setImportErr]=useState('');
   const [preview,setPreview]=useState(null);
   const [applied,setApplied]=useState(false);
-  const generateExport=()=>{const files=data.files.filter(f=>!f.archived&&(exportScope==='active'?f.status==='active':exportScope==='mine'?f.lead==='Karl':true));return JSON.stringify({exportType:'palantir_export',version:'1.0',exportedAt:TODAY_STR,systemPrompt:CLAUDE_SYSTEM_PROMPT,currentState:{files:files.map(f=>({id:f.id,title:f.title,status:f.status,health:f.health,priority:f.priority,sensitivity:f.sensitivity||'normal',lead:f.lead,memory:stripHtml(f.memory||''),milestones:(f.milestones||[]).map(m=>({title:m.title,status:m.status,date:m.date||null})),openRisks:(f.risks||[]).filter(r=>r.status!=='resolved').map(r=>({title:r.title,severity:r.severity,status:r.status})),openQuestions:(f.openQuestions||[]).filter(q=>q.status==='open').map(q=>({question:q.question,ownerName:q.ownerName})),openDeliverables:(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d)).map(d=>({id:d.id,title:d.title,type:d.type,status:d.status,ownerName:d.ownerName,dueDate:fmtFlex(d.dueDate)||null})),openTasks:data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&!isDone(t)).map(t=>({id:t.id,title:t.title,status:TS[t.status]?.label||t.status,dueDate:t.dueDate,assignees:taskAssignees(t),deliverableId:t.deliverableId||null,notes:t.notes||''})),sharePointLinks:(f.sharePointLinks||[]).map(l=>({label:l.label,url:l.url,type:l.type})),...(incLogs&&{recentLog:(f.log||[]).slice(0,3).map(e=>({date:e.date,title:e.title,summary:e.summary}))})})),people:(data.people||[]).map(p=>({id:p.id,name:p.name,title:p.title}))}},null,2);};
-  const copyExport=()=>{navigator.clipboard.writeText(generateExport()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);});};
   const parseImport=jsonStr=>{try{const imp=JSON.parse(jsonStr);const changes=[];if(imp.memoryUpdates?.length)changes.push(`${imp.memoryUpdates.length} memory update(s)`);if(imp.logEntriesToCreate?.length)changes.push(`${imp.logEntriesToCreate.length} log entr${imp.logEntriesToCreate.length===1?'y':'ies'}`);if(imp.tasksToComplete?.length)changes.push(`${imp.tasksToComplete.length} task(s) completed`);if(imp.tasksToCreate?.length)changes.push(`${imp.tasksToCreate.length} new task(s)`);if(imp.tasksToUpdate?.length)changes.push(`${imp.tasksToUpdate.length} task update(s)`);if(imp.filesToCreate?.length)changes.push(`${imp.filesToCreate.length} new file(s)`);if(imp.filesToUpdate?.length)changes.push(`${imp.filesToUpdate.length} file update(s)`);if(imp.deliverablesToUpdate?.length)changes.push(`${imp.deliverablesToUpdate.length} deliverable update(s)`);if(imp.milestonesToCreate?.length)changes.push(`${imp.milestonesToCreate.length} milestone(s)`);if(imp.risksToCreate?.length)changes.push(`${imp.risksToCreate.length} risk(s)`);if(imp.questionsToCreate?.length)changes.push(`${imp.questionsToCreate.length} question(s)`);if(changes.length===0)changes.push('No recognised changes found.');setPreview({imp,changes,summary:imp.summary||'No summary provided.'});setImportErr('');}catch(e){setImportErr('Invalid JSON — check the format and try again.');setPreview(null);}};
-  const tabS=id=>({padding:'5px 10px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',color:tab===id?T.acc:T.tx3,borderBottom:`2px solid ${tab===id?T.acc:'transparent'}`,background:'transparent',fontFamily:T.font});
-  return(<div style={{height:'100%',overflow:'auto',padding:'14px 20px',maxWidth:700}}><div style={{marginBottom:12}}><h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.serif}}>Claude</h3><p style={{margin:0,fontSize:12,color:T.tx2}}>Export current state for review, then import Claude's update package.</p></div><div style={{display:'flex',gap:0,borderBottom:`1px solid ${T.bd}`,marginBottom:14}}><button onClick={()=>setTab('export')} style={tabS('export')}>Export</button><button onClick={()=>setTab('import')} style={tabS('import')}>Import</button><button onClick={()=>setTab('help')} style={tabS('help')}>How to use</button></div>
-  {tab==='export'&&(<div><Fld label="Export scope"><select value={exportScope} onChange={e=>setExportScope(e.target.value)} style={{...ss.sel,width:'auto'}}><option value="active">Active files only</option><option value="mine">My files only</option><option value="all">All files</option></select></Fld><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}><input type="checkbox" id="inclogs" checked={incLogs} onChange={e=>setIncLogs(e.target.checked)}/><label htmlFor="inclogs" style={{fontSize:12,color:T.tx2,cursor:'pointer'}}>Include recent log entries</label></div><button onClick={copyExport} style={{...ss.btnP,marginBottom:8}}>{copied?'✓ Copied!':'Copy export to clipboard'}</button><div style={{fontSize:11,color:T.tx3,lineHeight:1.6}}>Paste into Claude chat, then paste your notes. Claude will walk you through changes and produce an import package.</div></div>)}
-  {tab==='import'&&(<div>{!preview?(<><Fld label="Paste Claude's update package JSON here"><textarea value={importJson} onChange={e=>setImportJson(e.target.value)} rows={12} placeholder='{"importType":"palantir_update_package","version":"1.0",...}' style={{...ss.inp,resize:'vertical',fontFamily:T.mono,fontSize:11}}/></Fld>{importErr&&<div style={{color:T.r,fontSize:11,marginBottom:8}}>{importErr}</div>}<button onClick={()=>parseImport(importJson)} style={ss.btnP}>Validate & Preview</button></>):(<div>{applied?(<div style={{padding:'16px',background:'rgba(63,182,139,0.08)',border:`1px solid rgba(63,182,139,0.2)`,borderRadius:6,textAlign:'center'}}><div style={{fontSize:14,fontWeight:600,color:T.g,marginBottom:6}}>✓ Import applied</div><button onClick={()=>{setPreview(null);setImportJson('');setApplied(false);}} style={ss.btn}>Import another</button></div>):(<><div style={{padding:'12px',background:T.s2,borderRadius:6,marginBottom:12}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:4}}>Summary: {preview.summary}</div>{preview.changes.map((c,i)=><div key={i} style={{fontSize:11,color:T.tx2,padding:'2px 0',borderBottom:`1px solid ${T.bd3}`}}>· {c}</div>)}{(preview.imp.warnings||[]).map((w,i)=><div key={i} style={{fontSize:11,color:T.y,marginTop:4}}>⚠ {w}</div>)}</div><div style={{display:'flex',gap:6}}><button onClick={()=>{onImport(preview.imp);setApplied(true);}} style={ss.btnP}>Apply changes</button><button onClick={()=>{setPreview(null);setImportJson('');}} style={ss.btn}>Cancel</button></div></>)}</div>)}</div>)}
-  {tab==='help'&&(<div style={{fontSize:12,color:T.tx2,lineHeight:1.8}}><div style={{marginBottom:8,fontWeight:600,color:T.tx}}>Workflow</div>{['1. Go to Export tab and copy the current state.','2. Open a new Claude chat (or your Palantír Claude Project).','3. Paste the export, then paste your weekly notes or meeting transcript.','4. Claude walks you through changes file by file and asks questions.','5. Once confirmed, Claude produces a JSON update package.','6. Come back here, go to Import tab, paste the JSON.','7. Review the preview and click Apply.'].map((s,i)=><div key={i} style={{padding:'4px 0',borderBottom:`1px solid ${T.bd3}`}}>{s}</div>)}<div style={{marginTop:10,padding:'9px',background:T.s2,borderRadius:5,fontSize:11,color:T.tx3}}>The system prompt included in your export tells Claude exactly how Palantír works and what format to use for the import package.</div></div>)}</div>);
+  return(
+    <div style={{height:'100%',overflow:'auto',padding:'14px 20px',maxWidth:700}}>
+      <div style={{marginBottom:14}}>
+        <h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.serif}}>Import</h3>
+        <p style={{margin:0,fontSize:12,color:T.tx2}}>Paste the JSON update package produced by Claude, preview the changes, then apply.</p>
+      </div>
+      {/* Workflow reference */}
+      <div style={{padding:'10px 12px',background:T.s2,border:`1px solid ${T.bd}`,borderRadius:6,marginBottom:16,fontSize:11,color:T.tx3,lineHeight:1.7}}>
+        <div style={{fontWeight:600,color:T.tx,marginBottom:4}}>Workflow</div>
+        <div>1. Take notes (meetings, bullet points, email follow-ups) in your usual format.</div>
+        <div>2. Open Claude — paste your notes. Claude reads live Palantír state from Supabase.</div>
+        <div>3. Claude walks through proposed changes file by file and asks clarifying questions.</div>
+        <div>4. Once confirmed, Claude produces a JSON update package.</div>
+        <div>5. Paste the JSON below → Preview → Apply. A snapshot is saved automatically before applying.</div>
+      </div>
+      {!preview?(
+        <>
+          <Fld label="Paste Claude's update package JSON here">
+            <textarea value={importJson} onChange={e=>setImportJson(e.target.value)} rows={14} placeholder={'{\n  "importType": "palantir_update_package",\n  "version": "1.0",\n  "summary": "...",\n  ...\n}'} style={{...ss.inp,resize:'vertical',fontFamily:T.mono,fontSize:11}}/>
+          </Fld>
+          {importErr&&<div style={{color:T.r,fontSize:11,marginBottom:8}}>{importErr}</div>}
+          <button onClick={()=>parseImport(importJson)} style={ss.btnP}>Validate & Preview</button>
+        </>
+      ):(
+        <div>
+          {applied?(
+            <div style={{padding:'16px',background:'rgba(63,182,139,0.08)',border:`1px solid rgba(63,182,139,0.2)`,borderRadius:6,textAlign:'center'}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.g,marginBottom:6}}>✓ Import applied — snapshot was saved before changes</div>
+              <button onClick={()=>{setPreview(null);setImportJson('');setApplied(false);}} style={ss.btn}>Import another</button>
+            </div>
+          ):(
+            <>
+              <div style={{padding:'12px',background:T.s2,borderRadius:6,marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:4}}>Summary: {preview.summary}</div>
+                {preview.changes.map((c,i)=><div key={i} style={{fontSize:11,color:T.tx2,padding:'2px 0',borderBottom:`1px solid ${T.bd3}`}}>· {c}</div>)}
+                {(preview.imp.warnings||[]).map((w,i)=><div key={i} style={{fontSize:11,color:T.y,marginTop:4}}>⚠ {w}</div>)}
+              </div>
+              <div style={{fontSize:11,color:T.tx3,marginBottom:10}}>A snapshot of current state will be saved automatically before applying.</div>
+              <div style={{display:'flex',gap:6}}>
+                <button onClick={()=>{onImport(preview.imp);setApplied(true);}} style={ss.btnP}>Apply changes</button>
+                <button onClick={()=>{setPreview(null);setImportJson('');}} style={ss.btn}>Cancel</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SNAPSHOT MODAL ───────────────────────────────────────────────────────────
+function SnapshotModal({data,onClose,onRestore}){
+  const [snaps,setSnaps]=useState(null);
+  const [sel,setSel]=useState(null);
+  const [label,setLabel]=useState('');
+  const [saving,setSaving]=useState(false);
+  const [restoring,setRestoring]=useState(false);
+  const [msg,setMsg]=useState('');
+
+  useEffect(()=>{load();},[]);
+
+  const load=async()=>{
+    try{
+      const{data:rows}=await supabase.from('palantir_snapshots').select('id,created_at,trigger,label,state').order('created_at',{ascending:false}).limit(30);
+      setSnaps(rows||[]);
+    }catch(e){setSnaps([]);}
+  };
+
+  const saveNow=async()=>{
+    setSaving(true);setMsg('');
+    try{
+      const{data:{user}}=await supabase.auth.getUser();
+      await supabase.from('palantir_snapshots').insert({user_id:user?.id,state:data,trigger:'manual',label:label.trim()||null});
+      setLabel('');setMsg('✓ Snapshot saved');
+      await load();
+    }catch(e){setMsg('Error saving snapshot');}
+    setSaving(false);
+  };
+
+  const downloadJson=()=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`palantir-${TODAY_STR}.json`;a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const doRestore=async(snap)=>{
+    if(!window.confirm('Restore this snapshot? Current state will be replaced.'))return;
+    setRestoring(true);
+    try{
+      const{data:{user}}=await supabase.auth.getUser();
+      await supabase.from('palantir_state').upsert({id:1,state:snap.state,updated_at:new Date().toISOString(),user_id:user?.id});
+      onRestore(snap.state);
+      onClose();
+    }catch(e){setMsg('Error restoring snapshot');setRestoring(false);}
+  };
+
+  const doDelete=async(snap,e)=>{
+    e.stopPropagation();
+    if(!window.confirm('Delete this snapshot?'))return;
+    await supabase.from('palantir_snapshots').delete().eq('id',snap.id);
+    if(sel?.id===snap.id)setSel(null);
+    await load();
+  };
+
+  const snapInfo=s=>{
+    const st=s?.state||{};
+    const files=(st.files||[]).filter(f=>!f.archived).length;
+    const tasks=(st.tasks||[]).filter(t=>!isDone(t)).length;
+    const dvs=(st.deliverables||[]).filter(d=>!isDoneDV(d)).length;
+    return{files,tasks,dvs};
+  };
+
+  const triggerIcon=t=>({manual:'💾',pre_import:'⬇',daily:'🕐',pre_edit:'✏️'})[t]||'📌';
+  const fmtTs=ts=>{const d=new Date(ts);return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});};
+
+  return(
+    <Overlay onClose={onClose} wide>
+      <ModalH title="Snapshots & Backup" onClose={onClose}/>
+      {/* Save + Download row */}
+      <div style={{display:'flex',gap:6,marginBottom:14,alignItems:'center',flexWrap:'wrap'}}>
+        <input value={label} onChange={e=>setLabel(e.target.value)} placeholder="Snapshot label (optional)" style={{...ss.inp,flex:1,minWidth:140}}/>
+        <button onClick={saveNow} disabled={saving} style={{...ss.btnP,flexShrink:0}}>{saving?'Saving…':'💾 Save now'}</button>
+        <button onClick={downloadJson} style={{...ss.btn,flexShrink:0}}>⬇ JSON</button>
+      </div>
+      {msg&&<div style={{fontSize:11,color:msg.startsWith('✓')?T.g:T.r,marginBottom:10}}>{msg}</div>}
+      {/* Snapshot list + preview split */}
+      <div style={{display:'flex',gap:0,border:`1px solid ${T.bd}`,borderRadius:7,overflow:'hidden',minHeight:300}}>
+        {/* List */}
+        <div style={{width:260,flexShrink:0,overflowY:'auto',borderRight:`1px solid ${T.bd}`}}>
+          {snaps===null&&<div style={{padding:14,fontSize:12,color:T.tx3}}>Loading…</div>}
+          {snaps?.length===0&&<div style={{padding:14,fontSize:12,color:T.tx3,fontStyle:'italic'}}>No snapshots yet.</div>}
+          {snaps?.map(s=>{const info=snapInfo(s);return(
+            <div key={s.id} onClick={()=>setSel(s)} style={{padding:'8px 10px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:sel?.id===s.id?T.s3:T.s1}} onMouseEnter={e=>{if(sel?.id!==s.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(sel?.id!==s.id)e.currentTarget.style.background=T.s1;}}>
+              <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:2}}>
+                <span style={{fontSize:11}}>{triggerIcon(s.trigger)}</span>
+                <span style={{fontSize:11,fontWeight:600,color:T.tx,flex:1,...trunc}}>{s.label||s.trigger}</span>
+                <button onClick={e=>doDelete(s,e)} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:12,padding:0,lineHeight:1,flexShrink:0}}>×</button>
+              </div>
+              <div style={{fontSize:10,color:T.tx3,fontFamily:T.mono}}>{fmtTs(s.created_at)}</div>
+              <div style={{fontSize:9,color:T.tx3,marginTop:1}}>{info.files}f · {info.tasks}t · {info.dvs}d</div>
+            </div>
+          );})}
+        </div>
+        {/* Preview */}
+        <div style={{flex:1,padding:14,overflowY:'auto'}}>
+          {!sel&&<div style={{color:T.tx3,fontSize:12,fontStyle:'italic',marginTop:20,textAlign:'center'}}>Select a snapshot to preview</div>}
+          {sel&&(()=>{const info=snapInfo(sel);const st=sel.state;return(<div>
+            <div style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.bd}`}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.tx,marginBottom:3}}>{sel.label||sel.trigger}</div>
+              <div style={{fontSize:11,color:T.tx3}}>{fmtTs(sel.created_at)}</div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
+              {[['Files',info.files,T.acc],['Open tasks',info.tasks,T.y],['Deliverables',info.dvs,T.g]].map(([l,v,c])=>(
+                <div key={l} style={{padding:'8px 10px',background:T.s2,borderRadius:5,textAlign:'center'}}>
+                  <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
+                  <div style={{fontSize:10,color:T.tx3}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:4}}>Active files in snapshot</div>
+              {(st.files||[]).filter(f=>!f.archived&&f.status==='active').slice(0,8).map(f=>(
+                <div key={f.id} style={{fontSize:11,color:T.tx2,padding:'2px 0',borderBottom:`1px solid ${T.bd3}`,...trunc}}>{f.title}</div>
+              ))}
+              {(st.files||[]).filter(f=>!f.archived&&f.status==='active').length>8&&<div style={{fontSize:10,color:T.tx3,marginTop:2}}>…and {(st.files||[]).filter(f=>!f.archived&&f.status==='active').length-8} more</div>}
+            </div>
+            <button onClick={()=>doRestore(sel)} disabled={restoring} style={{...ss.btn,width:'100%',color:T.y,borderColor:'rgba(212,146,42,0.3)',padding:'7px 0',fontSize:11}}>{restoring?'Restoring…':'⟲ Restore this snapshot'}</button>
+          </div>);})()}
+        </div>
+      </div>
+    </Overlay>
+  );
 }
 
 // ─── MODALS ───────────────────────────────────────────────────────────────────
@@ -800,7 +963,29 @@ export default function App(){
   const saveFontScale=v=>{setFontScaleState(v);saveUiPref('fontScale',v);};
   const createFile=form=>setData(d=>({...d,files:[...d.files,{id:uid(),title:form.title,status:form.status||'active',priority:form.priority||'medium',health:form.health||'unknown',sensitivity:form.sensitivity||'normal',lead:form.lead||'Karl',memory:form.memory||'',milestones:[],risks:[],openQuestions:[],log:[],sharePointLinks:[],deliverableIds:[],archived:false,createdAt:TODAY_STR,updatedAt:TODAY_STR}]}));
 
-  const applyClaudeImport=imp=>{
+  // ── SNAPSHOT ──────────────────────────────────────────────────────────────
+  const takeSnapshot=async(stateToSnap,trigger='manual',label=null)=>{
+    try{
+      const{data:{user}}=await supabase.auth.getUser();
+      await supabase.from('palantir_snapshots').insert({user_id:user?.id,state:stateToSnap,trigger,label});
+      // Prune: keep only last 30
+      const{data:all}=await supabase.from('palantir_snapshots').select('id').order('created_at',{ascending:false});
+      if(all&&all.length>30){
+        const ids=all.slice(30).map(s=>s.id);
+        await supabase.from('palantir_snapshots').delete().in('id',ids);
+      }
+    }catch(e){console.error('Snapshot error',e);}
+  };
+
+  const downloadJson=()=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`palantir-${TODAY_STR}.json`;a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const applyClaudeImport=async(imp)=>{
+    // Auto-snapshot current state before every import
+    await takeSnapshot(data,'pre_import',`Before import: ${imp.summary||'update'}`);
     setData(d=>{
       const nd=JSON.parse(JSON.stringify(d));
       (imp.memoryUpdates||[]).forEach(u=>{const f=nd.files.find(x=>x.id===u.fileId||x.title===u.fileTitle);if(f){f.memory=u.newMemory;f.updatedAt=TODAY_STR;}});
@@ -842,6 +1027,8 @@ export default function App(){
             <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
               {urgentFiles>0&&<span style={{fontSize:10,background:'rgba(217,95,95,0.15)',color:T.r,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{urgentFiles} urgent</span>}
               {overdueCount>0&&<span style={{fontSize:10,background:'rgba(212,146,42,0.15)',color:T.y,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{overdueCount} overdue</span>}
+              <button onClick={()=>setModal('snapshots')} title="Snapshots & Backup" style={{...ss.btn,fontSize:11}}>💾 Snapshots</button>
+              <button onClick={downloadJson} title="Download state as JSON" style={{...ss.btn,fontSize:11}}>⬇ JSON</button>
               <button onClick={()=>setView('claude')} style={{...ss.btn,fontSize:11,color:view==='claude'?T.acc:T.tx2,background:view==='claude'?'rgba(91,156,246,0.10)':'transparent',border:`1px solid ${view==='claude'?T.acc:T.bd}`}}>Claude</button>
               <button onClick={()=>setModal('team')} style={{...ss.btn,fontSize:11}}>Team</button>
               <span style={{fontSize:10,color:saved?T.g:T.tx3,fontFamily:T.mono}}>{saved?'✓':'…'}</span>
@@ -859,6 +1046,7 @@ export default function App(){
           </div>
           {modal==='addFile'&&<AddFileModal data={data} onClose={()=>setModal(null)} onCreate={f=>{createFile(f);setModal(null);}}/>}
           {modal==='team'   &&<TeamModal data={data} onClose={()=>setModal(null)} setData={setData}/>}
+          {modal==='snapshots'&&<SnapshotModal data={data} onClose={()=>setModal(null)} onRestore={newState=>{setData(newState);setFontScaleState(newState.uiPrefs?.fontScale||1.0);}}/>}
         </div>
 
         {/* ── BOTTOM BAR — outside zoom, unaffected by scale ── */}
@@ -866,7 +1054,7 @@ export default function App(){
           <span style={{fontSize:11,fontFamily:T.serif,color:T.tx3,letterSpacing:'0.04em'}}>Palantír</span>
           <span style={{color:T.bd2,fontSize:12}}>·</span>
           <span style={{fontSize:10,color:T.tx3}}>A</span>
-          <input type="range" min={0.75} max={1.4} step={0.05} value={fontScale}
+          <input type="range" min={0.5} max={2.0} step={0.05} value={fontScale}
             onChange={e=>saveFontScale(parseFloat(e.target.value))}
             style={{width:200,cursor:'pointer',accentColor:T.acc}}
             title={`Zoom: ${Math.round(fontScale*100)}%`}
