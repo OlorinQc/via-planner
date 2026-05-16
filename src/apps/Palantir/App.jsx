@@ -142,6 +142,22 @@ const Inp=({value,onChange,placeholder,rows,style})=>rows?<textarea value={value
 const Overlay=({onClose,children,wide,extraWide})=>(<div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:50,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60}}><div onClick={e=>e.stopPropagation()} style={{background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:10,padding:'1.25rem',width:extraWide?860:wide?700:480,maxHeight:'82vh',overflowY:'auto',boxShadow:'0 24px 60px rgba(0,0,0,0.6)'}}>{children}</div></div>);
 const ModalH=({title,onClose})=>(<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,paddingBottom:10,borderBottom:`1px solid ${T.bd}`}}><span style={{fontSize:14,fontWeight:600,color:T.tx,fontFamily:T.font}}>{title}</span><button onClick={onClose} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:T.tx3,lineHeight:1}}>×</button></div>);
 
+// Column resize handle (vertical drag — sits on the right edge of a column header)
+function ColResizer({onResize}){
+  const startX=useRef(0),startW=useRef(0);
+  const onMouseDown=e=>{
+    e.preventDefault();e.stopPropagation();
+    startX.current=e.clientX;
+    const parent=e.currentTarget.parentElement;
+    startW.current=parent?parent.offsetWidth:200;
+    const onMove=e=>onResize(Math.max(140,startW.current+(e.clientX-startX.current)));
+    const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  };
+  return<div onMouseDown={onMouseDown} style={{position:'absolute',right:0,top:0,bottom:0,width:5,cursor:'col-resize',zIndex:10,background:'transparent'}} onMouseEnter={e=>e.currentTarget.style.background=T.acc+'55'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}/>;
+}
+
 function ResizeHandle({currentWidth,onResizeLive,onResizeEnd,reversed}){
   const startX=useRef(0),startW=useRef(0);
   const onMouseDown=e=>{e.preventDefault();startX.current=e.clientX;startW.current=currentWidth;const dir=reversed?-1:1;const onMove=e=>{const w=Math.max(180,startW.current+dir*(e.clientX-startX.current));onResizeLive(w);};const onUp=e=>{const w=Math.max(180,startW.current+dir*(e.clientX-startX.current));onResizeEnd(w);document.removeEventListener("mousemove",onMove);document.removeEventListener("mouseup",onUp);};document.addEventListener("mousemove",onMove);document.addEventListener("mouseup",onUp);};
@@ -876,6 +892,8 @@ function FileCard({file,data,onClick,selected}){
 
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
 function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverable}){
+  const [colWidths,setColWidths]=useState({});
+  const setColW=(id,w)=>setColWidths(x=>({...x,[id]:w}));
   const myOpen=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
   const urgentFiles=new Set(data.files.filter(f=>isUrgentFile(f,data.tasks)).map(f=>f.id));
   const urgent=myOpen.filter(t=>urgentFiles.has(t.fileId||t.projectId));
@@ -971,11 +989,13 @@ function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverab
       {COLS.map(col=>{
         const hierarchy=groupToHierarchy(col.tasks);
         const totalTasks=col.tasks.length;
-        return(
-          <div key={col.id} style={{width:240,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%'}}>
-            <div style={{padding:'5px 8px',marginBottom:6,borderBottom:`2px solid ${col.color}`,display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+        const w=colWidths[col.id]||240;
+          return(
+          <div key={col.id} style={{width:w,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%',position:'relative'}}>
+            <div style={{padding:'5px 8px',marginBottom:6,borderBottom:`2px solid ${col.color}`,display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0,position:'relative'}}>
               <span style={{fontSize:11,fontWeight:700,color:col.color}}>{col.label}</span>
               <span style={{fontSize:10,color:T.tx3,fontFamily:T.mono}}>{totalTasks}</span>
+              <ColResizer onResize={w=>setColW(col.id,w)}/>
             </div>
             <div style={{overflowY:'auto',flex:1}}>
               {hierarchy.map(g=><FileGroupCard key={g.fid} {...g} colColor={col.color}/>)}
@@ -992,6 +1012,8 @@ function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverab
 function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverable}){
   const [sort,setSort]=useState({col:'due',dir:'asc'});
   const [filter,setFilter]=useState('all');
+  const [colWidths,setColWidths]=useState({file:170,dv:170,task:220,status:90,due:80,blocker:130});
+  const setColW=(id,w)=>setColWidths(x=>({...x,[id]:w}));
   const toggleSort=col=>setSort(s=>({col,dir:s.col===col&&s.dir==='asc'?'desc':'asc'}));
   const myTasks=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
   const filtered=filter==='overdue'?myTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue'):myTasks;
@@ -1005,7 +1027,7 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
     return 0;
   });
   const getBlocker=task=>{if(isBlocked(task,data.tasks))return'⛔ Dependencies';if(task.gate&&task.gate.trim())return task.gate;if(task.status==='blocked')return'⛔ Blocked';return null;};
-  const ColH=({id,label,w})=>{const active=sort.col===id;return(<th onClick={()=>toggleSort(id)} style={{padding:'6px 10px',textAlign:'left',fontSize:10,fontWeight:700,color:active?T.acc:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',cursor:'pointer',userSelect:'none',borderBottom:`1px solid ${T.bd}`,whiteSpace:'nowrap',background:T.hdr,position:'sticky',top:0,zIndex:2,width:w||'auto'}}>{label}{active?sort.dir==='asc'?' ↑':' ↓':''}</th>);};
+  const ColH=({id,label,w})=>{const active=sort.col===id;return(<th onClick={()=>toggleSort(id)} style={{padding:'6px 10px',textAlign:'left',fontSize:10,fontWeight:700,color:active?T.acc:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',cursor:'pointer',userSelect:'none',borderBottom:`1px solid ${T.bd}`,whiteSpace:'nowrap',background:T.hdr,position:'sticky',top:0,zIndex:2,width:colWidths[id]||'auto',minWidth:80,position:'relative'}}>{label}{active?sort.dir==='asc'?' ↑':' ↓':''}<ColResizer onResize={nw=>setColW(id,nw)}/></th>);};
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -1356,7 +1378,7 @@ function TodayView({data,saveTask,delTask,saveUiPref,saveDeliverable,onOpenTask,
   };
 
   return(
-    <div style={{flex:1,overflowY:'auto',padding:'14px 16px',maxWidth:660}}>
+    <div style={{height:'100%',overflowY:'auto',padding:'14px 16px',maxWidth:660}}>
       <div style={{marginBottom:14}}>
         <h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.font}}>{new Date().toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'})}</h3>
         <div style={{fontSize:11,color:T.tx3}}>{allMyTasks.length} open tasks · {overdue.length} overdue</div>
@@ -1567,7 +1589,9 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
   // Drag state for task reassignment across people
   const taskDragRef=useRef(null); // {taskId, fromPerson}
   const [taskDragId,setTaskDragId]=useState(null);
-  const [taskDragOver,setTaskDragOver]=useState(null); // {personName, fileId|null, insertBeforeTaskId|null}
+  const [taskDragOver,setTaskDragOver]=useState(null);
+  const [colWidths,setColWidths]=useState({});
+  const setColW=(id,w)=>setColWidths(x=>({...x,[id]:w})); // {personName, fileId|null, insertBeforeTaskId|null}
 
   const reassignTask=(taskId,toPerson)=>{
     saveTask(taskId,{assignees:[toPerson]});
@@ -1641,7 +1665,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
 
             return(
               <div key={p.id}
-                style={{width:240,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%',borderLeft:isOver?`3px solid ${T.acc}`:'3px solid transparent',transition:'border-color .1s'}}
+                style={{width:colWidths[p.id]||240,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%',borderLeft:isOver?`3px solid ${T.acc}`:'3px solid transparent',transition:'border-color .1s',position:'relative'}}
                 onDragOver={e=>{e.preventDefault();if(taskDragId)setTaskDragOver({personName:p.name,zone:'col'});else setDragOverColId(p.id);}}
                 onDragLeave={()=>{setDragOverColId(null);if(!taskDragId)setTaskDragOver(null);}}
                 onDrop={e=>{
@@ -1657,8 +1681,9 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                   draggable
                   onDragStart={e=>{if(taskDragId)return;e.stopPropagation();dragRef.current=p.id;setDragColId(p.id);}}
                   onDragEnd={()=>{dragRef.current=null;setDragColId(null);setDragOverColId(null);}}
-                  style={{padding:'8px 10px',background:T.s2,border:`1px solid ${T.bd}`,borderRadius:'7px 7px 0 0',cursor:'grab',flexShrink:0,opacity:dragColId===p.id?0.4:1,userSelect:'none'}}
+                  style={{padding:'8px 10px',background:T.s2,border:`1px solid ${T.bd}`,borderRadius:'7px 7px 0 0',cursor:'grab',flexShrink:0,opacity:dragColId===p.id?0.4:1,userSelect:'none',position:'relative'}}
                 >
+                  <ColResizer onResize={w=>setColW(p.id,w)}/>
                   <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
                     <span style={{fontSize:13,color:T.tx3,flexShrink:0}}>⠿</span>
                     <span style={{fontSize:12,fontWeight:700,color:T.tx,flex:1,...trunc}}>{p.name}</span>
