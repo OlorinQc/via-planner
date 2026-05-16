@@ -857,35 +857,101 @@ function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverab
     {id:'waiting', label:'Waiting',     color:T.y,   tasks:rest.filter(t=>t.status==='waiting'||t.status==='blocked')},
     {id:'done',    label:'Done Today',  color:T.g,   tasks:doneTasks},
   ];
-  const Card=({task})=>{
-    const file=getFile(data.files,task.fileId||task.projectId);
-    const blocked=isBlocked(task,data.tasks);
-    return(
-      <div onClick={()=>onOpenTask(task.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:6,padding:'9px 10px',marginBottom:5,cursor:'pointer',transition:'border-color .1s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=T.bd2} onMouseLeave={e=>e.currentTarget.style.borderColor=T.bd}>
-        {file&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px',marginBottom:3,...trunc}}>{file.title}</div>}
-        <div style={{fontSize:12,color:T.tx,fontWeight:500,lineHeight:1.3,marginBottom:5,...wrap2}}>{task.title}</div>
-        <div style={{display:'flex',gap:3,flexWrap:'wrap',alignItems:'center'}}>
-          {blocked&&<Chip text="⛔ Blocked" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
-          {task.dueDate&&<DueChip date={task.dueDate}/>}
-          {taskAssignees(task).filter(a=>a!=='Karl').map(a=><Chip key={a} text={a.split(' ')[0]} bg="rgba(91,156,246,0.10)" tx={T.acc} small/>)}
-        </div>
-      </div>
-    );
+
+  // Group tasks into file→dv→task hierarchy
+  const groupToHierarchy=tasks=>{
+    const fileMap=new Map();
+    tasks.forEach(t=>{
+      const fid=t.fileId||t.projectId||'__none';
+      if(!fileMap.has(fid))fileMap.set(fid,[]);
+      fileMap.get(fid).push(t);
+    });
+    return Array.from(fileMap.entries()).map(([fid,fileTasks])=>{
+      const file=data.files.find(f=>f.id===fid);
+      const dvMap=new Map();
+      const standalone=[];
+      fileTasks.forEach(t=>{
+        if(t.deliverableId){
+          if(!dvMap.has(t.deliverableId))dvMap.set(t.deliverableId,[]);
+          dvMap.get(t.deliverableId).push(t);
+        }else standalone.push(t);
+      });
+      const dvGroups=Array.from(dvMap.entries()).map(([dvId,dvTasks])=>({dv:getDV(data.deliverables,dvId),dvId,dvTasks}));
+      return{fid,file,dvGroups,standalone};
+    });
   };
-  return(
-    <div style={{flex:1,overflowX:'auto',overflowY:'hidden',padding:'10px',display:'flex',gap:8,alignItems:'flex-start',height:'100%'}}>
-      {COLS.map(col=>(
-        <div key={col.id} style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%'}}>
-          <div style={{padding:'5px 8px',marginBottom:6,borderBottom:`2px solid ${col.color}`,display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
-            <span style={{fontSize:11,fontWeight:700,color:col.color}}>{col.label}</span>
-            <span style={{fontSize:10,color:T.tx3,fontFamily:T.mono}}>{col.tasks.length}</span>
+
+  const FileGroupCard=({fid,file,dvGroups,standalone,colColor})=>(
+    <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:7,marginBottom:6,overflow:'hidden'}}>
+      {/* File header */}
+      <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 9px',background:T.s2,borderBottom:`1px solid ${T.bd3}`,cursor:'pointer'}} onClick={()=>onOpenFile&&onOpenFile(fid)} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background=T.s2}>
+        <div style={{height:2,width:12,background:FP[file?.priority]?.tx||T.tx3,borderRadius:1,flexShrink:0}}/>
+        <span style={{fontSize:9,fontWeight:700,color:T.tx,textTransform:'uppercase',letterSpacing:'0.4px',flex:1,...trunc}}>{file?.title||'No file'}</span>
+      </div>
+      {/* Deliverables with tasks nested */}
+      {dvGroups.map(({dv,dvId,dvTasks})=>(
+        <div key={dvId}>
+          <div onClick={()=>onOpenDeliverable&&onOpenDeliverable(dvId)} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:'rgba(212,146,42,0.03)'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(212,146,42,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(212,146,42,0.03)'}>
+            <span style={{fontSize:10,color:T.y,flexShrink:0}}>↳</span>
+            <span style={{fontSize:10,color:T.tx,fontWeight:500,flex:1,...trunc}}>{dv?.title||dvId}</span>
+            {dv?.dueDate&&<FlexChip fd={dv.dueDate}/>}
           </div>
-          <div style={{overflowY:'auto',flex:1}}>
-            {col.tasks.map(task=><Card key={task.id} task={task}/>)}
-            {col.tasks.length===0&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic',padding:'10px 4px',textAlign:'center'}}>—</div>}
-          </div>
+          {dvTasks.map(t=>{
+            const blocked=isBlocked(t,data.tasks);
+            return(
+              <div key={t.id} onClick={()=>onOpenTask(t.id)} style={{display:'flex',alignItems:'center',gap:5,padding:'4px 9px 4px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:'transparent'}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <span style={{fontSize:9,color:T.tx3,flexShrink:0}}>•</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,color:T.tx,...trunc}}>{t.title}</div>
+                  <div style={{display:'flex',gap:2,marginTop:1,flexWrap:'wrap'}}>
+                    {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
+                    {t.dueDate&&<DueChip date={t.dueDate}/>}
+                  </div>
+                </div>
+                <button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'1px 5px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0}}>✓</button>
+              </div>
+            );
+          })}
         </div>
       ))}
+      {/* Standalone tasks */}
+      {standalone.map(t=>{
+        const blocked=isBlocked(t,data.tasks);
+        return(
+          <div key={t.id} onClick={()=>onOpenTask(t.id)} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:'transparent'}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:11,color:T.tx,...wrap2}}>{t.title}</div>
+              <div style={{display:'flex',gap:2,marginTop:1,flexWrap:'wrap'}}>
+                <StatusDot map={TS} val={t.status}/>
+                {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
+                {t.dueDate&&<DueChip date={t.dueDate}/>}
+              </div>
+            </div>
+            <button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'1px 5px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0}}>✓</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return(
+    <div style={{flex:1,overflowX:'auto',overflowY:'hidden',padding:'10px',display:'flex',gap:8,alignItems:'flex-start',height:'100%'}}>
+      {COLS.map(col=>{
+        const hierarchy=groupToHierarchy(col.tasks);
+        const totalTasks=col.tasks.length;
+        return(
+          <div key={col.id} style={{width:240,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%'}}>
+            <div style={{padding:'5px 8px',marginBottom:6,borderBottom:`2px solid ${col.color}`,display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+              <span style={{fontSize:11,fontWeight:700,color:col.color}}>{col.label}</span>
+              <span style={{fontSize:10,color:T.tx3,fontFamily:T.mono}}>{totalTasks}</span>
+            </div>
+            <div style={{overflowY:'auto',flex:1}}>
+              {hierarchy.map(g=><FileGroupCard key={g.fid} {...g} colColor={col.color}/>)}
+              {hierarchy.length===0&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic',padding:'10px 4px',textAlign:'center'}}>—</div>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -933,7 +999,6 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
                 const file=getFile(data.files,task.fileId||task.projectId);
                 const dv=getDV(data.deliverables,task.deliverableId);
                 const blocker=getBlocker(task);
-                const active=selTask===task.id;
                 return(
                   <tr key={task.id} onClick={()=>onOpenTask(task.id)} style={{background:'transparent',cursor:'pointer',borderBottom:`1px solid ${T.bd3}`}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                     <td style={{padding:'7px 10px',maxWidth:0}}>{file?<button onClick={e=>{e.stopPropagation();onOpenFile(file.id);}} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',color:T.acc,fontSize:11,textAlign:'left',fontFamily:T.font,...trunc,maxWidth:'100%',display:'block'}}>{file.title}</button>:<span style={{color:T.tx3,fontSize:11}}>—</span>}</td>
@@ -1331,13 +1396,36 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogE
                 <div key={di} style={{background:isToday?'rgba(91,156,246,0.06)':T.s1,border:`1px solid ${isToday?T.acc:T.bd}`,borderRadius:5,padding:'7px',display:'flex',flexDirection:'column'}}>
                   <div style={{fontSize:11,fontWeight:700,color:isToday?T.acc:T.tx2,marginBottom:4,flexShrink:0}}>{WD[di]}<br/><span style={{fontSize:13}}>{day.getDate()}</span></div>
                   <div style={{flex:1,overflowY:'auto',minHeight:0}}>
-                    {dayDVs.map(d=><div key={d.id} onClick={()=>openDv(d.id)} style={{background:'rgba(212,146,42,0.10)',borderRadius:3,padding:'2px 5px',marginBottom:2,fontSize:9,color:T.y,fontWeight:600,cursor:'pointer',...trunc}}>{dvLabel(d.type,data.deliverableTypes)}: {d.title}</div>)}
-                    {groups.map(({fid,file,tasks})=>(
-                      <div key={fid} style={{border:`1px solid ${T.bd}`,borderRadius:3,marginBottom:3,overflow:'hidden'}}>
-                        <div style={{padding:'2px 5px',background:T.s2,fontSize:9,fontWeight:700,color:T.tx2,...trunc}}>{file?.title||'—'}</div>
-                        {tasks.map(t=><div key={t.id} onClick={()=>openTask(t.id)} style={{padding:'2px 5px',fontSize:10,color:T.tx,cursor:'pointer',borderTop:`1px solid ${T.bd3}`,...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{t.title}</div>)}
-                      </div>
-                    ))}
+                    {groups.map(({fid,file,tasks})=>{
+                      // Split tasks into dv-grouped and standalone
+                      const dvMap=new Map();
+                      const standalone=[];
+                      tasks.forEach(t=>{if(t.deliverableId){if(!dvMap.has(t.deliverableId))dvMap.set(t.deliverableId,[]);dvMap.get(t.deliverableId).push(t);}else standalone.push(t);});
+                      // Deliverables due this day belonging to this file
+                      const fileDvsToday=(dayDVs||[]).filter(d=>d.fileId===fid);
+                      const allDvIds=new Set([...Array.from(dvMap.keys()),...fileDvsToday.map(d=>d.id)]);
+                      return(
+                        <div key={fid} style={{border:`1px solid ${T.bd}`,borderRadius:3,marginBottom:3,overflow:'hidden'}}>
+                          <div style={{padding:'2px 5px',background:T.s2,fontSize:9,fontWeight:700,color:T.tx2,...trunc}}>{file?.title||'—'}</div>
+                          {Array.from(allDvIds).map(dvId=>{
+                            const dv=getDV(data.deliverables,dvId)||fileDvsToday.find(d=>d.id===dvId);
+                            const dvTasks=dvMap.get(dvId)||[];
+                            return(
+                              <div key={dvId}>
+                                <div onClick={()=>openDv(dvId)} style={{display:'flex',alignItems:'center',gap:3,padding:'2px 5px',background:'rgba(212,146,42,0.06)',borderTop:`1px solid ${T.bd3}`,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background='rgba(212,146,42,0.12)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(212,146,42,0.06)'}>
+                                  <span style={{fontSize:8,color:T.y}}>↳</span>
+                                  <span style={{fontSize:9,color:T.y,...trunc}}>{dv?.title||dvId}</span>
+                                </div>
+                                {dvTasks.map(t=><div key={t.id} onClick={()=>openTask(t.id)} style={{padding:'2px 5px 2px 12px',fontSize:9,color:T.tx,cursor:'pointer',borderTop:`1px solid ${T.bd3}`,...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>• {t.title}</div>)}
+                              </div>
+                            );
+                          })}
+                          {standalone.map(t=><div key={t.id} onClick={()=>openTask(t.id)} style={{padding:'2px 5px',fontSize:9,color:T.tx,cursor:'pointer',borderTop:`1px solid ${T.bd3}`,...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{t.title}</div>)}
+                        </div>
+                      );
+                    })}
+                    {/* Deliverables with no tasks from this file in this day */}
+                    {(dayDVs||[]).filter(d=>!groups.some(g=>g.fid===d.fileId)).map(d=><div key={d.id} onClick={()=>openDv(d.id)} style={{background:'rgba(212,146,42,0.10)',borderRadius:3,padding:'2px 5px',marginBottom:2,fontSize:9,color:T.y,fontWeight:600,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background='rgba(212,146,42,0.18)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(212,146,42,0.10)'}>{dvLabel(d.type,data.deliverableTypes)}: {d.title}</div>)}
                   </div>
                 </div>
               );
@@ -1506,28 +1594,42 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                 </div>
                 {/* Column body */}
                 <div style={{flex:1,overflowY:'auto',border:`1px solid ${T.bd}`,borderTop:'none',borderRadius:'0 0 7px 7px',background:T.s1,padding:6}}>
-                  {/* Files led */}
+                  {/* Files led — with dv→task hierarchy */}
                   {filesLed.map(file=>{
                     const fileTasks=openTasks.filter(t=>(t.fileId||t.projectId)===file.id);
                     const fileDVs=openDVs.filter(d=>d.fileId===file.id);
                     const urgent=isUrgentFile(file,data.tasks);
                     const priColor=FP[file.priority]?.tx||T.tx3;
+                    // Build dv→task map
+                    const dvMap=new Map();
+                    const standalone=[];
+                    fileTasks.forEach(t=>{if(t.deliverableId){if(!dvMap.has(t.deliverableId))dvMap.set(t.deliverableId,[]);dvMap.get(t.deliverableId).push(t);}else standalone.push(t);});
+                    fileDVs.forEach(d=>{if(!dvMap.has(d.id))dvMap.set(d.id,[]);});
+                    const hasContent=dvMap.size>0||standalone.length>0;
                     return(
                       <div key={file.id} onClick={()=>openFile(file.id)} style={{border:`1px solid ${T.bd}`,borderRadius:7,marginBottom:6,overflow:'hidden',cursor:'pointer',background:T.s2}} onMouseEnter={e=>e.currentTarget.style.borderColor=T.acc} onMouseLeave={e=>e.currentTarget.style.borderColor=T.bd}>
                         <div style={{height:2,background:urgent?T.r:priColor,opacity:0.7}}/>
-                        <div style={{padding:'7px 9px'}}>
+                        <div style={{padding:'7px 9px',borderBottom:hasContent?`1px solid ${T.bd3}`:'none'}}>
                           <div style={{fontSize:12,fontWeight:600,color:T.acc,...wrap2,marginBottom:3}}>{file.title}</div>
-                          <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:fileTasks.length||fileDVs.length?5:0}}>
+                          <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
                             <StatusDot map={FS} val={file.status}/>
                             {file.priority!=='medium'&&<StatusDot map={FP} val={file.priority}/>}
                           </div>
-                          {fileTasks.map(t=>(
-                            <div key={t.id} onClick={e=>{e.stopPropagation();openTask(t.id);}} style={{fontSize:10,color:T.tx,padding:'2px 6px',background:T.s1,borderRadius:3,marginBottom:2,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background=T.s1}>• {t.title}</div>
-                          ))}
-                          {fileDVs.map(d=>(
-                            <div key={d.id} onClick={e=>{e.stopPropagation();openDv(d.id);}} style={{fontSize:10,color:T.acc2,padding:'2px 6px',background:'rgba(91,156,246,0.06)',borderRadius:3,marginBottom:2,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background='rgba(91,156,246,0.12)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(91,156,246,0.06)'}>↳ {d.title}</div>
-                          ))}
                         </div>
+                        {Array.from(dvMap.entries()).map(([dvId,dvTasks])=>{
+                          const dv=getDV(data.deliverables,dvId);
+                          return(
+                            <div key={dvId}>
+                              <div onClick={e=>{e.stopPropagation();openDv(dvId);}} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,background:'rgba(212,146,42,0.04)',cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(212,146,42,0.10)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(212,146,42,0.04)'}>
+                                <span style={{fontSize:10,color:T.y,flexShrink:0}}>↳</span>
+                                <span style={{fontSize:10,color:T.tx,fontWeight:500,flex:1,...trunc}}>{dv?.title||dvId}</span>
+                                {dv?.dueDate&&<FlexChip fd={dv.dueDate}/>}
+                              </div>
+                              {dvTasks.map(t=><div key={t.id} onClick={e=>{e.stopPropagation();openTask(t.id);}} style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>• {t.title}</div>)}
+                            </div>
+                          );
+                        })}
+                        {standalone.map(t=><div key={t.id} onClick={e=>{e.stopPropagation();openTask(t.id);}} style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>• {t.title}</div>)}
                       </div>
                     );
                   })}
