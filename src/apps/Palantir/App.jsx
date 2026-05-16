@@ -387,9 +387,15 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
   const [newLink,setNL]=useState({label:'',url:'',type:'folder'});
   const [editingTitle,setEditingTitle]=useState(false);
   const [titleVal,setTitleVal]=useState(file.title);
-  const [addingDv,setAddingDv]=useState(false);
   const [newDvForm,setNewDvForm]=useState({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});
   const [showTemplateModal,setShowTemplateModal]=useState(false);
+  // Unified create picker: null | 'deliverable' | 'task'
+  const [createWhat,setCreateWhat]=useState(null);
+  // Unified paste
+  const [pasteOpen,setPasteOpen]=useState(false);
+  const [pasteText,setPasteText]=useState('');
+  const [pasteErr,setPasteErr]=useState('');
+  const [showPasteHelp,setShowPasteHelp]=useState(false);
   // Risks & Questions
   const [addingRisk,setAddingRisk]=useState(false);
   const [newRisk,setNewRisk]=useState({title:'',description:'',severity:'medium',status:'open',ownerName:'',notes:''});
@@ -409,31 +415,31 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
   const people=allPeopleFrom(data);
   const sens=SENS_C[file.sensitivity||'low']||SENS_C.low;
 
-  // Paste-prompt state
-  const [pastingDv,setPastingDv]=useState(false);
-  const [dvPasteText,setDvPasteText]=useState('');
-  const [showDvHelp,setShowDvHelp]=useState(false);
-  const [dvPasteErr,setDvPasteErr]=useState('');
-  const [pastingTask,setPastingTask]=useState(false);
-  const [taskPasteText,setTaskPasteText]=useState('');
-  const [showTaskHelp,setShowTaskHelp]=useState(false);
-  const [taskPasteErr,setTaskPasteErr]=useState('');
-
-  const applyDvPaste=()=>{
+  // Unified paste handler — accepts {deliverables:[...], tasks:[...]} or array or single object
+  const applyAllPaste=()=>{
     try{
-      const o=JSON.parse(dvPasteText);
-      const dueDateVal=o.dueDate?(typeof o.dueDate==='string'?mkFlexDate('exact',{date:o.dueDate,confidence:'tentative'}):o.dueDate):null;
-      newDeliverable({fileId:file.id,title:o.title||'New Deliverable',type:o.type||'other',ownerName:o.ownerName||o.owner||'Karl',status:o.status||'not_started',dueDate:dueDateVal,publicationDate:o.publicationDate||null,approvalStatus:o.approvalStatus||'not_required',taskIds:[],sharePointUrl:o.sharePointUrl||o.link||'',notes:o.notes||'',createdAt:TODAY_STR,updatedAt:TODAY_STR});
-      setPastingDv(false);setDvPasteText('');setShowDvHelp(false);setDvPasteErr('');
-    }catch(e){setDvPasteErr('Invalid JSON — check format and try again.');}
-  };
-
-  const applyTaskPaste=()=>{
-    try{
-      const o=JSON.parse(taskPasteText);
-      newTask({title:o.title||'New Task',fileId:file.id,projectId:file.id,assignees:Array.isArray(o.assignees)?o.assignees:o.assignee?[o.assignee]:['Karl'],status:o.status||'not_started',dueDate:o.dueDate||null,notes:o.notes||'',gate:o.gate||'',dependsOn:[],dependencies:[],link:null,approvalChain:[],source:'paste',createdAt:TODAY_STR});
-      setPastingTask(false);setTaskPasteText('');setShowTaskHelp(false);setTaskPasteErr('');
-    }catch(e){setTaskPasteErr('Invalid JSON — check format and try again.');}
+      const raw=JSON.parse(pasteText);
+      let dvs=[],tasks=[];
+      const isTask=o=>!o.type||(o.type&&!DELIVERABLE_TYPES.find(d=>d.value===o.type));
+      if(Array.isArray(raw)){
+        raw.forEach(o=>{if(o.title&&o.type&&DELIVERABLE_TYPES.find(d=>d.value===o.type))dvs.push(o);else tasks.push(o);});
+      } else if(raw.deliverables||raw.tasks){
+        dvs=raw.deliverables||[];tasks=raw.tasks||[];
+      } else if(raw.title){
+        if(raw.type&&DELIVERABLE_TYPES.find(d=>d.value===raw.type))dvs.push(raw);else tasks.push(raw);
+      }
+      // Create deliverables (with optional nested tasks)
+      dvs.forEach(o=>{
+        const dvId=uid();
+        const dueDate=o.dueDate?mkFlexDate('exact',{date:o.dueDate,confidence:'tentative'}):null;
+        const publicationDate=o.publicationDate?mkFlexDate('exact',{date:o.publicationDate,confidence:'tentative'}):null;
+        newDeliverable({id:dvId,fileId:file.id,title:o.title||'New Deliverable',type:o.type||'other',ownerName:o.ownerName||o.owner||'Karl',status:o.status||'not_started',dueDate,publicationDate,approvalStatus:o.approvalStatus||'not_required',taskIds:[],sharePointUrl:o.sharePointUrl||'',notes:o.notes||'',createdAt:TODAY_STR,updatedAt:TODAY_STR});
+        (o.tasks||[]).forEach(t=>newTask({title:t.title||'New Task',fileId:file.id,projectId:file.id,deliverableId:dvId,assignees:Array.isArray(t.assignees)?t.assignees:t.assignee?[t.assignee]:['Karl'],status:t.status||'not_started',dueDate:t.dueDate||null,notes:t.notes||'',gate:t.gate||'',dependsOn:[],dependencies:[],link:null,approvalChain:[],source:'paste',createdAt:TODAY_STR}));
+      });
+      // Create standalone tasks
+      tasks.forEach(t=>newTask({title:t.title||'New Task',fileId:file.id,projectId:file.id,assignees:Array.isArray(t.assignees)?t.assignees:t.assignee?[t.assignee]:['Karl'],status:t.status||'not_started',dueDate:t.dueDate||null,notes:t.notes||'',gate:t.gate||'',dependsOn:[],dependencies:[],link:null,approvalChain:[],source:'paste',createdAt:TODAY_STR}));
+      setPasteOpen(false);setPasteText('');setPasteErr('');setShowPasteHelp(false);
+    }catch(e){setPasteErr('Invalid JSON — check format and try again.');}
   };
 
   // ── DRAG STATE ─────────────────────────────────────────────────────────────
@@ -567,43 +573,50 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
             badge={(()=>{const openDvs=fileDeliverables.filter(d=>!isDoneDV(d)).length;const openT=openTasks.length;return(openDvs||openT)?`${openDvs} deliverable${openDvs!==1?'s':''} · ${openT} task${openT!==1?'s':''} open`:null;})()}
             action={<>
               <button onClick={()=>setShowTemplateModal(true)} style={{...ss.btn,fontSize:9,padding:'2px 7px',color:T.acc}}>From template</button>
-              <button onClick={()=>{setPastingDv(v=>!v);setPastingTask(false);}} style={{...ss.btn,fontSize:9,padding:'2px 7px'}}>📋 DV</button>
-              <button onClick={()=>{setAddingDv(v=>!v);}} style={{...ss.btn,fontSize:9,padding:'2px 8px'}}>+ DV</button>
-              <button onClick={()=>{setPastingTask(v=>!v);setPastingDv(false);}} style={{...ss.btn,fontSize:9,padding:'2px 7px'}}>📋 Task</button>
-              <button onClick={()=>setAddingTask(v=>!v)} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Task</button>
+              <button onClick={()=>{setPasteOpen(v=>!v);setCreateWhat(null);}} style={{...ss.btn,fontSize:9,padding:'2px 7px'}}>📋 Paste</button>
+              <button onClick={()=>{setCreateWhat(w=>w?null:'pick');setPasteOpen(false);}} style={{...ss.btnP,fontSize:9,padding:'2px 8px'}}>+ Create</button>
             </>}
           />
           {isOpen('deliverables')&&(<div style={{padding:'12px 16px',borderBottom:`1px solid ${T.bd}`}}>
-            {/* DV paste */}
-            {pastingDv&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'10px',marginBottom:10,background:T.s2}}>
-              <textarea value={dvPasteText} onChange={e=>{setDvPasteText(e.target.value);setDvPasteErr('');}} rows={4} placeholder={'{ title: ..., type: press_release, ownerName: Karl, ... }'} style={{...ss.inp,fontFamily:T.mono,fontSize:10,resize:'vertical'}}/>
-              {dvPasteErr&&<div style={{fontSize:10,color:T.r,marginTop:4}}>{dvPasteErr}</div>}
+            {/* ── UNIFIED PASTE ── */}
+            {pasteOpen&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'10px',marginBottom:10,background:T.s2}}>
+              <div style={{fontSize:10,color:T.tx2,fontWeight:600,marginBottom:5}}>Paste JSON — deliverables, tasks, or both</div>
+              <textarea autoFocus value={pasteText} onChange={e=>{setPasteText(e.target.value);setPasteErr('');}} rows={6} placeholder={'{\n  "deliverables": [{\n    "title": "...", "type": "press_release", "ownerName": "Karl",\n    "tasks": [{ "title": "...", "assignees": ["Karl"] }]\n  }],\n  "tasks": [{ "title": "...", "assignees": ["Karl"] }]\n}'} style={{...ss.inp,fontFamily:T.mono,fontSize:10,resize:'vertical'}}/>
+              {pasteErr&&<div style={{fontSize:10,color:T.r,marginTop:4}}>{pasteErr}</div>}
               <div style={{display:'flex',gap:4,marginTop:6,alignItems:'center'}}>
-                <button onClick={applyDvPaste} style={ss.btnP}>Create</button>
-                <button onClick={()=>{setPastingDv(false);setDvPasteText('');setDvPasteErr('');}} style={ss.btn}>Cancel</button>
-                <div style={{marginLeft:'auto',position:'relative'}} onMouseEnter={()=>setShowDvHelp(true)} onMouseLeave={()=>setShowDvHelp(false)}>
-                  <div style={{width:18,height:18,borderRadius:'50%',fontSize:10,cursor:'help',border:`1px solid ${T.bd2}`,background:showDvHelp?T.acc:T.s1,color:showDvHelp?'#fff':T.tx3,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.font,userSelect:'none'}}>?</div>
-                  {showDvHelp&&<div style={{position:'absolute',right:0,bottom:22,width:340,padding:'8px 10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)'}}>{['title','type: comm_plan|press_release|media_statement|qa|message_map|briefing_note|speech|report|other','ownerName','status: not_started|in_progress|in_review|in_approval|approved','dueDate: YYYY-MM-DD','publicationDate: YYYY-MM-DD','approvalStatus: not_required|pending|approved','sharePointUrl','notes'].map((f,i)=><div key={i} style={{padding:'1px 0',borderBottom:`1px solid ${T.bd3}`}}>{f}</div>)}</div>}
+                <button onClick={applyAllPaste} style={ss.btnP}>Create all</button>
+                <button onClick={()=>{setPasteOpen(false);setPasteText('');setPasteErr('');}} style={ss.btn}>Cancel</button>
+                <div style={{marginLeft:'auto',position:'relative'}} onMouseEnter={()=>setShowPasteHelp(true)} onMouseLeave={()=>setShowPasteHelp(false)}>
+                  <div style={{width:18,height:18,borderRadius:'50%',fontSize:10,cursor:'help',border:`1px solid ${T.bd2}`,background:showPasteHelp?T.acc:T.s1,color:showPasteHelp?'#fff':T.tx3,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.font,userSelect:'none'}}>?</div>
+                  {showPasteHelp&&<div style={{position:'absolute',right:0,bottom:22,width:380,padding:'10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)'}}>{[
+                    '── DELIVERABLE fields ──',
+                    'title (required)',
+                    'type: press_release | communication_plan | media_statement | qa | message_map | briefing_note | speech | report | other',
+                    'ownerName   status   dueDate: YYYY-MM-DD',
+                    'publicationDate: YYYY-MM-DD   approvalStatus: not_required | pending | approved',
+                    'sharePointUrl   notes',
+                    'tasks: [ ...task objects nested inside the deliverable ]',
+                    '── TASK fields ──',
+                    'title (required)',
+                    'assignees: ["Karl", "William-Antoine Blaney"]',
+                    'status: not_started | in_progress | waiting | blocked',
+                    'dueDate: YYYY-MM-DD   notes   gate: blocker description',
+                  ].map((f,i)=><div key={i} style={{padding:'1px 0',borderBottom:`1px solid ${T.bd3}`,color:f.startsWith('──')?T.acc:T.tx3}}>{f}</div>)}</div>}
                 </div>
               </div>
             </div>)}
-            {/* Task paste */}
-            {pastingTask&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'10px',marginBottom:10,background:T.s2}}>
-              <textarea value={taskPasteText} onChange={e=>{setTaskPasteText(e.target.value);setTaskPasteErr('');}} rows={3} placeholder={'{ "title": "...", "assignees": ["Karl"], "status": "not_started", "dueDate": "2026-05-22" }'} style={{...ss.inp,fontFamily:T.mono,fontSize:10,resize:'vertical'}}/>
-              {taskPasteErr&&<div style={{fontSize:10,color:T.r,marginTop:4}}>{taskPasteErr}</div>}
-              <div style={{display:'flex',gap:4,marginTop:6,alignItems:'center'}}>
-                <button onClick={applyTaskPaste} style={ss.btnP}>Create</button>
-                <button onClick={()=>{setPastingTask(false);setTaskPasteText('');setTaskPasteErr('');}} style={ss.btn}>Cancel</button>
-                <div style={{marginLeft:'auto',position:'relative'}} onMouseEnter={()=>setShowTaskHelp(true)} onMouseLeave={()=>setShowTaskHelp(false)}>
-                  <div style={{width:18,height:18,borderRadius:'50%',fontSize:10,cursor:'help',border:`1px solid ${T.bd2}`,background:showTaskHelp?T.acc:T.s1,color:showTaskHelp?'#fff':T.tx3,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.font,userSelect:'none'}}>?</div>
-                  {showTaskHelp&&<div style={{position:'absolute',right:0,bottom:22,width:300,padding:'8px 10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)'}}>{['title','assignees: ["Karl", ...]','status: not_started|in_progress|waiting|blocked','dueDate: YYYY-MM-DD','notes','gate: external blocker'].map((f,j)=><div key={j} style={{padding:'1px 0',borderBottom:`1px solid ${T.bd3}`}}>{f}</div>)}</div>}
-                </div>
-              </div>
+            {/* ── UNIFIED CREATE PICKER ── */}
+            {createWhat==='pick'&&(<div style={{display:'flex',gap:6,marginBottom:10,padding:'8px',background:T.s2,borderRadius:6,border:`1px solid ${T.bd2}`,alignItems:'center'}}>
+              <span style={{fontSize:11,color:T.tx2,fontWeight:600}}>Create:</span>
+              <button onClick={()=>setCreateWhat('deliverable')} style={{...ss.btn,fontSize:11,padding:'4px 14px',background:T.s1}}>Deliverable</button>
+              <button onClick={()=>setCreateWhat('task')} style={{...ss.btn,fontSize:11,padding:'4px 14px',background:T.s1}}>Task</button>
+              <button onClick={()=>setCreateWhat(null)} style={{...ss.btn,fontSize:10,marginLeft:'auto',color:T.tx3}}>✕</button>
             </div>)}
-            {/* Add DV form */}
-            {addingDv&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}>
+            {/* ── DELIVERABLE FORM ── */}
+            {createWhat==='deliverable'&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><span style={{fontSize:11,fontWeight:600,color:T.tx}}>New Deliverable</span><button onClick={()=>setCreateWhat(null)} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:14}}>×</button></div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
-                <Fld label="Title" mb={0}><Inp value={newDvForm.title} onChange={v=>setNewDvForm(x=>({...x,title:v}))} placeholder="Deliverable name"/></Fld>
+                <Fld label="Title" mb={0}><Inp value={newDvForm.title} onChange={v=>setNewDvForm(x=>({...x,title:v}))} placeholder="Deliverable name" autoFocus/></Fld>
                 <Fld label="Type" mb={0}><select value={newDvForm.type} onChange={e=>setNewDvForm(x=>({...x,type:e.target.value}))} style={ss.sel}>{(data.deliverableTypes||DELIVERABLE_TYPES).map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></Fld>
                 <Fld label="Owner" mb={0}><select value={newDvForm.ownerName} onChange={e=>setNewDvForm(x=>({...x,ownerName:e.target.value}))} style={ss.sel}><option value="">—</option>{people.map(m=><option key={m}>{m}</option>)}</select></Fld>
                 <Fld label="Status" mb={0}><select value={newDvForm.status} onChange={e=>setNewDvForm(x=>({...x,status:e.target.value}))} style={ss.sel}>{DELIVERABLE_STATUS_OPTS.map(s=><option key={s} value={s}>{DVS[s]?.label||s}</option>)}</select></Fld>
@@ -614,12 +627,13 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
               </div>
               <Fld label="Notes" mb={8}><Inp value={newDvForm.notes||''} onChange={v=>setNewDvForm(x=>({...x,notes:v}))} placeholder="Optional notes…" rows={2}/></Fld>
               <div style={{display:'flex',gap:4}}>
-                <button onClick={()=>{if(newDvForm.title.trim()){const dueDate=newDvForm.dueDateStr?mkFlexDate('exact',{date:newDvForm.dueDateStr,confidence:'tentative'}):null;const publicationDate=newDvForm.pubDateStr?mkFlexDate('exact',{date:newDvForm.pubDateStr,confidence:'tentative'}):null;newDeliverable({...newDvForm,fileId:file.id,taskIds:[],dueDate,publicationDate,approvalStatus:newDvForm.approvalStatus||'not_required',sharePointUrl:newDvForm.sharePointUrl||'',notes:newDvForm.notes||'',approverNames:[],supportNames:[],createdAt:TODAY_STR,updatedAt:TODAY_STR});setNewDvForm({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});setAddingDv(false);}}} style={ss.btnP}>Add deliverable</button>
-                <button onClick={()=>setAddingDv(false)} style={ss.btn}>Cancel</button>
+                <button onClick={()=>{if(newDvForm.title.trim()){const dueDate=newDvForm.dueDateStr?mkFlexDate('exact',{date:newDvForm.dueDateStr,confidence:'tentative'}):null;const publicationDate=newDvForm.pubDateStr?mkFlexDate('exact',{date:newDvForm.pubDateStr,confidence:'tentative'}):null;newDeliverable({...newDvForm,fileId:file.id,taskIds:[],dueDate,publicationDate,approvalStatus:newDvForm.approvalStatus||'not_required',sharePointUrl:newDvForm.sharePointUrl||'',notes:newDvForm.notes||'',approverNames:[],supportNames:[],createdAt:TODAY_STR,updatedAt:TODAY_STR});setNewDvForm({title:'',type:'press_release',ownerName:'Karl',status:'not_started'});setCreateWhat(null);}}} style={ss.btnP}>Add deliverable</button>
+                <button onClick={()=>setCreateWhat('pick')} style={ss.btn}>← Back</button>
               </div>
             </div>)}
-            {/* Add Task form */}
-            {addingTask&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:10,background:T.s2}}>
+            {/* ── TASK FORM ── */}
+            {createWhat==='task'&&(<div style={{border:`1px solid ${T.bd2}`,borderRadius:6,padding:'12px',marginBottom:10,background:T.s2}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><span style={{fontSize:11,fontWeight:600,color:T.tx}}>New Task</span><button onClick={()=>setCreateWhat(null)} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:14}}>×</button></div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
                 <Fld label="Title" mb={0}><Inp value={newTaskForm.title} onChange={v=>setNewTaskForm(x=>({...x,title:v}))} placeholder="Task title" autoFocus/></Fld>
                 <Fld label="Status" mb={0}><select value={newTaskForm.status} onChange={e=>setNewTaskForm(x=>({...x,status:e.target.value}))} style={ss.sel}><option value="not_started">To Do</option><option value="in_progress">In Progress</option><option value="waiting">Waiting</option><option value="blocked">Blocked</option></select></Fld>
@@ -629,12 +643,12 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
               <Fld label="Notes" mb={6}><Inp value={newTaskForm.notes||''} onChange={v=>setNewTaskForm(x=>({...x,notes:v}))} placeholder="Optional notes…" rows={2}/></Fld>
               <Fld label="Gate / external blocker" mb={8}><Inp value={newTaskForm.gate||''} onChange={v=>setNewTaskForm(x=>({...x,gate:v}))} placeholder="e.g. Waiting for Mathieu approval…"/></Fld>
               <div style={{display:'flex',gap:4}}>
-                <button onClick={()=>{if(newTaskForm.title.trim()){newTask({title:newTaskForm.title.trim(),fileId:file.id,projectId:file.id,assignees:newTaskForm.assignees,status:newTaskForm.status,dueDate:newTaskForm.dueDate||null,notes:newTaskForm.notes||'',gate:newTaskForm.gate||'',dependsOn:[],dependencies:[],link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});setNewTaskForm({title:'',assignees:['Karl'],status:'not_started',dueDate:'',notes:'',gate:''});setAddingTask(false);}}} style={ss.btnP}>Add task</button>
-                <button onClick={()=>setAddingTask(false)} style={ss.btn}>Cancel</button>
+                <button onClick={()=>{if(newTaskForm.title.trim()){newTask({title:newTaskForm.title.trim(),fileId:file.id,projectId:file.id,assignees:newTaskForm.assignees,status:newTaskForm.status,dueDate:newTaskForm.dueDate||null,notes:newTaskForm.notes||'',gate:newTaskForm.gate||'',dependsOn:[],dependencies:[],link:null,approvalChain:[],source:'manual',createdAt:TODAY_STR});setNewTaskForm({title:'',assignees:['Karl'],status:'not_started',dueDate:'',notes:'',gate:''});setCreateWhat(null);}}} style={ss.btnP}>Add task</button>
+                <button onClick={()=>setCreateWhat('pick')} style={ss.btn}>← Back</button>
               </div>
             </div>)}
             {/* Combined: deliverables with tasks nested inside, then standalone tasks */}
-            {fileDeliverables.length===0&&openTasks.length===0&&!addingDv&&!addingTask&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'10px 0',textAlign:'center'}}>No deliverables or tasks yet.</div>}
+            {fileDeliverables.length===0&&openTasks.length===0&&!createWhat&&!pasteOpen&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'10px 0',textAlign:'center'}}>No deliverables or tasks yet.</div>}
             {orderedDvList.map(dv=>{
               const dvTasks=getOrderedDvTasks(dv);
               const isTaskDragTarget=dragInfo?.type==='task'&&dragOver?.id===dv.id;
@@ -2227,7 +2241,7 @@ export default function App(){
   const addLogEntry=(fileId,summary,title='Update')=>setData(d=>({...d,files:d.files.map(f=>f.id===fileId?{...f,log:[{id:uid(),date:TODAY_STR,title,summary},...(f.log||[])],updatedAt:TODAY_STR}:f)}));
   const saveDeliverable=(id,ch)=>setData(d=>({...d,deliverables:(d.deliverables||[]).map(dv=>dv.id===id?{...dv,...ch,updatedAt:TODAY_STR}:dv)}));
   const delDeliverable=id=>setData(d=>({...d,deliverables:(d.deliverables||[]).filter(dv=>dv.id!==id),tasks:d.tasks.map(t=>t.deliverableId===id?{...t,deliverableId:null}:t)}));
-  const newDeliverable=dv=>setData(d=>({...d,deliverables:[...(d.deliverables||[]),{id:uid(),...dv}]}));
+  const newDeliverable=dv=>setData(d=>({...d,deliverables:[...(d.deliverables||[]),{...dv,id:dv.id||uid()}]}));
   const applyTemplate=(deliverable,tasks)=>setData(d=>({...d,deliverables:[...(d.deliverables||[]),deliverable],tasks:[...d.tasks,...tasks]}));
   const saveUiPref=(key,val)=>setData(d=>({...d,uiPrefs:{...(d.uiPrefs||{}),[key]:val}}));
   const saveFontScale=v=>{setFontScaleState(v);saveUiPref('fontScale',v);};
