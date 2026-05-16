@@ -19,6 +19,7 @@ const T={
 };
 const FS={active:{bg:'rgba(91,156,246,0.10)',tx:T.acc,dot:T.acc,label:'Active'},monitoring:{bg:'rgba(212,146,42,0.10)',tx:T.y,dot:T.y,label:'Monitoring'},paused:{bg:'rgba(62,74,90,0.20)',tx:T.tx2,dot:T.tx2,label:'On Ice'},completed:{bg:'rgba(63,182,139,0.10)',tx:T.g,dot:T.g,label:'Completed'},archived:{bg:'rgba(62,74,90,0.10)',tx:T.tx3,dot:T.tx3,label:'Archived'}};
 const FH={on_track:{bg:'rgba(63,182,139,0.10)',tx:T.g,label:'On Track'},at_risk:{bg:'rgba(212,146,42,0.10)',tx:T.y,label:'At Risk'},blocked:{bg:'rgba(217,95,95,0.12)',tx:T.r,label:'Blocked'},unknown:{bg:'rgba(62,74,90,0.15)',tx:T.tx2,label:'Unknown'}};
+const FP_ORDER={urgent:0,high:1,medium:2,low:3};
 const FP={urgent:{bg:'rgba(217,95,95,0.12)',tx:T.r,label:'Urgent'},high:{bg:'rgba(212,146,42,0.10)',tx:T.y,label:'High'},medium:{bg:'rgba(91,156,246,0.09)',tx:T.acc,label:'Medium'},low:{bg:'rgba(62,74,90,0.18)',tx:T.tx2,label:'Low'}};
 const TS={not_started:{bg:'rgba(62,74,90,0.18)',tx:T.tx2,label:'To Do'},in_progress:{bg:'rgba(91,156,246,0.10)',tx:T.acc,label:'In Progress'},waiting:{bg:'rgba(168,184,208,0.10)',tx:T.acc2,label:'Waiting'},blocked:{bg:'rgba(217,95,95,0.12)',tx:T.r,label:'Blocked'},completed:{bg:'rgba(63,182,139,0.10)',tx:T.g,label:'Done'},cancelled:{bg:'rgba(62,74,90,0.10)',tx:T.tx3,label:'Cancelled'},'Urgent':{bg:'rgba(217,95,95,0.13)',tx:T.r,label:'Urgent'},'In Progress':{bg:'rgba(91,156,246,0.10)',tx:T.acc,label:'In Progress'},'To Plan':{bg:'rgba(62,74,90,0.18)',tx:T.tx2,label:'To Do'},'Waiting':{bg:'rgba(168,184,208,0.10)',tx:T.acc2,label:'Waiting'},'Done':{bg:'rgba(63,182,139,0.10)',tx:T.g,label:'Done'}};
 const DD={overdue:{bg:'rgba(217,95,95,0.14)',tx:T.r},today:{bg:'rgba(212,146,42,0.14)',tx:T.y},soon:{bg:'rgba(212,186,42,0.10)',tx:'#b8960a'},ok:{bg:'rgba(63,182,139,0.09)',tx:T.g}};
@@ -570,7 +571,7 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
           {/* ── DELIVERABLES ── */}
           {/* ── DELIVERABLES & TASKS (combined) ── */}
           <AHead id="deliverables" label="Deliverables & Tasks"
-            badge={(()=>{const openDvs=fileDeliverables.filter(d=>!isDoneDV(d)).length;const openT=openTasks.length;return(openDvs||openT)?`${openDvs} deliverable${openDvs!==1?'s':''} · ${openT} task${openT!==1?'s':''} open`:null;})()}
+            badge={(()=>{const openDvs=fileDeliverables.filter(d=>!isDoneDV(d)).length;const openT=openTasks.length;return(openDvs||openT)?`${openDvs}d · ${openT}t`:null;})()}
             action={<>
               <button onClick={()=>setShowTemplateModal(true)} style={{...ss.btn,fontSize:9,padding:'2px 7px',color:T.acc}}>From template</button>
               <button onClick={()=>{setPasteOpen(v=>!v);setCreateWhat(null);}} style={{...ss.btn,fontSize:9,padding:'2px 7px'}}>📋 Paste</button>
@@ -1420,7 +1421,7 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogE
                       const allDvIds=new Set([...Array.from(dvMap.keys()),...fileDvsToday.map(d=>d.id)]);
                       return(
                         <div key={fid} style={{border:`1px solid ${T.bd}`,borderRadius:3,marginBottom:3,overflow:'hidden'}}>
-                          <div style={{padding:'2px 5px',background:T.s2,fontSize:9,fontWeight:700,color:T.tx2,...trunc}}>{file?.title||'—'}</div>
+                          <div style={{padding:'2px 5px',background:T.s2,fontSize:9,fontWeight:700,color:T.tx,...trunc}}>{file?.title||'—'}</div>
                           {Array.from(allDvIds).map(dvId=>{
                             const dv=getDV(data.deliverables,dvId)||fileDvsToday.find(d=>d.id===dvId);
                             const dvTasks=dvMap.get(dvId)||[];
@@ -1465,19 +1466,41 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogE
             {wk.map((day,di)=>{
               const dStr=toStr(day),isToday=dStr===TODAY_STR,inMonth=day.getMonth()===monthMo;
               const dayTasks=(tasksByDate[dStr]||[]);
-              const dayDVs=(dvsByDate[dStr]||[]).slice(0,1);
+              const allDayDVs=(dvsByDate[dStr]||[]);
               const groups=groupTasksByFile(dayTasks);
+              const totalGroups=groups.length;
+              const shownGroups=groups.slice(0,2);
               return(
                 <div key={di} style={{padding:'3px 3px',background:isToday?'rgba(91,156,246,0.06)':inMonth?T.s1:T.s2,border:`1px solid ${isToday?T.acc:T.bd3}`,borderRadius:3,minHeight:52,overflow:'hidden'}}>
                   <div style={{fontSize:10,fontWeight:isToday?700:400,color:inMonth?T.tx2:T.tx3,marginBottom:1}}>{day.getDate()}</div>
-                  {dayDVs.map(d=><div key={d.id} onClick={()=>openDv(d.id)} style={{fontSize:8,background:'rgba(212,146,42,0.12)',color:T.y,borderRadius:2,padding:'1px 3px',marginBottom:1,cursor:'pointer',...trunc}}>{d.title}</div>)}
-                  {groups.slice(0,2).map(({fid,file,tasks})=>(
-                    <div key={fid} style={{border:`1px solid ${T.bd3}`,borderRadius:2,marginBottom:1,overflow:'hidden'}}>
-                      <div style={{padding:'1px 3px',background:T.s2,fontSize:8,fontWeight:700,color:T.tx3,...trunc}}>{file?.title?.slice(0,16)||'—'}</div>
-                      {tasks.slice(0,2).map(t=>{const ts=TS[t.status];return(<div key={t.id} onClick={()=>openTask(t.id)} style={{fontSize:8,background:ts?.bg||'transparent',color:ts?.tx||T.tx2,padding:'1px 3px',cursor:'pointer',...trunc}}>{t.title}</div>);})}
-                    </div>
-                  ))}
-                  {groups.length>2&&<div style={{fontSize:7,color:T.tx3,textAlign:'center'}}>+{groups.length-2} more</div>}
+                  {/* Standalone DVs (no tasks from same file this day) */}
+                  {allDayDVs.filter(d=>!groups.some(g=>g.fid===d.fileId)).slice(0,1).map(d=><div key={d.id} onClick={()=>openDv(d.id)} style={{fontSize:8,background:'rgba(212,146,42,0.12)',color:T.y,borderRadius:2,padding:'1px 3px',marginBottom:1,cursor:'pointer',...trunc}}>{d.title}</div>)}
+                  {shownGroups.map(({fid,file,tasks})=>{
+                    const dvMap=new Map();
+                    const standalone=[];
+                    tasks.forEach(t=>{if(t.deliverableId){if(!dvMap.has(t.deliverableId))dvMap.set(t.deliverableId,[]);dvMap.get(t.deliverableId).push(t);}else standalone.push(t);});
+                    const fileDvsDay=allDayDVs.filter(d=>d.fileId===fid);
+                    fileDvsDay.forEach(d=>{if(!dvMap.has(d.id))dvMap.set(d.id,[]);});
+                    return(
+                      <div key={fid} style={{border:`1px solid ${T.bd3}`,borderRadius:2,marginBottom:1,overflow:'hidden'}}>
+                        <div style={{padding:'1px 3px',background:T.s2,fontSize:8,fontWeight:700,color:T.tx,...trunc}}>{file?.title?.slice(0,18)||'—'}</div>
+                        {Array.from(dvMap.entries()).slice(0,2).map(([dvId,dvTasks])=>{
+                          const dv=getDV(data.deliverables,dvId)||fileDvsDay.find(d=>d.id===dvId);
+                          const dueSt=dv?.dueDate?ds(flexToExact(dv.dueDate)||''):'';
+                          const dvColor=dueSt==='overdue'?T.r:dueSt==='today'?T.y:T.acc2;
+                          return(<div key={dvId}>
+                            <div onClick={()=>openDv(dvId)} style={{display:'flex',alignItems:'center',gap:2,padding:'1px 3px',cursor:'pointer',borderTop:`1px solid ${T.bd3}`,...trunc}}>
+                              <span style={{fontSize:7,color:dvColor,flexShrink:0}}>↳</span>
+                              <span style={{fontSize:7,color:dvColor,...trunc}}>{dv?.title?.slice(0,16)||dvId}</span>
+                            </div>
+                            {dvTasks.slice(0,2).map(t=><div key={t.id} onClick={()=>openTask(t.id)} style={{fontSize:7,color:T.tx2,padding:'1px 3px 1px 8px',cursor:'pointer',borderTop:`1px solid ${T.bd3}`,...trunc}}>• {t.title}</div>)}
+                          </div>);
+                        })}
+                        {standalone.slice(0,2).map(t=><div key={t.id} onClick={()=>openTask(t.id)} style={{fontSize:7,color:T.tx2,padding:'1px 3px',cursor:'pointer',borderTop:`1px solid ${T.bd3}`,...trunc}}>{t.title}</div>)}
+                      </div>
+                    );
+                  })}
+                  {totalGroups>2&&<div style={{fontSize:7,color:T.tx3,textAlign:'center'}}>+{totalGroups-2} more</div>}
                 </div>
               );
             })}
@@ -1524,6 +1547,15 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
   const closePanel=()=>setRightPanel(null);
   const fileEditProps={data,saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,saveUiPref};
 
+  // Drag state for task reassignment across people
+  const taskDragRef=useRef(null); // {taskId, fromPerson}
+  const [taskDragId,setTaskDragId]=useState(null);
+  const [taskDragOver,setTaskDragOver]=useState(null); // {personName, fileId|null, insertBeforeTaskId|null}
+
+  const reassignTask=(taskId,toPerson)=>{
+    saveTask(taskId,{assignees:[toPerson]});
+  };
+
   const orderedPeople=[
     ...savedOrder.map(id=>people.find(p=>p.id===id)).filter(Boolean),
     ...people.filter(p=>!savedOrder.includes(p.id))
@@ -1560,7 +1592,6 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
 
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
-      {/* Kanban board */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
         {/* Toolbar */}
         <div style={{padding:'5px 10px',borderBottom:`1px solid ${T.bd}`,background:T.s1,display:'flex',gap:4,alignItems:'center',flexShrink:0,flexWrap:'wrap'}}>
@@ -1571,25 +1602,43 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
             return(<button key={p.id} onClick={()=>toggleHide(p.id)} style={{...ss.btn,fontSize:9,padding:'1px 7px',background:hidden?'transparent':T.acc,color:hidden?T.tx3:'#fff',border:`1px solid ${hidden?T.bd:T.acc}`,opacity:hidden?0.5:1}}>{p.name.split(' ')[0]}</button>);
           })}
         </div>
-        {/* Columns */}
+        {/* Kanban columns */}
         <div style={{flex:1,overflowX:'auto',overflowY:'hidden',display:'flex',gap:8,padding:10,alignItems:'flex-start'}}>
           {orderedPeople.map(p=>{
-            const filesLed=data.files.filter(f=>f.lead===p.name&&!f.archived&&f.status!=='completed');
-            const openTasks=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t));
-            const openDVs=(data.deliverables||[]).filter(d=>d.ownerName===p.name&&!isDoneDV(d));
-            const overdue=openTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue');
+            const isLead=f=>f.lead===p.name;
+            // ALL files this person touches
+            const personTasks=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t));
+            const personDVs=(data.deliverables||[]).filter(d=>d.ownerName===p.name&&!isDoneDV(d));
+            const touchedFileIds=new Set([
+              ...data.files.filter(f=>f.lead===p.name&&!f.archived&&f.status!=='completed').map(f=>f.id),
+              ...personTasks.map(t=>t.fileId||t.projectId).filter(Boolean),
+              ...personDVs.map(d=>d.fileId).filter(Boolean),
+            ]);
+            const touchedFiles=[...touchedFileIds].map(fid=>data.files.find(f=>f.id===fid)).filter(f=>f&&!f.archived&&f.status!=='completed');
+            // Sort: led files first (★), then others
+            touchedFiles.sort((a,b)=>{const al=isLead(a)?0:1,bl=isLead(b)?0:1;return al-bl||(FP_ORDER[a.priority]||2)-(FP_ORDER[b.priority]||2);});
+            const unlinkedTasks=personTasks.filter(t=>!t.fileId&&!t.projectId);
+            const overdue=personTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue');
+            const isColOver=taskDragOver?.personName===p.name&&taskDragOver?.zone==='col';
             const isOver=dragOverColId===p.id&&dragColId!==p.id;
+
             return(
               <div key={p.id}
                 style={{width:240,flexShrink:0,display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%',borderLeft:isOver?`3px solid ${T.acc}`:'3px solid transparent',transition:'border-color .1s'}}
-                onDragOver={e=>{e.preventDefault();setDragOverColId(p.id);}}
-                onDragLeave={()=>setDragOverColId(null)}
-                onDrop={e=>{e.preventDefault();dropOnCol(p.id);}}
+                onDragOver={e=>{e.preventDefault();if(taskDragId)setTaskDragOver({personName:p.name,zone:'col'});else setDragOverColId(p.id);}}
+                onDragLeave={()=>{setDragOverColId(null);if(!taskDragId)setTaskDragOver(null);}}
+                onDrop={e=>{
+                  e.preventDefault();
+                  if(taskDragId&&taskDragRef.current){
+                    reassignTask(taskDragId,p.name);
+                    taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);
+                  } else dropOnCol(p.id);
+                }}
               >
-                {/* Column header */}
+                {/* Column header — draggable for column reorder */}
                 <div
                   draggable
-                  onDragStart={e=>{e.stopPropagation();dragRef.current=p.id;setDragColId(p.id);}}
+                  onDragStart={e=>{if(taskDragId)return;e.stopPropagation();dragRef.current=p.id;setDragColId(p.id);}}
                   onDragEnd={()=>{dragRef.current=null;setDragColId(null);setDragOverColId(null);}}
                   style={{padding:'8px 10px',background:T.s2,border:`1px solid ${T.bd}`,borderRadius:'7px 7px 0 0',cursor:'grab',flexShrink:0,opacity:dragColId===p.id?0.4:1,userSelect:'none'}}
                 >
@@ -1600,18 +1649,18 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                   </div>
                   {p.title&&<div style={{fontSize:10,color:T.tx3,marginBottom:5,...trunc}}>{p.title}</div>}
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                    <span style={{fontSize:10,color:T.tx2}}><b>{filesLed.length}</b> files</span>
-                    <span style={{fontSize:10,color:T.tx2}}><b>{openTasks.length}</b> tasks</span>
-                    {openDVs.length>0&&<span style={{fontSize:10,color:T.acc}}><b>{openDVs.length}</b> dvs</span>}
+                    <span style={{fontSize:10,color:T.tx2}}><b>{touchedFileIds.size}</b> files</span>
+                    <span style={{fontSize:10,color:T.tx2}}><b>{personTasks.length}</b> tasks</span>
+                    {personDVs.length>0&&<span style={{fontSize:10,color:T.acc}}><b>{personDVs.length}</b> dvs</span>}
                     {overdue.length>0&&<span style={{fontSize:10,color:T.r,fontWeight:700}}>{overdue.length} late</span>}
                   </div>
                 </div>
                 {/* Column body */}
-                <div style={{flex:1,overflowY:'auto',border:`1px solid ${T.bd}`,borderTop:'none',borderRadius:'0 0 7px 7px',background:T.s1,padding:6}}>
-                  {/* Files led — with dv→task hierarchy */}
-                  {filesLed.map(file=>{
-                    const fileTasks=openTasks.filter(t=>(t.fileId||t.projectId)===file.id);
-                    const fileDVs=openDVs.filter(d=>d.fileId===file.id);
+                <div style={{flex:1,overflowY:'auto',border:`1px solid ${T.bd}`,borderTop:'none',borderRadius:'0 0 7px 7px',background:isColOver?'rgba(91,156,246,0.04)':T.s1,padding:6,transition:'background .1s'}}>
+                  {touchedFiles.map(file=>{
+                    const led=isLead(file);
+                    const fileTasks=personTasks.filter(t=>(t.fileId||t.projectId)===file.id);
+                    const fileDVs=personDVs.filter(d=>d.fileId===file.id);
                     const urgent=isUrgentFile(file,data.tasks);
                     const priColor=FP[file.priority]?.tx||T.tx3;
                     // Build dv→task map
@@ -1621,53 +1670,96 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                     fileDVs.forEach(d=>{if(!dvMap.has(d.id))dvMap.set(d.id,[]);});
                     const hasContent=dvMap.size>0||standalone.length>0;
                     return(
-                      <div key={file.id} onClick={()=>openFile(file.id)} style={{border:`1px solid ${T.bd}`,borderRadius:7,marginBottom:6,overflow:'hidden',cursor:'pointer',background:T.s2}} onMouseEnter={e=>e.currentTarget.style.borderColor=T.acc} onMouseLeave={e=>e.currentTarget.style.borderColor=T.bd}>
+                      <div key={file.id} style={{border:`1px solid ${T.bd}`,borderRadius:7,marginBottom:6,overflow:'hidden',background:T.s2}}>
                         <div style={{height:2,background:urgent?T.r:priColor,opacity:0.7}}/>
-                        <div style={{padding:'7px 9px',borderBottom:hasContent?`1px solid ${T.bd3}`:'none'}}>
-                          <div style={{fontSize:12,fontWeight:600,color:T.acc,...wrap2,marginBottom:3}}>{file.title}</div>
+                        <div onClick={()=>openFile(file.id)} style={{padding:'6px 9px',borderBottom:hasContent?`1px solid ${T.bd3}`:'none',cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <div style={{fontSize:11,fontWeight:600,color:T.acc,...wrap2,marginBottom:2}}>
+                            {led&&<span style={{color:T.y,marginRight:4}}>★</span>}{file.title}
+                          </div>
                           <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
                             <StatusDot map={FS} val={file.status}/>
                             {file.priority!=='medium'&&<StatusDot map={FP} val={file.priority}/>}
                           </div>
                         </div>
+                        {/* Deliverables + tasks */}
                         {Array.from(dvMap.entries()).map(([dvId,dvTasks])=>{
                           const dv=getDV(data.deliverables,dvId);
-                          return(
-                            <div key={dvId}>
-                              <div onClick={e=>{e.stopPropagation();openDv(dvId);}} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,background:'rgba(212,146,42,0.04)',cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(212,146,42,0.10)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(212,146,42,0.04)'}>
-                                <span style={{fontSize:10,color:T.y,flexShrink:0}}>↳</span>
-                                <span style={{fontSize:10,color:T.tx,fontWeight:500,flex:1,...trunc}}>{dv?.title||dvId}</span>
-                                {dv?.dueDate&&<FlexChip fd={dv.dueDate}/>}
-                              </div>
-                              {dvTasks.map(t=><div key={t.id} onClick={e=>{e.stopPropagation();openTask(t.id);}} style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>• {t.title}</div>)}
+                          return(<div key={dvId}>
+                            <div onClick={e=>{e.stopPropagation();openDv(dvId);}} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,background:'rgba(212,146,42,0.04)',cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(212,146,42,0.10)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(212,146,42,0.04)'}>
+                              <span style={{fontSize:10,color:T.y,flexShrink:0}}>↳</span>
+                              <span style={{fontSize:10,color:T.tx,fontWeight:500,flex:1,...trunc}}>{dv?.title||dvId}</span>
+                              {dv?.dueDate&&<FlexChip fd={dv.dueDate}/>}
                             </div>
-                          );
+                            {dvTasks.map((t,ti)=>{
+                              const isDragOverHere=taskDragOver?.zone==='task'&&taskDragOver?.insertBeforeTaskId===t.id&&taskDragOver?.fileId===file.id;
+                              return(<div key={t.id}>
+                                {isDragOverHere&&<div style={{height:2,background:T.acc,borderRadius:1,margin:'1px 4px'}}/>}
+                                <div
+                                  draggable
+                                  onDragStart={e=>{e.stopPropagation();taskDragRef.current={taskId:t.id,fromPerson:p.name};setTaskDragId(t.id);}}
+                                  onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
+                                  onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'task',insertBeforeTaskId:t.id});}}
+                                  onClick={e=>{e.stopPropagation();openTask(t.id);}}
+                                  style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...trunc}}
+                                  onMouseEnter={e=>e.currentTarget.style.background=T.s3}
+                                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                                >• {t.title}</div>
+                              </div>);
+                            })}
+                          </div>);
                         })}
-                        {standalone.map(t=><div key={t.id} onClick={e=>{e.stopPropagation();openTask(t.id);}} style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',...trunc}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>• {t.title}</div>)}
+                        {standalone.map((t,ti)=>{
+                          const isDragOverHere=taskDragOver?.zone==='task'&&taskDragOver?.insertBeforeTaskId===t.id&&taskDragOver?.fileId===file.id;
+                          return(<div key={t.id}>
+                            {isDragOverHere&&<div style={{height:2,background:T.acc,borderRadius:1,margin:'1px 4px'}}/>}
+                            <div
+                              draggable
+                              onDragStart={e=>{e.stopPropagation();taskDragRef.current={taskId:t.id,fromPerson:p.name};setTaskDragId(t.id);}}
+                              onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
+                              onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'task',insertBeforeTaskId:t.id});}}
+                              onClick={e=>{e.stopPropagation();openTask(t.id);}}
+                              style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...trunc}}
+                              onMouseEnter={e=>e.currentTarget.style.background=T.s3}
+                              onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                            >• {t.title}</div>
+                          </div>);
+                        })}
                       </div>
                     );
                   })}
-                  {/* Tasks not under a led file */}
-                  {(()=>{
-                    const ledFileIds=new Set(filesLed.map(f=>f.id));
-                    const otherTasks=openTasks.filter(t=>!ledFileIds.has(t.fileId||t.projectId));
-                    if(!otherTasks.length)return null;
-                    return(
-                      <div style={{border:`1px solid ${T.bd}`,borderRadius:7,marginBottom:6,overflow:'hidden',background:T.s2}}>
-                        <div style={{padding:'5px 9px',background:T.s1,borderBottom:`1px solid ${T.bd}`,fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px'}}>Other tasks</div>
-                        <div style={{padding:'4px 6px'}}>
-                          {otherTasks.map(t=>{
-                            const file=getFile(data.files,t.fileId||t.projectId);
-                            return(<div key={t.id} onClick={()=>openTask(t.id)} style={{fontSize:10,color:T.tx,padding:'3px 6px',borderRadius:3,marginBottom:2,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background=T.s3} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                              {file&&<div style={{fontSize:8,color:T.tx3,fontWeight:700,...trunc}}>{file.title}</div>}
-                              <div style={{...trunc}}>• {t.title}</div>
-                            </div>);
-                          })}
-                        </div>
+                  {/* Other tasks (no fileId) */}
+                  {unlinkedTasks.length>0&&(
+                    <div style={{border:`1px solid ${T.bd}`,borderRadius:7,marginBottom:6,overflow:'hidden',background:T.s2}}>
+                      <div style={{padding:'5px 9px',background:T.s1,borderBottom:`1px solid ${T.bd}`,fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px'}}>Other tasks</div>
+                      <div
+                        onDragOver={e=>{e.preventDefault();setTaskDragOver({personName:p.name,zone:'other'});}}
+                        onDrop={e=>{e.preventDefault();if(taskDragId){reassignTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
+                        style={{padding:'4px 6px',minHeight:24,background:taskDragOver?.personName===p.name&&taskDragOver?.zone==='other'?'rgba(91,156,246,0.06)':'transparent'}}
+                      >
+                        {unlinkedTasks.map(t=>(
+                          <div
+                            key={t.id}
+                            draggable
+                            onDragStart={e=>{e.stopPropagation();taskDragRef.current={taskId:t.id,fromPerson:p.name};setTaskDragId(t.id);}}
+                            onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
+                            onClick={()=>openTask(t.id)}
+                            style={{fontSize:10,color:T.tx,padding:'3px 6px',borderRadius:3,marginBottom:2,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...trunc}}
+                            onMouseEnter={e=>e.currentTarget.style.background=T.s3}
+                            onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                          >• {t.title}</div>
+                        ))}
                       </div>
-                    );
-                  })()}
-                  {filesLed.length===0&&openTasks.length===0&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic',textAlign:'center',padding:'20px 5px'}}>No active files or tasks.</div>}
+                    </div>
+                  )}
+                  {/* Empty drop zone at bottom */}
+                  <div
+                    onDragOver={e=>{e.preventDefault();setTaskDragOver({personName:p.name,zone:'col'});}}
+                    onDrop={e=>{e.preventDefault();if(taskDragId){reassignTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
+                    style={{minHeight:32,borderRadius:5,border:isColOver?`1px dashed ${T.acc}`:'1px dashed transparent',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
+                  >
+                    {isColOver&&taskDragId&&<span style={{fontSize:10,color:T.acc}}>Drop to reassign to {p.name.split(' ')[0]}</span>}
+                  </div>
+                  {touchedFiles.length===0&&unlinkedTasks.length===0&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic',textAlign:'center',padding:'20px 5px'}}>No active files or tasks.</div>}
                 </div>
               </div>
             );
