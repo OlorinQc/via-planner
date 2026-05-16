@@ -367,14 +367,11 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
     if(savedAcc){return new Set(ALL_SECTIONS.filter(s=>savedAcc[s]!==false));}
     return new Set(ALL_SECTIONS);
   });
-  const toggle=id=>setOpen(p=>{
-    const n=new Set(p);n.has(id)?n.delete(id):n.add(id);
-    if(saveUiPref){
-      const acc={};ALL_SECTIONS.forEach(s=>acc[s]=n.has(s));
-      saveUiPref('accordions',{...(data.uiPrefs?.accordions||{}),[file.id]:acc});
-    }
-    return n;
-  });
+  const toggle=id=>{
+    const next=new Set(open);next.has(id)?next.delete(id):next.add(id);
+    setOpen(next);
+    if(saveUiPref){const acc={};ALL_SECTIONS.forEach(s=>acc[s]=next.has(s));saveUiPref('accordions',{...(data.uiPrefs?.accordions||{}),[file.id]:acc});}
+  };
   const isOpen=id=>open.has(id);
   const [selTask,setSelTask]=useState(null);
   const [selDv,setSelDv]=useState(null);
@@ -905,7 +902,7 @@ function MyTasksView({data,saveTask,delTask,onOpenFile,onOpenDeliverable}){
 }
 
 // ─── FILES VIEW (consolidated — was Dashboard + Files) ───────────────────────
-function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFile,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,pendingFileId,clearPendingFile}){
+function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFile,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,pendingFileId,clearPendingFile,saveUiPref}){
   const [search,setSearch]=useState('');
   const [statusF,setStatusF]=useState('active');
   const [mineOnly,setMineOnly]=useState(false);
