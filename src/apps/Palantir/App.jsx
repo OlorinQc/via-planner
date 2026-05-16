@@ -152,7 +152,7 @@ function FlexDateInput({value,onChange,label}){
 }
 
 // ─── TASK PANEL ───────────────────────────────────────────────────────────────
-function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask}){
+function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverable}){
   const task=data.tasks.find(t=>t.id===taskId);
   if(!task)return null;
   const file=getFile(data.files,task.fileId||task.projectId);
@@ -165,8 +165,8 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask}){
     <div style={{width:360,flexShrink:0,borderLeft:`1px solid ${T.bd}`,background:T.s1,overflowY:'auto',maxHeight:'100%'}}>
       <div style={{padding:'12px 14px',borderBottom:`1px solid ${T.bd}`,display:'flex',alignItems:'flex-start',gap:8,position:'sticky',top:0,background:T.s1,zIndex:5}}>
         <div style={{flex:1,minWidth:0}}>
-          {file&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',marginBottom:1,letterSpacing:'0.5px',...trunc}}>{file.title}</div>}
-          {dv&&<div style={{fontSize:9,color:T.acc,marginBottom:2,...trunc}}>↳ {dv.title}</div>}
+          {file&&(onOpenFile?<button onClick={()=>onOpenFile(file.id)} title="Open file" style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontSize:9,fontWeight:700,color:T.acc,textTransform:'uppercase',marginBottom:1,letterSpacing:'0.5px',textAlign:'left',display:'block',maxWidth:'100%',fontFamily:T.font,...trunc}}>→ {file.title}</button>:<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',marginBottom:1,letterSpacing:'0.5px',...trunc}}>{file.title}</div>)}
+          {dv&&(onOpenDeliverable?<button onClick={()=>onOpenDeliverable(dv.id)} title="Open deliverable" style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontSize:9,color:T.acc,marginBottom:2,textAlign:'left',display:'block',maxWidth:'100%',fontFamily:T.font,textDecoration:'underline',...trunc}}>↳ {dv.title}</button>:<div style={{fontSize:9,color:T.acc,marginBottom:2,...trunc}}>↳ {dv.title}</div>)}
           <textarea value={task.title} onChange={e=>upd({title:e.target.value})} rows={2} style={{width:'100%',border:'none',outline:'none',background:'transparent',fontSize:13,fontWeight:600,color:T.tx,resize:'none',lineHeight:1.4,fontFamily:T.font,wordBreak:'break-word'}}/>
         </div>
         <button onClick={onClose} style={{background:'transparent',border:'none',color:T.tx3,cursor:'pointer',fontSize:18,lineHeight:1,padding:2,flexShrink:0}}>×</button>
@@ -188,7 +188,7 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask}){
 }
 
 // ─── DELIVERABLE PANEL ────────────────────────────────────────────────────────
-function DeliverablePanel({dvId,data,onClose,saveDeliverable,delDeliverable,saveTask,delTask,newTask}){
+function DeliverablePanel({dvId,data,onClose,saveDeliverable,delDeliverable,saveTask,delTask,newTask,onOpenFile}){
   const dv=data.deliverables?.find(d=>d.id===dvId);
   if(!dv)return null;
   const file=getFile(data.files,dv.fileId);
@@ -221,7 +221,7 @@ function DeliverablePanel({dvId,data,onClose,saveDeliverable,delDeliverable,save
       <div style={{padding:'12px 14px',borderBottom:`1px solid ${T.bd}`,position:'sticky',top:0,background:T.s1,zIndex:5}}>
         <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
           <div style={{flex:1,minWidth:0}}>
-            {file&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',marginBottom:2,letterSpacing:'0.5px',...trunc}}>{file.title}</div>}
+            {file&&(onOpenFile?<button onClick={()=>onOpenFile(file.id)} title="Open file" style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontSize:9,fontWeight:700,color:T.acc,textTransform:'uppercase',marginBottom:2,letterSpacing:'0.5px',textAlign:'left',display:'block',maxWidth:'100%',fontFamily:T.font,...trunc}}>→ {file.title}</button>:<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',marginBottom:2,letterSpacing:'0.5px',...trunc}}>{file.title}</div>)}
             <textarea value={dv.title} onChange={e=>upd({title:e.target.value})} rows={2} style={{width:'100%',border:'none',outline:'none',background:'transparent',fontSize:13,fontWeight:600,color:T.tx,resize:'none',lineHeight:1.4,fontFamily:T.font}}/>
           </div>
           <button onClick={onClose} style={{background:'transparent',border:'none',color:T.tx3,cursor:'pointer',fontSize:18,lineHeight:1,padding:2,flexShrink:0}}>×</button>
@@ -702,7 +702,7 @@ function FileCard({file,data,onClick,selected}){
 }
 
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
-function KanbanView({data,saveTask,delTask}){
+function KanbanView({data,saveTask,delTask,onOpenFile,onOpenDeliverable}){
   const [selTask,setSelTask]=useState(null);
   const myOpen=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
   const urgentFiles=new Set(data.files.filter(f=>f.priority==='urgent'||f.health==='blocked').map(f=>f.id));
@@ -749,13 +749,13 @@ function KanbanView({data,saveTask,delTask}){
           </div>
         ))}
       </div>
-      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}
+      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask} onOpenFile={onOpenFile} onOpenDeliverable={onOpenDeliverable}/>}
     </div>
   );
 }
 
 // ─── MY TASKS VIEW ────────────────────────────────────────────────────────────
-function MyTasksView({data,saveTask,delTask}){
+function MyTasksView({data,saveTask,delTask,onOpenFile,onOpenDeliverable}){
   const [sort,setSort]=useState({col:'due',dir:'asc'});
   const [selTask,setSelTask]=useState(null);
   const [filter,setFilter]=useState('all'); // all | mine | overdue
@@ -765,6 +765,7 @@ function MyTasksView({data,saveTask,delTask}){
   const sorted=[...filtered].sort((a,b)=>{
     const d=sort.dir==='asc'?1:-1;
     if(sort.col==='file'){const fa=getFile(data.files,a.fileId||a.projectId)?.title||'';const fb=getFile(data.files,b.fileId||b.projectId)?.title||'';return fa.localeCompare(fb)*d;}
+    if(sort.col==='dv'){const da=getDV(data.deliverables,a.deliverableId)?.title||'';const db=getDV(data.deliverables,b.deliverableId)?.title||'';return da.localeCompare(db)*d;}
     if(sort.col==='task')return a.title.localeCompare(b.title)*d;
     if(sort.col==='status')return(a.status||'').localeCompare(b.status||'')*d;
     if(sort.col==='due'){if(!a.dueDate&&!b.dueDate)return 0;if(!a.dueDate)return d;if(!b.dueDate)return-d;return a.dueDate.localeCompare(b.dueDate)*d;}
@@ -775,32 +776,33 @@ function MyTasksView({data,saveTask,delTask}){
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        {/* Filter bar */}
         <div style={{padding:'7px 12px',borderBottom:`1px solid ${T.bd}`,background:T.s1,display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
           {[['all','All'],['overdue','Overdue']].map(([k,l])=><button key={k} onClick={()=>setFilter(k)} style={{...ss.btn,fontSize:10,padding:'2px 8px',background:filter===k?T.acc:'transparent',color:filter===k?'#fff':T.tx2,border:`1px solid ${filter===k?T.acc:T.bd}`}}>{l}</button>)}
           <span style={{marginLeft:'auto',fontSize:10,color:T.tx3}}>{sorted.length} task{sorted.length!==1?'s':''}</span>
         </div>
-        {/* Table */}
         <div style={{flex:1,overflowY:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontFamily:T.font}}>
             <thead>
               <tr>
-                <ColH id="file"   label="File"    w="22%"/>
-                <ColH id="task"   label="Task"    w="34%"/>
-                <ColH id="status" label="Status"  w="12%"/>
-                <ColH id="due"    label="Due"     w="10%"/>
-                <th style={{padding:'6px 10px',fontSize:10,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',borderBottom:`1px solid ${T.bd}`,background:T.hdr,position:'sticky',top:0,zIndex:2,width:'18%'}}>Blocker</th>
+                <ColH id="file"   label="File"        w="18%"/>
+                <ColH id="dv"     label="Deliverable" w="18%"/>
+                <ColH id="task"   label="Task"        w="26%"/>
+                <ColH id="status" label="Status"      w="10%"/>
+                <ColH id="due"    label="Due"         w="9%"/>
+                <th style={{padding:'6px 10px',fontSize:10,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',borderBottom:`1px solid ${T.bd}`,background:T.hdr,position:'sticky',top:0,zIndex:2,width:'15%'}}>Blocker</th>
                 <th style={{padding:'6px 10px',background:T.hdr,position:'sticky',top:0,zIndex:2,borderBottom:`1px solid ${T.bd}`,width:50}}></th>
               </tr>
             </thead>
             <tbody>
               {sorted.map(task=>{
                 const file=getFile(data.files,task.fileId||task.projectId);
+                const dv=getDV(data.deliverables,task.deliverableId);
                 const blocker=getBlocker(task);
                 const active=selTask===task.id;
                 return(
                   <tr key={task.id} onClick={()=>setSelTask(active?null:task.id)} style={{background:active?T.s3:'transparent',cursor:'pointer',borderBottom:`1px solid ${T.bd3}`}} onMouseEnter={e=>{if(!active)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(!active)e.currentTarget.style.background='transparent';}}>
-                    <td style={{padding:'7px 10px',maxWidth:0}}><div style={{fontSize:11,color:T.tx3,...trunc}}>{file?.title||'—'}</div></td>
+                    <td style={{padding:'7px 10px',maxWidth:0}}>{file?(onOpenFile?<button onClick={e=>{e.stopPropagation();onOpenFile(file.id);}} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',color:T.acc,fontSize:11,textAlign:'left',fontFamily:T.font,...trunc,maxWidth:'100%',display:'block'}}>{file.title}</button>:<div style={{fontSize:11,color:T.tx3,...trunc}}>{file.title}</div>):<span style={{color:T.tx3,fontSize:11}}>—</span>}</td>
+                    <td style={{padding:'7px 10px',maxWidth:0}}>{dv?(onOpenDeliverable?<button onClick={e=>{e.stopPropagation();onOpenDeliverable(dv.id);}} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',color:T.acc,fontSize:11,textAlign:'left',fontFamily:T.font,...trunc,maxWidth:'100%',display:'block'}}>↳ {dv.title}</button>:<div style={{fontSize:11,color:T.tx3,...trunc}}>{dv.title}</div>):<span style={{color:T.tx3,fontSize:11}}>—</span>}</td>
                     <td style={{padding:'7px 10px',maxWidth:0}}><div style={{fontSize:12,color:T.tx,...wrap2}}>{task.title}</div></td>
                     <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}><StatusDot map={TS} val={task.status}/></td>
                     <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}>{task.dueDate?<DueChip date={task.dueDate}/>:<span style={{color:T.tx3,fontSize:10}}>—</span>}</td>
@@ -809,36 +811,83 @@ function MyTasksView({data,saveTask,delTask}){
                   </tr>
                 );
               })}
-              {sorted.length===0&&<tr><td colSpan={6} style={{padding:'24px',textAlign:'center',color:T.tx3,fontStyle:'italic',fontSize:12}}>No open tasks assigned to you{filter==='overdue'?' that are overdue':''}.</td></tr>}
+              {sorted.length===0&&<tr><td colSpan={7} style={{padding:'24px',textAlign:'center',color:T.tx3,fontStyle:'italic',fontSize:12}}>No open tasks assigned to you{filter==='overdue'?' that are overdue':''}.</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}
+      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask} onOpenFile={onOpenFile} onOpenDeliverable={onOpenDeliverable}/>}
     </div>
   );
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({data,saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate}){
-  const [filter,setFilter]=useState('active');
+// ─── FILES VIEW (consolidated — was Dashboard + Files) ───────────────────────
+function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFile,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,pendingFileId,clearPendingFile}){
+  const [search,setSearch]=useState('');
+  const [statusF,setStatusF]=useState('active');
+  const [mineOnly,setMineOnly]=useState(false);
+  const [inclArchived,setInclArchived]=useState(false);
   const [selFile,setSelFile]=useState(null);
   const [splitW,setSplitW]=useState(440);
   const [liveW,setLiveW]=useState(null);
   const w=liveW??splitW;
-  const files=data.files.filter(f=>!f.archived);
-  const filtered=filter==='all'?files:filter==='mine'?files.filter(f=>f.lead==='Karl'):files.filter(f=>f.status===filter);
+
+  // Auto-open pending file when navigated from elsewhere
+  useEffect(()=>{
+    if(pendingFileId){
+      setSelFile(pendingFileId);
+      const target=data.files.find(f=>f.id===pendingFileId);
+      if(target){
+        if(target.archived)setInclArchived(true);
+        else if(target.status!==statusF&&statusF!=='all')setStatusF('all');
+      }
+      clearPendingFile&&clearPendingFile();
+    }
+  },[pendingFileId]);
+
+  const filtered=data.files
+    .filter(f=>inclArchived?true:!f.archived)
+    .filter(f=>statusF==='all'||f.status===statusF)
+    .filter(f=>!mineOnly||f.lead==='Karl')
+    .filter(f=>!search||f.title.toLowerCase().includes(search.toLowerCase())||f.lead?.toLowerCase().includes(search.toLowerCase()));
   const activeFile=selFile?data.files.find(f=>f.id===selFile):null;
-  const FILTERS=[{k:'all',label:'All'},{k:'active',label:'Active'},{k:'monitoring',label:'Watch'},{k:'mine',label:'Mine'}];
+  const STATUS_FILTERS=[{k:'all',label:'All'},{k:'active',label:'Active'},{k:'monitoring',label:'Monitoring'},{k:'paused',label:'On Ice'},{k:'completed',label:'Completed'}];
+
+  // Group by priority
+  const PRI_ORDER=['urgent','high','medium','low'];
+  const byPriority=PRI_ORDER.map(pri=>({pri,files:filtered.filter(f=>(f.priority||'medium')===pri)})).filter(g=>g.files.length>0);
+
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
-      <div style={{width:w,flexShrink:0,overflowY:'auto',padding:'10px',borderRight:`1px solid ${T.bd}`}}>
-        <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
-          {FILTERS.map(f=><button key={f.k} onClick={()=>setFilter(f.k)} style={{...ss.btn,background:filter===f.k?T.acc:'transparent',color:filter===f.k?'#fff':T.tx2,border:`1px solid ${filter===f.k?T.acc:T.bd}`}}>{f.label}</button>)}
-          <span style={{marginLeft:'auto',fontSize:10,color:T.tx3}}>{filtered.length}</span>
+      <div style={{width:w,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderRight:`1px solid ${T.bd}`}}>
+        {/* Filter bar */}
+        <div style={{padding:'8px 10px',borderBottom:`1px solid ${T.bd}`,background:T.s1,flexShrink:0}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search files…" style={{...ss.inp,marginBottom:6}}/>
+          <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:5}}>
+            {STATUS_FILTERS.map(s=><button key={s.k} onClick={()=>setStatusF(s.k)} style={{...ss.btn,fontSize:10,padding:'2px 7px',background:statusF===s.k?T.acc:'transparent',color:statusF===s.k?'#fff':T.tx2,border:`1px solid ${statusF===s.k?T.acc:T.bd}`}}>{s.label}</button>)}
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+            <label style={{display:'flex',alignItems:'center',gap:4,cursor:'pointer'}}><input type="checkbox" checked={mineOnly} onChange={e=>setMineOnly(e.target.checked)}/><span style={{fontSize:10,color:T.tx3}}>Mine only</span></label>
+            <label style={{display:'flex',alignItems:'center',gap:4,cursor:'pointer'}}><input type="checkbox" checked={inclArchived} onChange={e=>setInclArchived(e.target.checked)}/><span style={{fontSize:10,color:T.tx3}}>Include archived</span></label>
+            <span style={{marginLeft:'auto',fontSize:10,color:T.tx3}}>{filtered.length}</span>
+          </div>
         </div>
-        {['urgent','high'].map(pri=>{const bucket=filtered.filter(f=>f.priority===pri);if(!bucket.length)return null;return<div key={pri} style={{marginBottom:8}}><div style={{fontSize:9,fontWeight:700,color:FP[pri].tx,textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:4}}>{FP[pri].label}</div><div style={{display:'flex',flexDirection:'column',gap:4}}>{bucket.map(f=><FileCard key={f.id} file={f} data={data} onClick={()=>setSelFile(selFile===f.id?null:f.id)} selected={selFile===f.id}/>)}</div></div>;})}
-        {filtered.filter(f=>!['urgent','high'].includes(f.priority)).length>0&&<div><div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:4}}>Other</div><div style={{display:'flex',flexDirection:'column',gap:4}}>{filtered.filter(f=>!['urgent','high'].includes(f.priority)).map(f=><FileCard key={f.id} file={f} data={data} onClick={()=>setSelFile(selFile===f.id?null:f.id)} selected={selFile===f.id}/>)}</div></div>}
+        {/* Cards by priority */}
+        <div style={{flex:1,overflowY:'auto',padding:'10px'}}>
+          {byPriority.length===0&&<div style={{textAlign:'center',padding:'30px 10px',color:T.tx3,fontStyle:'italic',fontSize:12}}>No files match the current filters.</div>}
+          {byPriority.map(g=>(
+            <div key={g.pri} style={{marginBottom:10}}>
+              <div style={{fontSize:9,fontWeight:700,color:FP[g.pri]?.tx||T.tx3,textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:5}}>{FP[g.pri]?.label||g.pri} <span style={{opacity:0.5}}>({g.files.length})</span></div>
+              <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                {g.files.map(f=><FileCard key={f.id} file={f} data={data} onClick={()=>setSelFile(selFile===f.id?null:f.id)} selected={selFile===f.id}/>)}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* New file button */}
+        <div style={{padding:'7px 10px',borderTop:`1px solid ${T.bd}`,background:T.s1,flexShrink:0}}>
+          <button onClick={showAddFile} style={{...ss.btnP,width:'100%',textAlign:'center'}}>+ New file</button>
+        </div>
       </div>
       <ResizeHandle currentWidth={w} onResizeLive={setLiveW} onResizeEnd={v=>{setLiveW(null);setSplitW(v);}}/>
       {activeFile?<div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}><FilePage file={activeFile} data={data} onClose={()=>setSelFile(null)} saveFile={saveFile} saveTask={saveTask} delTask={delTask} newTask={newTask} addLogEntry={addLogEntry} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newDeliverable={newDeliverable} applyTemplate={applyTemplate}/></div>:<div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8}}><div style={{fontSize:32,opacity:0.12}}>⬡</div><span style={{fontSize:13,color:T.tx3,fontStyle:'italic'}}>Select a file to view</span></div>}
@@ -846,45 +895,36 @@ function Dashboard({data,saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliv
   );
 }
 
-// ─── FILES VIEW ───────────────────────────────────────────────────────────────
-function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFile,saveDeliverable,delDeliverable,newDeliverable,applyTemplate}){
-  const [search,setSearch]=useState('');
-  const [statusF,setStatusF]=useState('all');
-  const [inclArchived,setInclArchived]=useState(false);
-  const [selFile,setSelFile]=useState(null);
-  const [splitW,setSplitW]=useState(280);
-  const [liveW,setLiveW]=useState(null);
-  const w=liveW??splitW;
-  const files=data.files
-    .filter(f=>inclArchived?true:!f.archived)
-    .filter(f=>statusF==='all'||f.status===statusF)
-    .filter(f=>!search||f.title.toLowerCase().includes(search.toLowerCase())||f.lead?.toLowerCase().includes(search.toLowerCase()))
-    .sort((a,b)=>{const po={urgent:0,high:1,medium:2,low:3};return(po[a.priority]||2)-(po[b.priority]||2);});
-  const activeFile=selFile?data.files.find(f=>f.id===selFile):null;
+// ─── MY WORK VIEW (wrapper: Today / Board / List) ─────────────────────────────
+function MyWorkView({data,saveTask,delTask,saveUiPref,onOpenFile,onOpenDeliverable}){
+  const savedMode=data.uiPrefs?.myWorkMode||'today';
+  const [mode,setMode]=useState(savedMode);
+  const changeMode=m=>{setMode(m);saveUiPref('myWorkMode',m);};
+  const MODES=[
+    {k:'today', label:'Today',  hint:'Time-based plan'},
+    {k:'board', label:'Board',  hint:'By status'},
+    {k:'list',  label:'List',   hint:'Sortable table'}
+  ];
   return(
-    <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
-      <div style={{width:w,flexShrink:0,borderRight:`1px solid ${T.bd}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <div style={{padding:'8px 10px',borderBottom:`1px solid ${T.bd}`,background:T.s1,flexShrink:0}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search files…" style={{...ss.inp,marginBottom:5}}/>
-          <div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:4}}>
-            {['all',...FILE_STATUS_OPTS].map(s=><button key={s} onClick={()=>setStatusF(s)} style={{...ss.btn,fontSize:10,padding:'2px 7px',background:statusF===s?T.acc:'transparent',color:statusF===s?'#fff':T.tx2,border:`1px solid ${statusF===s?T.acc:T.bd}`}}>{s==='all'?'All':FS[s]?.label||s}</button>)}
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:5}}><input type="checkbox" id="arcf" checked={inclArchived} onChange={e=>setInclArchived(e.target.checked)}/><label htmlFor="arcf" style={{fontSize:10,color:T.tx3,cursor:'pointer'}}>Include archived</label></div>
-        </div>
-        <div style={{flex:1,overflowY:'auto'}}>
-          {files.map(f=>{const openT=data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&!isDone(t)).length;const openD=(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d)).length;return(<div key={f.id} onClick={()=>setSelFile(selFile===f.id?null:f.id)} style={{padding:'9px 10px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:selFile===f.id?T.s3:'transparent',borderLeft:`3px solid ${selFile===f.id?T.acc:FS[f.status]?.dot||T.tx3}`,opacity:f.archived?0.5:1}} onMouseEnter={e=>{if(selFile!==f.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selFile!==f.id)e.currentTarget.style.background='transparent';}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:3,lineHeight:1.3,wordBreak:'break-word'}}>{f.title}</div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:2}}><div style={{display:'flex',gap:3,flexWrap:'wrap'}}><StatusDot map={FS} val={f.status}/>{f.priority!=='medium'&&<StatusDot map={FP} val={f.priority}/>}</div><span style={{fontSize:10,color:T.tx3,flexShrink:0,marginLeft:4}}>{openT}t{openD>0?` ${openD}d`:''}</span></div>{f.lead&&<div style={{fontSize:10,color:T.tx3,...trunc}}>👤 {f.lead}</div>}</div>);})}
-        </div>
-        <div style={{padding:'7px 10px',borderTop:`1px solid ${T.bd}`,background:T.s1,flexShrink:0}}><button onClick={showAddFile} style={{...ss.btnP,width:'100%',textAlign:'center'}}>+ New file</button></div>
+    <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+      {/* Mode toggle */}
+      <div style={{padding:'7px 12px',borderBottom:`1px solid ${T.bd}`,background:T.s1,display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+        {MODES.map(m=><button key={m.k} onClick={()=>changeMode(m.k)} title={m.hint} style={{...ss.btn,fontSize:11,padding:'4px 12px',background:mode===m.k?T.acc:'transparent',color:mode===m.k?'#fff':T.tx2,border:`1px solid ${mode===m.k?T.acc:T.bd}`,fontWeight:600}}>{m.label}</button>)}
+        <span style={{marginLeft:'auto',fontSize:10,color:T.tx3}}>My Work</span>
       </div>
-      <ResizeHandle currentWidth={w} onResizeLive={setLiveW} onResizeEnd={v=>{setLiveW(null);setSplitW(v);}}/>
-      {activeFile?<div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}><FilePage file={activeFile} data={data} onClose={()=>setSelFile(null)} saveFile={saveFile} saveTask={saveTask} delTask={delTask} newTask={newTask} addLogEntry={addLogEntry} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newDeliverable={newDeliverable} applyTemplate={applyTemplate}/></div>:<div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8}}><div style={{fontSize:32,opacity:0.12}}>⬡</div><span style={{fontSize:13,color:T.tx3,fontStyle:'italic'}}>Select a file to open</span></div>}
+      <div style={{flex:1,overflow:'hidden'}}>
+        {mode==='today'&&<TodayView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref} onOpenFile={onOpenFile} onOpenDeliverable={onOpenDeliverable}/>}
+        {mode==='board'&&<KanbanView data={data} saveTask={saveTask} delTask={delTask} onOpenFile={onOpenFile} onOpenDeliverable={onOpenDeliverable}/>}
+        {mode==='list' &&<MyTasksView data={data} saveTask={saveTask} delTask={delTask} onOpenFile={onOpenFile} onOpenDeliverable={onOpenDeliverable}/>}
+      </div>
     </div>
   );
 }
 
 // ─── TODAY VIEW ───────────────────────────────────────────────────────────────
-function TodayView({data,saveTask,delTask,saveUiPref}){
+function TodayView({data,saveTask,delTask,saveUiPref,onOpenFile,onOpenDeliverable}){
   const [selTask,setSelTask]=useState(null);
+  const dragIdRef=useRef(null);
   const [dragId,setDragId]=useState(null);
   const [dragOverId,setDragOverId]=useState(null);
   const savedOrder=data.uiPrefs?.todayOrder||[];
@@ -897,26 +937,47 @@ function TodayView({data,saveTask,delTask,saveUiPref}){
   const myDVs=(data.deliverables||[]).filter(d=>d.ownerName==='Karl'&&!isDoneDV(d));
   const dvDueToday=myDVs.filter(d=>{const ex=flexToExact(d.dueDate);return ex&&(ds(ex)==='today'||ds(ex)==='overdue');});
 
-  const handleDrop=(targetId)=>{if(!dragId||dragId===targetId)return;const list=[...today];const fromIdx=list.findIndex(t=>t.id===dragId);const toIdx=list.findIndex(t=>t.id===targetId);if(fromIdx===-1||toIdx===-1)return;const moved=list.splice(fromIdx,1)[0];list.splice(toIdx,0,moved);saveUiPref('todayOrder',list.map(t=>t.id));setDragId(null);setDragOverId(null);};
+  const handleDrop=(targetId)=>{
+    const sourceId=dragIdRef.current;
+    if(!sourceId||sourceId===targetId){dragIdRef.current=null;setDragId(null);setDragOverId(null);return;}
+    const list=[...today];
+    const fromIdx=list.findIndex(t=>t.id===sourceId);
+    const toIdx=list.findIndex(t=>t.id===targetId);
+    if(fromIdx===-1||toIdx===-1){dragIdRef.current=null;setDragId(null);setDragOverId(null);return;}
+    const moved=list.splice(fromIdx,1)[0];
+    list.splice(toIdx,0,moved);
+    saveUiPref('todayOrder',list.map(t=>t.id));
+    dragIdRef.current=null;setDragId(null);setDragOverId(null);
+  };
 
   const TRow=({task,draggable:isDraggable})=>{
     const file=getFile(data.files,task.fileId||task.projectId);
     const blocked=isBlocked(task,data.tasks);
     const isDragOver=dragOverId===task.id;
-    return(<div draggable={isDraggable} onDragStart={()=>setDragId(task.id)} onDragEnd={()=>{setDragId(null);setDragOverId(null);}} onDragOver={e=>{e.preventDefault();setDragOverId(task.id);}} onDrop={()=>handleDrop(task.id)} onClick={()=>setSelTask(selTask===task.id?null:task.id)} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 10px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:selTask===task.id?T.s3:isDragOver?T.s3:'transparent',borderTop:isDragOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragId===task.id?0.4:1}} onMouseEnter={e=>{if(selTask!==task.id&&!isDragOver)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selTask!==task.id&&!isDragOver)e.currentTarget.style.background='transparent';}}>
-      {isDraggable&&<span style={{color:T.tx3,fontSize:12,cursor:'grab',flexShrink:0,paddingTop:1}}>⠿</span>}
+    return(<div
+      draggable={isDraggable}
+      onDragStart={e=>{e.stopPropagation();dragIdRef.current=task.id;setDragId(task.id);}}
+      onDragEnd={()=>{dragIdRef.current=null;setDragId(null);setDragOverId(null);}}
+      onDragOver={e=>{if(isDraggable&&dragIdRef.current){e.preventDefault();setDragOverId(task.id);}}}
+      onDragLeave={()=>setDragOverId(null)}
+      onDrop={e=>{e.preventDefault();handleDrop(task.id);}}
+      onClick={()=>setSelTask(selTask===task.id?null:task.id)}
+      style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 10px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:selTask===task.id?T.s3:isDragOver?T.s3:'transparent',borderTop:isDragOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragId===task.id?0.4:1}}
+      onMouseEnter={e=>{if(selTask!==task.id&&!isDragOver)e.currentTarget.style.background=T.s2;}}
+      onMouseLeave={e=>{if(selTask!==task.id&&!isDragOver)e.currentTarget.style.background='transparent';}}>
+      {isDraggable&&<span style={{color:T.tx3,fontSize:13,cursor:'grab',flexShrink:0,paddingTop:1,userSelect:'none'}}>⠿</span>}
       <div style={{flex:1,minWidth:0}}>
         {file&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px',marginBottom:1,...trunc}}>{file.title}</div>}
         <div style={{fontSize:12,color:T.tx,fontWeight:500,lineHeight:1.3,...wrap2}}>{task.title}</div>
         <div style={{display:'flex',gap:3,flexWrap:'wrap',alignItems:'center',marginTop:3}}><StatusDot map={TS} val={task.status}/>{blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}{task.dueDate&&<DueChip date={task.dueDate}/>}</div>
       </div>
-      <button onClick={e=>{e.stopPropagation();saveTask(task.id,{status:'completed'});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0,marginTop:1}}>✓</button>
+      <button onClick={e=>{e.stopPropagation();saveTask(task.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0,marginTop:1}}>✓</button>
     </div>);
   };
 
   const Section=({title,tasks,draggable,accent,extra})=>{if(!tasks.length&&!extra?.length)return null;return<div style={{marginBottom:14}}><div style={{fontSize:9,fontWeight:700,color:accent||T.tx3,textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:4}}>{title} <span style={{opacity:0.6}}>({tasks.length+(extra?.length||0)})</span></div><div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',background:T.s1}}>{tasks.map(t=><TRow key={t.id} task={t} draggable={draggable}/>)}{extra?.map(dv=>(<div key={dv.id} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderBottom:`1px solid ${T.bd3}`,background:'rgba(212,146,42,0.04)'}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:9,fontWeight:700,color:T.y,textTransform:'uppercase',letterSpacing:'0.4px',marginBottom:1,...trunc}}>{getFile(data.files,dv.fileId)?.title||''} · Deliverable</div><div style={{fontSize:12,color:T.tx,fontWeight:500,...wrap2}}>{dv.title}</div><div style={{marginTop:3,display:'flex',gap:3,flexWrap:'wrap'}}><Chip text={dvLabel(dv.type)} bg="rgba(212,146,42,0.10)" tx={T.y} small/>{dv.dueDate&&<FlexChip fd={dv.dueDate}/>}</div></div></div>))}</div></div>;};
 
-  return(<div style={{display:'flex',height:'100%',overflow:'hidden'}}><div style={{flex:1,overflowY:'auto',padding:'14px 16px',maxWidth:660}}><div style={{marginBottom:14}}><h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.font}}>{new Date().toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'})}</h3><div style={{fontSize:11,color:T.tx3}}>{allMyTasks.length} open tasks · {overdue.length} overdue</div></div><Section title="Overdue" tasks={overdue} accent={T.r}/><Section title="Today" tasks={today} draggable accent={T.y} extra={dvDueToday}/>{today.length===0&&overdue.length===0&&dvDueToday.length===0&&<div style={{padding:'14px',border:`1px solid ${T.bd}`,borderRadius:6,background:T.s1,marginBottom:14,fontSize:12,color:T.tx3,fontStyle:'italic',textAlign:'center'}}>Nothing due today or overdue.</div>}<Section title="Next 3 days" tasks={thisWeek} accent={T.acc}/><Section title="No date" tasks={noDate}/></div>{selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask}/>}</div>);
+  return(<div style={{display:'flex',height:'100%',overflow:'hidden'}}><div style={{flex:1,overflowY:'auto',padding:'14px 16px',maxWidth:660}}><div style={{marginBottom:14}}><h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.font}}>{new Date().toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'})}</h3><div style={{fontSize:11,color:T.tx3}}>{allMyTasks.length} open tasks · {overdue.length} overdue</div></div><Section title="Overdue" tasks={overdue} accent={T.r}/><Section title="Today" tasks={today} draggable accent={T.y} extra={dvDueToday}/>{today.length===0&&overdue.length===0&&dvDueToday.length===0&&<div style={{padding:'14px',border:`1px solid ${T.bd}`,borderRadius:6,background:T.s1,marginBottom:14,fontSize:12,color:T.tx3,fontStyle:'italic',textAlign:'center'}}>Nothing due today or overdue.</div>}<Section title="Next 3 days" tasks={thisWeek} accent={T.acc}/><Section title="No date" tasks={noDate}/></div>{selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask} onOpenFile={onOpenFile} onOpenDeliverable={onOpenDeliverable}/>}</div>);
 }
 
 // ─── CALENDAR VIEW ────────────────────────────────────────────────────────────
@@ -966,11 +1027,168 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask}){
 }
 
 // ─── PEOPLE VIEW ──────────────────────────────────────────────────────────────
-function PeopleView({data}){
+function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTask,onOpenFile}){
   const [selPerson,setSelPerson]=useState(null);
+  const [selTask,setSelTask]=useState(null);
+  const [selDv,setSelDv]=useState(null);
   const people=(data.people||[]).filter(p=>p.active!==false);
-  const getWorkload=name=>({filesLed:data.files.filter(f=>f.lead===name&&!f.archived),tasksOpen:data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t)),overdue:data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue'),dvOwned:(data.deliverables||[]).filter(d=>d.ownerName===name&&!isDoneDV(d))});
-  return(<div style={{display:'flex',height:'100%',overflow:'hidden'}}><div style={{width:220,flexShrink:0,borderRight:`1px solid ${T.bd}`,overflowY:'auto'}}>{people.map(p=>{const wl=getWorkload(p.name);return(<div key={p.id} onClick={()=>setSelPerson(selPerson===p.id?null:p.id)} style={{padding:'9px 10px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:selPerson===p.id?T.s3:'transparent'}} onMouseEnter={e=>{if(selPerson!==p.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selPerson!==p.id)e.currentTarget.style.background='transparent';}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:1}}><span style={{fontSize:12,fontWeight:600,color:T.tx,...trunc,maxWidth:120}}>{p.name}</span>{wl.overdue.length>0&&<span style={{fontSize:10,color:T.r,fontWeight:600,flexShrink:0}}>{wl.overdue.length}!</span>}</div>{p.title&&<div style={{fontSize:10,color:T.tx3,marginBottom:2,...trunc}}>{p.title}</div>}<div style={{display:'flex',gap:5}}><span style={{fontSize:10,color:T.tx2}}>{wl.filesLed.length}f</span><span style={{fontSize:10,color:T.tx2}}>{wl.tasksOpen.length}t</span>{wl.dvOwned.length>0&&<span style={{fontSize:10,color:T.acc}}>{wl.dvOwned.length}d</span>}</div></div>);})}</div><div style={{flex:1,overflowY:'auto',padding:'14px 16px'}}>{selPerson?(()=>{const p=people.find(x=>x.id===selPerson);if(!p)return null;const wl=getWorkload(p.name);return(<div><h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.font}}>{p.name}</h3>{p.title&&<div style={{fontSize:12,color:T.tx2,marginBottom:12}}>{p.title}</div>}{wl.filesLed.length>0&&<div style={{marginBottom:12}}><div style={ss.lbl}>FILES LED ({wl.filesLed.length})</div>{wl.filesLed.map(f=><div key={f.id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><span style={{fontSize:12,color:T.tx,flex:1,...trunc}}>{f.title}</span><StatusDot map={FS} val={f.status}/></div>)}</div>}{wl.dvOwned.length>0&&<div style={{marginBottom:12}}><div style={ss.lbl}>DELIVERABLES ({wl.dvOwned.length})</div>{wl.dvOwned.map(d=>{const file=getFile(data.files,d.fileId);return(<div key={d.id} style={{padding:'4px 0',borderBottom:`1px solid ${T.bd3}`}}>{file&&<div style={{fontSize:9,color:T.tx3,fontWeight:700,textTransform:'uppercase',...trunc}}>{file.title}</div>}<div style={{display:'flex',alignItems:'center',gap:4}}><span style={{fontSize:12,color:T.tx,flex:1,...trunc}}>{d.title}</span><StatusDot map={DVS} val={d.status}/></div></div>);})}</div>}{wl.tasksOpen.length>0&&<div style={{marginBottom:12}}><div style={ss.lbl}>OPEN TASKS ({wl.tasksOpen.length})</div>{wl.tasksOpen.map(t=>{const file=getFile(data.files,t.fileId||t.projectId);return(<div key={t.id} style={{padding:'4px 0',borderBottom:`1px solid ${T.bd3}`}}>{file&&<div style={{fontSize:9,color:T.tx3,fontWeight:700,textTransform:'uppercase',...trunc}}>{file.title}</div>}<div style={{display:'flex',alignItems:'center',gap:4}}><span style={{fontSize:12,color:T.tx,flex:1,...wrap2}}>{t.title}</span>{t.dueDate&&<DueChip date={t.dueDate}/>}</div></div>);})}</div>}</div>);})():<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:T.tx3,fontSize:13,fontStyle:'italic'}}>Select a person</div>}</div></div>);
+  const getWorkload=name=>({
+    filesLed:data.files.filter(f=>f.lead===name&&!f.archived),
+    tasksOpen:data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t)),
+    overdue:data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue'),
+    dvOwned:(data.deliverables||[]).filter(d=>d.ownerName===name&&!isDoneDV(d))
+  });
+
+  // Build the file → deliverable → task hierarchy for a person
+  const buildHierarchy=name=>{
+    const myTasks=data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t));
+    const myDvs=(data.deliverables||[]).filter(d=>d.ownerName===name&&!isDoneDV(d));
+    const myLedFiles=data.files.filter(f=>f.lead===name&&!f.archived);
+    // Collect all files this person touches
+    const fileIds=new Set([
+      ...myTasks.map(t=>t.fileId||t.projectId),
+      ...myDvs.map(d=>d.fileId),
+      ...myLedFiles.map(f=>f.id)
+    ].filter(Boolean));
+    const hierarchy=[];
+    for(const fid of fileIds){
+      const file=data.files.find(f=>f.id===fid);
+      if(!file||file.archived)continue;
+      const personDvsInFile=myDvs.filter(d=>d.fileId===fid);
+      const personTasksInFile=myTasks.filter(t=>(t.fileId||t.projectId)===fid);
+      const deliverableRows=[];
+      // Group: deliverables owned by this person, with this person's tasks under them
+      for(const dv of personDvsInFile){
+        const dvTasks=personTasksInFile.filter(t=>t.deliverableId===dv.id);
+        deliverableRows.push({dv,tasks:dvTasks});
+      }
+      // Also: deliverables NOT owned by this person but where they have tasks
+      const otherDvIds=new Set(personTasksInFile.map(t=>t.deliverableId).filter(Boolean));
+      for(const dvId of otherDvIds){
+        if(personDvsInFile.find(d=>d.id===dvId))continue;
+        const dv=(data.deliverables||[]).find(d=>d.id===dvId);
+        if(!dv||isDoneDV(dv))continue;
+        const dvTasks=personTasksInFile.filter(t=>t.deliverableId===dvId);
+        deliverableRows.push({dv,tasks:dvTasks});
+      }
+      const standaloneTasks=personTasksInFile.filter(t=>!t.deliverableId);
+      const isLead=file.lead===name;
+      hierarchy.push({file,isLead,deliverableRows,standaloneTasks});
+    }
+    return hierarchy;
+  };
+
+  return(
+    <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
+      {/* Left: people list */}
+      <div style={{width:220,flexShrink:0,borderRight:`1px solid ${T.bd}`,overflowY:'auto'}}>
+        {people.map(p=>{const wl=getWorkload(p.name);return(
+          <div key={p.id} onClick={()=>{setSelPerson(selPerson===p.id?null:p.id);setSelTask(null);setSelDv(null);}} style={{padding:'9px 10px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:selPerson===p.id?T.s3:'transparent'}} onMouseEnter={e=>{if(selPerson!==p.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selPerson!==p.id)e.currentTarget.style.background='transparent';}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:1}}>
+              <span style={{fontSize:12,fontWeight:600,color:T.tx,...trunc,maxWidth:120}}>{p.name}</span>
+              {wl.overdue.length>0&&<span style={{fontSize:10,color:T.r,fontWeight:600,flexShrink:0}}>{wl.overdue.length}!</span>}
+            </div>
+            {p.title&&<div style={{fontSize:10,color:T.tx3,marginBottom:2,...trunc}}>{p.title}</div>}
+            <div style={{display:'flex',gap:5}}>
+              <span style={{fontSize:10,color:T.tx2}}>{wl.filesLed.length}f</span>
+              <span style={{fontSize:10,color:T.tx2}}>{wl.tasksOpen.length}t</span>
+              {wl.dvOwned.length>0&&<span style={{fontSize:10,color:T.acc}}>{wl.dvOwned.length}d</span>}
+            </div>
+          </div>
+        );})}
+      </div>
+      {/* Middle: hierarchy */}
+      <div style={{flex:1,overflowY:'auto',padding:'14px 16px'}}>
+        {selPerson?(()=>{
+          const p=people.find(x=>x.id===selPerson);
+          if(!p)return null;
+          const hierarchy=buildHierarchy(p.name);
+          return(
+            <div>
+              <h3 style={{margin:'0 0 2px',fontSize:15,fontWeight:700,color:T.tx,fontFamily:T.font}}>{p.name}</h3>
+              {p.title&&<div style={{fontSize:12,color:T.tx2,marginBottom:14}}>{p.title}</div>}
+              {hierarchy.length===0&&<div style={{fontSize:12,color:T.tx3,fontStyle:'italic',padding:'20px 0'}}>No open work assigned.</div>}
+              {hierarchy.map(({file,isLead,deliverableRows,standaloneTasks})=>(
+                <div key={file.id} style={{marginBottom:16,border:`1px solid ${T.bd}`,borderRadius:7,overflow:'hidden'}}>
+                  {/* File header */}
+                  <div onClick={()=>onOpenFile&&onOpenFile(file.id)} style={{padding:'9px 12px',background:T.s2,borderBottom:`1px solid ${T.bd}`,cursor:onOpenFile?'pointer':'default',display:'flex',alignItems:'center',gap:8}} onMouseEnter={e=>{if(onOpenFile)e.currentTarget.style.background=T.s3;}} onMouseLeave={e=>e.currentTarget.style.background=T.s2}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:onOpenFile?T.acc:T.tx,...trunc}}>{onOpenFile?'→ ':''}{file.title}</div>
+                      <div style={{display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
+                        <StatusDot map={FS} val={file.status}/>
+                        {file.priority&&file.priority!=='medium'&&<StatusDot map={FP} val={file.priority}/>}
+                        {file.health&&file.health!=='unknown'&&<StatusDot map={FH} val={file.health}/>}
+                        {isLead&&<Chip text="Lead" bg="rgba(63,182,139,0.10)" tx={T.g} small/>}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Deliverables + their tasks (indent 1) */}
+                  <div style={{padding:'6px 12px 6px 24px'}}>
+                    {deliverableRows.map(({dv,tasks})=>(
+                      <div key={dv.id} style={{marginBottom:6}}>
+                        <div onClick={()=>{setSelDv(selDv===dv.id?null:dv.id);setSelTask(null);}} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',background:selDv===dv.id?T.s3:'transparent',border:`1px solid ${selDv===dv.id?T.acc:T.bd3}`,borderRadius:5,cursor:'pointer'}} onMouseEnter={e=>{if(selDv!==dv.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selDv!==dv.id)e.currentTarget.style.background='transparent';}}>
+                          <span style={{fontSize:11,color:T.acc,flexShrink:0}}>↳</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:12,color:T.tx,fontWeight:500,...trunc}}>{dv.title}</div>
+                            <div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}>
+                              <StatusDot map={DVS} val={dv.status}/>
+                              {dv.type&&<Chip text={dvLabel(dv.type)} bg={T.s1} tx={T.acc2} small/>}
+                              {dv.dueDate&&<FlexChip fd={dv.dueDate}/>}
+                              {dv.ownerName===p.name&&<Chip text="Owner" bg="rgba(91,156,246,0.10)" tx={T.acc} small/>}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Tasks under deliverable (indent 2) */}
+                        {tasks.length>0&&<div style={{paddingLeft:18,marginTop:3}}>
+                          {tasks.map(t=>{
+                            const blocked=isBlocked(t,data.tasks);
+                            return(
+                              <div key={t.id} onClick={()=>{setSelTask(selTask===t.id?null:t.id);setSelDv(null);}} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',background:selTask===t.id?T.s3:'transparent',borderLeft:`2px solid ${selTask===t.id?T.acc:T.bd}`,borderRadius:3,marginBottom:2,cursor:'pointer'}} onMouseEnter={e=>{if(selTask!==t.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selTask!==t.id)e.currentTarget.style.background='transparent';}}>
+                                <span style={{fontSize:10,color:T.tx3,flexShrink:0}}>•</span>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:11,color:T.tx,...trunc}}>{t.title}</div>
+                                  <div style={{display:'flex',gap:3,marginTop:1,flexWrap:'wrap'}}>
+                                    <StatusDot map={TS} val={t.status}/>
+                                    {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
+                                    {t.dueDate&&<DueChip date={t.dueDate}/>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>}
+                      </div>
+                    ))}
+                    {/* Standalone tasks (indent 1, no deliverable) */}
+                    {standaloneTasks.length>0&&standaloneTasks.map(t=>{
+                      const blocked=isBlocked(t,data.tasks);
+                      return(
+                        <div key={t.id} onClick={()=>{setSelTask(selTask===t.id?null:t.id);setSelDv(null);}} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',background:selTask===t.id?T.s3:'transparent',borderLeft:`2px solid ${selTask===t.id?T.acc:T.bd3}`,borderRadius:3,marginBottom:3,cursor:'pointer'}} onMouseEnter={e=>{if(selTask!==t.id)e.currentTarget.style.background=T.s2;}} onMouseLeave={e=>{if(selTask!==t.id)e.currentTarget.style.background='transparent';}}>
+                          <span style={{fontSize:10,color:T.tx3,flexShrink:0}}>•</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:11,color:T.tx,...trunc}}>{t.title}</div>
+                            <div style={{display:'flex',gap:3,marginTop:1,flexWrap:'wrap'}}>
+                              <StatusDot map={TS} val={t.status}/>
+                              {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
+                              {t.dueDate&&<DueChip date={t.dueDate}/>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {deliverableRows.length===0&&standaloneTasks.length===0&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic',padding:'4px 0'}}>No open work in this file.</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })():<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:T.tx3,fontSize:13,fontStyle:'italic'}}>Select a person</div>}
+      </div>
+      {/* Right: panel */}
+      {selTask&&<TaskPanel taskId={selTask} data={data} onClose={()=>setSelTask(null)} saveTask={saveTask} delTask={id=>{delTask(id);setSelTask(null);}} onOpenTask={setSelTask} onOpenFile={onOpenFile} onOpenDeliverable={id=>{setSelDv(id);setSelTask(null);}}/>}
+      {selDv&&!selTask&&<DeliverablePanel dvId={selDv} data={data} onClose={()=>setSelDv(null)} saveDeliverable={saveDeliverable} delDeliverable={id=>{delDeliverable(id);setSelDv(null);}} saveTask={saveTask} delTask={delTask} newTask={newTask} onOpenFile={onOpenFile}/>}
+    </div>
+  );
 }
 
 // ─── TEMPLATES VIEW ───────────────────────────────────────────────────────────
@@ -1177,13 +1395,20 @@ function TeamModal({data,onClose,setData}){
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App(){
   const [data,setData]=useState(null);
-  const [view,setView]=useState('dashboard');
+  const [view,setView]=useState('files');
   const [calMode,setCalMode]=useState('monthly');
   const [saved,setSaved]=useState(true);
   const [modal,setModal]=useState(null);
   const [fontScale,setFontScaleState]=useState(1.0);
+  const [pendingFileId,setPendingFileId]=useState(null);
   const saveRef=useRef(null);
   const navigate=useNavigate();
+
+  const openFileInFilesView=(fileId)=>{
+    setPendingFileId(fileId);
+    setView('files');
+  };
+  const clearPendingFile=()=>setPendingFileId(null);
 
   useEffect(()=>{const link=document.createElement('link');link.href=FONT_LINK;link.rel='stylesheet';document.head.appendChild(link);return()=>{if(document.head.contains(link))document.head.removeChild(link);};},[]);
 
@@ -1269,7 +1494,7 @@ export default function App(){
   const urgentFiles=data.files.filter(f=>!f.archived&&(f.priority==='urgent'||f.health==='blocked'||f.health==='at_risk')).length;
   const overdueCount=data.tasks.filter(t=>isMyTask(t)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue').length;
   const sharedFileProps={saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate};
-  const NAV=[{id:'dashboard',label:'Dashboard'},{id:'files',label:'Files'},{id:'today',label:'Today'},{id:'kanban',label:'Kanban'},{id:'mytasks',label:'My Tasks'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
+  const NAV=[{id:'files',label:'Files'},{id:'mywork',label:'My Work'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
 
   return(
     <>
@@ -1297,13 +1522,10 @@ export default function App(){
           </div>
           {/* BODY */}
           <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-            {view==='dashboard' &&<Dashboard data={data} {...sharedFileProps}/>}
-            {view==='files'     &&<FilesView data={data} {...sharedFileProps} showAddFile={()=>setModal('addFile')}/>}
-            {view==='today'     &&<TodayView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref}/>}
-            {view==='kanban'    &&<KanbanView data={data} saveTask={saveTask} delTask={delTask}/>}
-            {view==='mytasks'   &&<MyTasksView data={data} saveTask={saveTask} delTask={delTask}/>}
+            {view==='files'     &&<FilesView data={data} {...sharedFileProps} showAddFile={()=>setModal('addFile')} pendingFileId={pendingFileId} clearPendingFile={clearPendingFile}/>}
+            {view==='mywork'    &&<MyWorkView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref} onOpenFile={openFileInFilesView}/>}
             {view==='calendar'  &&<CalendarView data={data} calMode={calMode} setCalMode={setCalMode} saveTask={saveTask} delTask={delTask}/>}
-            {view==='people'    &&<PeopleView data={data}/>}
+            {view==='people'    &&<PeopleView data={data} saveTask={saveTask} delTask={delTask} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newTask={newTask} onOpenFile={openFileInFilesView}/>}
             {view==='templates' &&<TemplatesView/>}
             {view==='claude'    &&<ClaudeView data={data} onImport={applyClaudeImport}/>}
           </div>
