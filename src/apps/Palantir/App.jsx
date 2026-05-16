@@ -548,6 +548,7 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
           <Fld label="Status" mb={0}><select value={file.status} onChange={e=>saveFile(file.id,{status:e.target.value})} style={{...ss.sel,width:'auto'}}>{FILE_STATUS_OPTS.map(s=><option key={s} value={s}>{FS[s]?.label||s}</option>)}</select></Fld>
           <Fld label="Priority" mb={0}><select value={file.priority||'medium'} onChange={e=>saveFile(file.id,{priority:e.target.value})} style={{...ss.sel,width:'auto'}}>{PRIORITY_OPTS.map(s=><option key={s} value={s}>{FP[s]?.label||s}</option>)}</select></Fld>
           <Fld label="Sensitivity" mb={0}><select value={file.sensitivity||'low'} onChange={e=>saveFile(file.id,{sensitivity:e.target.value})} style={{...ss.sel,width:'auto'}}>{SENSITIVITY_OPTS.map(s=><option key={s} value={s}>{SENS_C[s]?.label||s}</option>)}</select></Fld>
+          <Fld label="Lead" mb={0}><select value={file.lead||''} onChange={e=>saveFile(file.id,{lead:e.target.value})} style={{...ss.sel,width:'auto'}}><option value="">—</option>{people.map(m=><option key={m}>{m}</option>)}</select></Fld>
         </div>
       </div>
       {/* Accordion content + optional side panel */}
