@@ -175,6 +175,8 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
   const blocked=isBlocked(task,data.tasks);
   const upd=ch=>saveTask(taskId,ch);
   const people=allPeopleFrom(data);
+  const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='completed');
+  const fileDeliverables=file?(data.deliverables||[]).filter(d=>d.fileId===file.id&&!isDoneDV(d)):[];
   return(
     <div style={{width:360,flexShrink:0,borderLeft:`1px solid ${T.bd}`,background:T.s1,overflowY:'auto',maxHeight:'100%'}}>
       <div style={{padding:'12px 14px',borderBottom:`1px solid ${T.bd}`,display:'flex',alignItems:'flex-start',gap:8,position:'sticky',top:0,background:T.s1,zIndex:5}}>
@@ -187,6 +189,21 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
       </div>
       <div style={{padding:'12px 14px'}}>
         {blocked&&<div style={{background:'rgba(217,95,95,0.12)',color:T.r,borderRadius:5,padding:'6px 10px',fontSize:11,marginBottom:10,fontWeight:500}}>⛔ Blocked by incomplete dependency</div>}
+        {/* File + Deliverable assignment */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+          <Fld label="File" mb={0}>
+            <select value={task.fileId||task.projectId||''} onChange={e=>{const fid=e.target.value||null;upd({fileId:fid,projectId:fid,deliverableId:null});}} style={ss.sel}>
+              <option value="">— unlinked —</option>
+              {activeFiles.map(f=><option key={f.id} value={f.id}>{f.title}</option>)}
+            </select>
+          </Fld>
+          <Fld label="Deliverable" mb={0}>
+            <select value={task.deliverableId||''} onChange={e=>upd({deliverableId:e.target.value||null})} style={ss.sel} disabled={!file}>
+              <option value="">— none —</option>
+              {fileDeliverables.map(d=><option key={d.id} value={d.id}>{d.title}</option>)}
+            </select>
+          </Fld>
+        </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
           <Fld label="Status" mb={0}><select value={task.status} onChange={e=>upd({status:e.target.value})} style={ss.sel}>{TASK_STATUS_OPTS.map(s=><option key={s} value={s}>{TS[s]?.label||s}</option>)}{!TASK_STATUS_OPTS.includes(task.status)&&<option value={task.status}>{TS[task.status]?.label||task.status}</option>}</select></Fld>
           <Fld label="Due Date" mb={0}><input type="date" value={task.dueDate||""} onChange={e=>upd({dueDate:e.target.value||null})} style={ss.sel}/></Fld>
@@ -1724,6 +1741,15 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                             >• {t.title}</div>
                           </div>);
                         })}
+                        {/* Drop zone at bottom of file card — catches drops even when card is empty */}
+                        <div
+                          onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'fileBottom'});}}
+                          onDragLeave={()=>setTaskDragOver(null)}
+                          onDrop={e=>{e.preventDefault();e.stopPropagation();if(taskDragId){reassignTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
+                          style={{minHeight:taskDragId?22:6,background:taskDragOver?.personName===p.name&&taskDragOver?.fileId===file.id&&taskDragOver?.zone==='fileBottom'?'rgba(91,156,246,0.08)':'transparent',transition:'all .1s',display:'flex',alignItems:'center',justifyContent:'center'}}
+                        >
+                          {taskDragId&&taskDragOver?.personName===p.name&&taskDragOver?.fileId===file.id&&taskDragOver?.zone==='fileBottom'&&<span style={{fontSize:8,color:T.acc}}>drop here</span>}
+                        </div>
                       </div>
                     );
                   })}
