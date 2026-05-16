@@ -583,15 +583,7 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
                 <button onClick={()=>{setPastingDv(false);setDvPasteText('');setDvPasteErr('');}} style={ss.btn}>Cancel</button>
                 <div style={{marginLeft:'auto',position:'relative'}} onMouseEnter={()=>setShowDvHelp(true)} onMouseLeave={()=>setShowDvHelp(false)}>
                   <div style={{width:18,height:18,borderRadius:'50%',fontSize:10,cursor:'help',border:`1px solid ${T.bd2}`,background:showDvHelp?T.acc:T.s1,color:showDvHelp?'#fff':T.tx3,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.font,userSelect:'none'}}>?</div>
-                  {showDvHelp&&<div style={{position:'absolute',right:0,bottom:22,width:320,padding:'8px 10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,lineHeight:2,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)',whiteSpace:'pre-wrap'}}>{'title
-type: communication_plan | press_release | media_statement | qa | message_map | briefing_note | speech | report | other
-ownerName
-status: not_started | in_progress | in_review | in_approval | approved
-dueDate: YYYY-MM-DD
-publicationDate: YYYY-MM-DD
-approvalStatus: not_required | pending | approved
-sharePointUrl
-notes'}</div>}
+                  {showDvHelp&&<div style={{position:'absolute',right:0,bottom:22,width:340,padding:'8px 10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)'}}>{['title','type: comm_plan|press_release|media_statement|qa|message_map|briefing_note|speech|report|other','ownerName','status: not_started|in_progress|in_review|in_approval|approved','dueDate: YYYY-MM-DD','publicationDate: YYYY-MM-DD','approvalStatus: not_required|pending|approved','sharePointUrl','notes'].map((f,i)=><div key={i} style={{padding:'1px 0',borderBottom:`1px solid ${T.bd3}`}}>{f}</div>)}</div>}
                 </div>
               </div>
             </div>)}
@@ -604,12 +596,7 @@ notes'}</div>}
                 <button onClick={()=>{setPastingTask(false);setTaskPasteText('');setTaskPasteErr('');}} style={ss.btn}>Cancel</button>
                 <div style={{marginLeft:'auto',position:'relative'}} onMouseEnter={()=>setShowTaskHelp(true)} onMouseLeave={()=>setShowTaskHelp(false)}>
                   <div style={{width:18,height:18,borderRadius:'50%',fontSize:10,cursor:'help',border:`1px solid ${T.bd2}`,background:showTaskHelp?T.acc:T.s1,color:showTaskHelp?'#fff':T.tx3,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.font,userSelect:'none'}}>?</div>
-                  {showTaskHelp&&<div style={{position:'absolute',right:0,bottom:22,width:280,padding:'8px 10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,lineHeight:2,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)',whiteSpace:'pre-wrap'}}>{'title
-assignees: ["Karl", "William-Antoine Blaney"]
-status: not_started | in_progress | waiting | blocked
-dueDate: YYYY-MM-DD
-notes
-gate: external blocker description'}</div>}
+                  {showTaskHelp&&<div style={{position:'absolute',right:0,bottom:22,width:300,padding:'8px 10px',background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:6,fontSize:9,color:T.tx3,fontFamily:T.mono,zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.3)'}}>{['title','assignees: ["Karl", ...]','status: not_started|in_progress|waiting|blocked','dueDate: YYYY-MM-DD','notes','gate: external blocker'].map((f,j)=><div key={j} style={{padding:'1px 0',borderBottom:`1px solid ${T.bd3}`}}>{f}</div>)}</div>}
                 </div>
               </div>
             </div>)}
