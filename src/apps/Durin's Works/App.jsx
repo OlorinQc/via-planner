@@ -335,13 +335,14 @@ const TimingBadge = ({ t }) => {
 };
 
 // ─── RESIZE HANDLE ────────────────────────────────────────────────────────────
-function ResizeHandle({ currentWidth, onResizeLive, onResizeEnd, min=200, max=560 }) {
+function ResizeHandle({ currentWidth, onResizeLive, onResizeEnd, min=200, max=560, reversed=false }) {
   const onMouseDown = e => {
     e.preventDefault();
     const startX = e.clientX, startW = currentWidth;
     const clamp = v => Math.max(min, Math.min(max, v));
-    const onMove = e => onResizeLive(clamp(startW + e.clientX - startX));
-    const onUp = e => { onResizeEnd(clamp(startW + e.clientX - startX)); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    const delta = reversed ? startX - e.clientX : e.clientX - startX;
+    const onMove = e => { const d = reversed ? startX - e.clientX : e.clientX - startX; onResizeLive(clamp(startW + d)); };
+    const onUp = e => { const d = reversed ? startX - e.clientX : e.clientX - startX; onResizeEnd(clamp(startW + d)); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   };
@@ -356,18 +357,22 @@ function ResizeHandle({ currentWidth, onResizeLive, onResizeEnd, min=200, max=56
 
 // ─── DASHBOARD VIEW ───────────────────────────────────────────────────────────
 function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
-  const allActions = useMemo(() => SYSTEMS.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name }))), []);
+  const allActions = useMemo(() => SYSTEMS.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name, sysPourquoi:s.pourquoi }))), []);
   const done = allActions.filter(a => statuses[a.id] === 'Fait').length;
   const inProg = allActions.filter(a => statuses[a.id] === 'En cours').length;
   const urgentLeft = allActions.filter(a => isUrgentTiming(a.timing) && statuses[a.id] !== 'Fait').length;
   const remaining = allActions.length - done;
   const season = currentSeason();
   const seasonTasks = MAINTENANCE.filter(t => seasonMatch(t.season, season));
+  const [selAction, setSelAction] = useState(null);
+  const [panelW, setPanelW] = useState(380);
+  const [liveW, setLiveW] = useState(null);
+  const panelWidth = liveW ?? panelW;
 
   const urgentActions = allActions
     .filter(a => isUrgentTiming(a.timing) && statuses[a.id] !== 'Fait')
     .sort((a,b) => (PRIORITY_ORDER[a.priority]||9) - (PRIORITY_ORDER[b.priority]||9))
-    .slice(0, 8);
+    .slice(0, 10);
 
   const metrics = [
     { num: urgentLeft, label:'Actions urgentes restantes', color: urgentLeft > 0 ? T.r : T.g },
@@ -377,8 +382,10 @@ function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
     { num: SYSTEMS.length, label:'Systèmes', color: T.tx2 },
   ];
 
-  return (
-    <div style={{ flex:1, overflowY:'auto', padding:'18px 20px' }}>
+  const activeAction = selAction ? allActions.find(a => a.id === selAction) : null;
+
+  const MainContent = (
+    <div style={{ flex:1, overflowY:'auto', padding:'18px 20px', minWidth:0 }}>
       {/* Metric cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:24 }}>
         {metrics.map((m,i) => (
@@ -392,36 +399,45 @@ function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
       {/* Urgent actions */}
       {urgentActions.length > 0 && (
         <>
-          <div style={{ fontSize:11, fontWeight:600, color:T.tx2, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:10 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 }}>
             Actions prioritaires restantes
           </div>
           <div style={{ marginBottom:22 }}>
-            {urgentActions.map(a => (
-              <div key={a.id} onClick={() => onGoToAction(a.id, a.sysId)}
-                style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'9px 12px', background:T.s1,
-                  border:`1px solid ${PRIORITY[a.priority]?.border || T.bd}`, borderLeft:`3px solid ${PRIORITY[a.priority]?.tx || T.bd}`,
-                  borderRadius:6, marginBottom:4, cursor:'pointer', transition:'background .1s' }}
-                onMouseEnter={e => e.currentTarget.style.background = T.s2}
-                onMouseLeave={e => e.currentTarget.style.background = T.s1}
-              >
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, color:T.tx, lineHeight:1.4, marginBottom:4 }}>
-                    {a.desc.length > 100 ? a.desc.substring(0,100) + '…' : a.desc}
+            {urgentActions.map(a => {
+              const isSel = selAction === a.id;
+              const pc = PRIORITY[a.priority] || PRIORITY['—'];
+              return (
+                <div key={a.id} onClick={() => setSelAction(prev => prev === a.id ? null : a.id)}
+                  style={{ padding:'9px 12px', background: isSel ? 'rgba(91,156,246,0.08)' : T.s1,
+                    border:`1px solid ${isSel ? T.acc : T.bd}`, borderLeft:`3px solid ${pc.tx}`,
+                    borderRadius:6, marginBottom:4, cursor:'pointer', transition:'background .1s' }}
+                  onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
+                  onMouseLeave={e => !isSel && (e.currentTarget.style.background = T.s1)}
+                >
+                  {/* Hierarchy breadcrumb */}
+                  <div style={{ fontSize:10, color:T.tx3, marginBottom:4, display:'flex', alignItems:'center', gap:5 }}>
+                    <span style={{ color:pc.tx, fontWeight:600 }}>{a.sysName}</span>
+                  </div>
+                  {/* Action description */}
+                  <div style={{ fontSize:12, color:T.tx, lineHeight:1.4, marginBottom:5 }}>
+                    {a.desc.length > 110 ? a.desc.substring(0,110) + '…' : a.desc}
                   </div>
                   <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
                     <TimingBadge t={a.timing} />
                     <PriorityBadge p={a.priority} />
+                    {a.composantes.slice(0,2).map(c => (
+                      <span key={c} style={{ fontSize:9, background:T.s3, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>
+                    ))}
                   </div>
                 </div>
-                <div style={{ fontSize:10, color:T.tx3, textAlign:'right', flexShrink:0, maxWidth:130, lineHeight:1.3 }}>{a.sysName}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
 
       {/* Seasonal maintenance */}
-      <div style={{ fontSize:11, fontWeight:600, color:T.tx2, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:10 }}>
+      <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 }}>
         Entretien — {season} {new Date().getFullYear()}
         <span style={{ ...ss.pill('rgba(63,182,139,0.12)', T.g), marginLeft:8, fontSize:9 }}>
           {seasonTasks.filter(t => mDone[t.id]).length}/{seasonTasks.length} fait
@@ -436,15 +452,61 @@ function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
             <input type="checkbox" checked={!!mDone[t.id]} onChange={e => onToggleMaint(t.id, e.target.checked)}
               style={{ width:15, height:15, cursor:'pointer', accentColor:T.g, flexShrink:0 }} />
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, color: mDone[t.id] ? T.tx3 : T.tx, textDecoration: mDone[t.id] ? 'line-through' : 'none' }}>
-                {t.task}
-              </div>
+              <div style={{ fontSize:12, color: mDone[t.id] ? T.tx3 : T.tx, textDecoration: mDone[t.id] ? 'line-through' : 'none' }}>{t.task}</div>
               {mDone[t.id] && <div style={{ fontSize:10, color:T.g, marginTop:2 }}>✓ {mDone[t.id]}</div>}
             </div>
             <span style={{ fontSize:10, color:T.tx3, flexShrink:0 }}>{t.zone}</span>
           </div>
         ))}
       </div>
+    </div>
+  );
+
+  const ActionPanel = activeAction && (
+    <div style={{ width:panelWidth, flexShrink:0, display:'flex', flexDirection:'column', overflow:'hidden', borderLeft:`1px solid ${T.bd}` }}>
+      <div style={{ padding:'10px 14px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
+        <span style={{ fontSize:11, color:T.tx3, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {activeAction.sysName}
+        </span>
+        <button onClick={() => setSelAction(null)} style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:18, lineHeight:1, padding:0 }}>×</button>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
+        <div style={{ fontSize:13, fontWeight:600, color:T.tx, lineHeight:1.5, marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${T.bd}` }}>
+          {activeAction.desc}
+        </div>
+        {[
+          ['Système', activeAction.sysName],
+          ['Zone', (() => { const s = SYSTEMS.find(s => s.id === activeAction.sysId); return s?.zone || '—'; })()],
+          ['Priorité', <PriorityBadge p={activeAction.priority} />],
+          ['Timing', <TimingBadge t={activeAction.timing} />],
+          activeAction.composantes.length > 0 && ['Composantes', (
+            <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+              {activeAction.composantes.map(c => <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono }}>{c}</span>)}
+            </div>
+          )],
+          ['Pourquoi', activeAction.sysPourquoi],
+          activeAction.notes && ['Notes', activeAction.notes],
+        ].filter(Boolean).map(([label, val]) => (
+          <div key={label} style={{ display:'flex', gap:10, marginBottom:10, paddingBottom:10, borderBottom:`1px solid ${T.bd3}`, alignItems:'flex-start' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:T.tx3, minWidth:84, paddingTop:1, flexShrink:0 }}>{label}</span>
+            <span style={{ fontSize:12, color:T.tx2, flex:1, lineHeight:1.6 }}>{val}</span>
+          </div>
+        ))}
+        <button onClick={() => onGoToAction(activeAction.id, activeAction.sysId)}
+          style={{ ...ss.btn, width:'100%', textAlign:'center', marginTop:8, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>
+          Voir dans Travaux →
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+      {MainContent}
+      {activeAction && <>
+        <ResizeHandle reversed currentWidth={panelWidth} onResizeLive={setLiveW} onResizeEnd={v => { setLiveW(null); setPanelW(v); }} min={260} max={560} />
+        {ActionPanel}
+      </>}
     </div>
   );
 }
@@ -522,20 +584,79 @@ function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
               const pc = PRIORITY[sys.priority] || PRIORITY['—'];
               const done = sys.actions.filter(a => statuses[a.id] === 'Fait').length;
               const isSel = selSys === sys.id;
+              const visActions = isSel ? sys.actions.filter(a => fStatus === 'all' || (statuses[a.id]||'À faire') === fStatus) : [];
               return (
-                <div key={sys.id} onClick={() => selectSys(sys.id)}
-                  style={{ padding:'8px 10px', borderRadius:6, marginBottom:3, cursor:'pointer',
-                    background: isSel ? 'rgba(91,156,246,0.10)' : T.s1,
-                    border:`1px solid ${isSel ? T.acc : T.bd}`,
-                    borderLeft:`3px solid ${pc.tx}`, transition:'background .1s' }}
-                  onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
-                  onMouseLeave={e => !isSel && (e.currentTarget.style.background = T.s1)}
-                >
-                  <div style={{ fontSize:12, fontWeight:600, color:T.tx, lineHeight:1.3, marginBottom:4 }}>{sys.name}</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                    <TimingBadge t={sys.timing} />
-                    <span style={{ marginLeft:'auto', fontSize:10, color:done===sys.actions.length?T.g:T.tx3, fontFamily:T.mono }}>{done}/{sys.actions.length}</span>
+                <div key={sys.id} style={{ marginBottom:3, borderRadius:6, overflow:'hidden', border:`1px solid ${isSel ? T.acc : T.bd}`, borderLeft:`3px solid ${pc.tx}` }}>
+                  {/* System header — prominent name */}
+                  <div onClick={() => selectSys(sys.id)}
+                    style={{ padding:'9px 10px', cursor:'pointer', background: isSel ? T.s2 : T.s1, userSelect:'none', transition:'background .1s' }}
+                    onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
+                    onMouseLeave={e => !isSel && (e.currentTarget.style.background = T.s1)}
+                  >
+                    <div style={{ fontSize:13, fontWeight:700, color:T.tx, lineHeight:1.3, marginBottom:5 }}>{sys.name}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                      <TimingBadge t={sys.timing} />
+                      <PriorityBadge p={sys.priority} />
+                      <span style={{ marginLeft:'auto', fontSize:10, color:done===sys.actions.length?T.g:T.tx3, fontFamily:T.mono }}>{done}/{sys.actions.length}</span>
+                    </div>
                   </div>
+                  {/* Accordion: actions inline */}
+                  {isSel && (
+                    <div style={{ borderTop:`1px solid ${T.bd}` }}>
+                      {visActions.map(a => {
+                        const st = statuses[a.id] || 'À faire';
+                        const wc = WSTATUS[st] || WSTATUS['À faire'];
+                        const apc = PRIORITY[a.priority] || PRIORITY['—'];
+                        const isActSel = selAction === a.id;
+                        return (
+                          <div key={a.id}>
+                            <div onClick={() => setSelAction(prev => prev === a.id ? null : a.id)}
+                              style={{ padding:'8px 10px 8px 14px', cursor:'pointer', borderBottom:`1px solid ${T.bd3}`,
+                                background: isActSel ? 'rgba(91,156,246,0.10)' : st==='Fait'?'rgba(63,182,139,0.03)':'transparent',
+                                borderLeft:`2px solid ${isActSel ? T.acc : apc.tx}`, transition:'background .1s' }}
+                              onMouseEnter={e => !isActSel && (e.currentTarget.style.background = T.s3)}
+                              onMouseLeave={e => !isActSel && (e.currentTarget.style.background = isActSel?'rgba(91,156,246,0.10)':st==='Fait'?'rgba(63,182,139,0.03)':'transparent')}
+                            >
+                              <div style={{ fontSize:11, color:st==='Fait'?T.tx3:T.tx, lineHeight:1.4, marginBottom:5,
+                                textDecoration:st==='Fait'?'line-through':'none', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+                                {a.desc}
+                              </div>
+                              <div style={{ display:'flex', gap:4, alignItems:'center', flexWrap:'wrap' }}>
+                                <TimingBadge t={a.timing} />
+                                <select value={st} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); handleStatusChange(a.id, e.target.value); }}
+                                  style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}44`, borderRadius:4, padding:'2px 5px', fontSize:10, cursor:'pointer', fontFamily:T.font, outline:'none', marginLeft:'auto', flexShrink:0 }}>
+                                  {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                            {/* Inline action detail */}
+                            {isActSel && (
+                              <div style={{ padding:'10px 12px 12px 14px', background:T.s3, borderBottom:`1px solid ${T.bd}` }}>
+                                {[
+                                  a.composantes.length > 0 && ['Composantes', (
+                                    <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
+                                      {a.composantes.map(c => <span key={c} style={{ fontSize:9, background:T.s2, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>)}
+                                    </div>
+                                  )],
+                                  ['Pourquoi', sys.pourquoi],
+                                  a.notes && ['Notes', a.notes],
+                                  a.source && ['Source', <span style={{ fontFamily:T.mono, fontSize:10, color:T.tx3 }}>{a.source}</span>],
+                                ].filter(Boolean).map(([label, val]) => (
+                                  <div key={label} style={{ display:'flex', gap:8, marginBottom:7, alignItems:'flex-start' }}>
+                                    <span style={{ fontSize:10, fontWeight:600, color:T.tx3, minWidth:72, flexShrink:0, paddingTop:1 }}>{label}</span>
+                                    <span style={{ fontSize:11, color:T.tx2, flex:1, lineHeight:1.5 }}>{val}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {visActions.length === 0 && (
+                        <div style={{ padding:'8px 12px', fontSize:11, color:T.tx3, fontStyle:'italic' }}>Aucune action pour ce filtre.</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -549,16 +670,12 @@ function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
   );
 
   // ── System detail panel ──
-  const SystemPanel = activeSys && !selAction ? (
+  // ── Right panel: system context ──
+  const SystemContext = activeSys ? (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0 }}>
-        <div style={{ display:'flex', alignItems:'flex-start', gap:8, marginBottom:8 }}>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:15, fontWeight:700, color:T.tx, lineHeight:1.3, marginBottom:3 }}>{activeSys.name}</div>
-            <div style={{ fontSize:11, color:T.tx3 }}>{activeSys.zone}</div>
-          </div>
-          <button onClick={() => setSelSys(null)} style={{ ...ss.btn, padding:'2px 8px', flexShrink:0 }}>×</button>
-        </div>
+        <div style={{ fontSize:15, fontWeight:700, color:T.tx, lineHeight:1.3, marginBottom:4 }}>{activeSys.name}</div>
+        <div style={{ fontSize:11, color:T.tx3, marginBottom:8 }}>{activeSys.zone}</div>
         <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
           <PriorityBadge p={activeSys.priority} />
           <TimingBadge t={activeSys.timing} />
@@ -571,103 +688,9 @@ function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
           <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Ce que l'on sait</div>
           <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeSys.ceQueOnSait}</div>
         </div>
-        <div style={{ marginBottom:16 }}>
+        <div>
           <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Pourquoi c'est important</div>
           <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeSys.pourquoi}</div>
-        </div>
-        <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Actions ({activeSys.actions.length})</div>
-        {activeSys.actions.map(a => {
-          const st = statuses[a.id] || 'À faire';
-          const wc = WSTATUS[st] || WSTATUS['À faire'];
-          const pc = PRIORITY[a.priority] || PRIORITY['—'];
-          return (
-            <div key={a.id} onClick={() => setSelAction(a.id)}
-              style={{ padding:'10px 12px', borderRadius:6, marginBottom:5, cursor:'pointer',
-                background: st==='Fait'?'rgba(63,182,139,0.04)':T.s1,
-                border:`1px solid ${T.bd}`, borderLeft:`3px solid ${pc.tx}`,
-                opacity: st==='Fait'?0.65:1, transition:'background .1s' }}
-              onMouseEnter={e => e.currentTarget.style.background = T.s2}
-              onMouseLeave={e => e.currentTarget.style.background = st==='Fait'?'rgba(63,182,139,0.04)':T.s1}
-            >
-              <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, color:st==='Fait'?T.tx3:T.tx, lineHeight:1.5, marginBottom:5,
-                    textDecoration:st==='Fait'?'line-through':'none' }}>{a.desc}</div>
-                  <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
-                    <TimingBadge t={a.timing} />
-                    <PriorityBadge p={a.priority} />
-                    {a.composantes.slice(0,3).map(c => (
-                      <span key={c} style={{ fontSize:9, background:T.s3, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>
-                    ))}
-                    {a.composantes.length > 3 && <span style={{ fontSize:9, color:T.tx3 }}>+{a.composantes.length-3}</span>}
-                  </div>
-                </div>
-                <select value={st} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); handleStatusChange(a.id, e.target.value); }}
-                  style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}44`, borderRadius:4, padding:'3px 6px', fontSize:11, cursor:'pointer', fontFamily:T.font, outline:'none', flexShrink:0 }}>
-                  {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
-                </select>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  ) : null;
-
-  // ── Action detail panel ──
-  const ActionPanel = activeAction ? (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <div style={{ padding:'10px 14px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
-        <button onClick={() => setSelAction(null)}
-          style={{ ...ss.btn, fontSize:10, padding:'3px 9px', display:'flex', alignItems:'center', gap:4 }}>
-          ← {activeAction.sys.name.length > 28 ? activeAction.sys.name.substring(0,28)+'…' : activeAction.sys.name}
-        </button>
-        <button onClick={() => { setSelSys(null); setSelAction(null); }} style={{ ...ss.btn, padding:'3px 8px', marginLeft:'auto' }}>×</button>
-      </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
-        <div style={{ fontSize:14, fontWeight:600, color:T.tx, lineHeight:1.5, marginBottom:16, paddingBottom:14, borderBottom:`1px solid ${T.bd}` }}>
-          {activeAction.action.desc}
-        </div>
-        {/* Prominent status selector */}
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Statut</div>
-          {(() => {
-            const st = statuses[activeAction.action.id] || 'À faire';
-            const wc = WSTATUS[st] || WSTATUS['À faire'];
-            return (
-              <select value={st} onChange={e => handleStatusChange(activeAction.action.id, e.target.value)}
-                style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}55`,
-                  borderRadius:6, padding:'7px 12px', fontSize:13, fontWeight:600,
-                  cursor:'pointer', fontFamily:T.font, outline:'none', width:'100%' }}>
-                {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
-              </select>
-            );
-          })()}
-        </div>
-        {/* Metadata rows */}
-        {[
-          ['Système', activeAction.sys.name],
-          ['Zone', activeAction.sys.zone],
-          ['Priorité', <PriorityBadge p={activeAction.action.priority} />],
-          ['Timing', <TimingBadge t={activeAction.action.timing} />],
-          activeAction.action.composantes.length > 0 && ['Composantes', (
-            <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-              {activeAction.action.composantes.map(c => (
-                <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono, fontWeight:600 }}>{c}</span>
-              ))}
-            </div>
-          )],
-          activeAction.action.notes && ['Notes', activeAction.action.notes],
-          activeAction.action.source && ['Source', <span style={{ fontFamily:T.mono, fontSize:11, color:T.tx3 }}>{activeAction.action.source}</span>],
-        ].filter(Boolean).map(([label, val]) => (
-          <div key={label} style={{ display:'flex', gap:12, marginBottom:11, paddingBottom:11, borderBottom:`1px solid ${T.bd3}`, alignItems:'flex-start' }}>
-            <span style={{ fontSize:11, fontWeight:600, color:T.tx3, minWidth:90, paddingTop:1, flexShrink:0 }}>{label}</span>
-            <span style={{ fontSize:12, color:T.tx2, flex:1, lineHeight:1.6 }}>{val}</span>
-          </div>
-        ))}
-        <div style={{ marginTop:8 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Pourquoi</div>
-          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeAction.sys.pourquoi}</div>
         </div>
       </div>
     </div>
@@ -677,7 +700,7 @@ function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
     <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
       {LeftPanel}
       <ResizeHandle currentWidth={panelW} onResizeLive={setLiveW} onResizeEnd={v => { setLiveW(null); setLeftW(v); }} />
-      {selAction ? ActionPanel : selSys ? SystemPanel :
+      {activeSys ? SystemContext :
         <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
           <div style={{ fontSize:32, opacity:0.10 }}>⚒</div>
           <span style={{ fontSize:13, color:T.tx3, fontStyle:'italic' }}>Sélectionner un système</span>
@@ -691,19 +714,18 @@ function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
 function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, addShopItem }) {
   const [fProject, setFProject] = useState('all');
   const [fStatus, setFStatus] = useState('all');
-  const [showForm, setShowForm] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
+  const [editCell, setEditCell] = useState(null); // { id, field }
+  const [editVal, setEditVal] = useState('');
+  const [addingRow, setAddingRow] = useState(false);
+  const [newRow, setNewRow] = useState({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
 
   const projects = useMemo(() => [...new Set(shopItems.map(i => i.project))].sort(), [shopItems]);
 
-  const filtered = useMemo(() => {
-    return shopItems.filter(i => {
-      if (fProject !== 'all' && i.project !== fProject) return false;
-      if (fStatus !== 'all' && i.status !== fStatus) return false;
-      return true;
-    });
-  }, [shopItems, fProject, fStatus]);
+  const filtered = useMemo(() => shopItems.filter(i => {
+    if (fProject !== 'all' && i.project !== fProject) return false;
+    if (fStatus !== 'all' && i.status !== fStatus) return false;
+    return true;
+  }), [shopItems, fProject, fStatus]);
 
   const grouped = useMemo(() => {
     const g = {};
@@ -711,31 +733,72 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
     return g;
   }, [filtered]);
 
-  const totalCost = useMemo(() => {
-    return filtered.filter(i => i.prix_unitaire && i.status !== 'À trouver')
-      .reduce((sum,i) => sum + (i.prix_unitaire * (i.qty||1)), 0);
-  }, [filtered]);
+  const grandTotal = useMemo(() =>
+    filtered.filter(i => i.prix_unitaire).reduce((s,i) => s + i.prix_unitaire*(i.qty||1), 0), [filtered]);
 
-  const openAdd = () => { setForm({ project:fProject !== 'all' ? fProject : '', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' }); setEditItem(null); setShowForm(true); };
-  const openEdit = (item) => { setForm({ ...item, prix_unitaire: item.prix_unitaire ?? '' }); setEditItem(item.id); setShowForm(true); };
+  const startEdit = (id, field, val) => { setEditCell({ id, field }); setEditVal(String(val ?? '')); };
 
-  const handleSave = async () => {
-    const item = { ...form, prix_unitaire: form.prix_unitaire !== '' ? parseFloat(form.prix_unitaire) : null, qty: parseInt(form.qty)||1 };
-    if (editItem) {
-      await saveShopItem(editItem, item);
-    } else {
-      await addShopItem(item);
-    }
-    setShowForm(false);
+  const commitEdit = async (id, field) => {
+    let val = editVal;
+    if (field === 'prix_unitaire') val = editVal !== '' ? parseFloat(editVal) : null;
+    if (field === 'qty') val = parseInt(editVal) || 1;
+    setShopItems(prev => prev.map(i => i.id === id ? { ...i, [field]: val } : i));
+    await saveShopItem(id, { [field]: val });
+    setEditCell(null);
   };
 
-  const inp = { background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:5, padding:'6px 10px', fontSize:12, color:T.tx, fontFamily:T.font, outline:'none', width:'100%', boxSizing:'border-box' };
-  const selStyle = { ...inp, cursor:'pointer' };
+  const addRow = async () => {
+    if (!newRow.project.trim() || !newRow.article.trim()) return;
+    const item = { ...newRow, prix_unitaire: newRow.prix_unitaire !== '' ? parseFloat(newRow.prix_unitaire) : null, qty: parseInt(newRow.qty)||1 };
+    await addShopItem(item);
+    setNewRow({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
+    setAddingRow(false);
+  };
+
+  const cellStyle = (w) => ({ width:w, padding:'6px 8px', borderRight:`1px solid ${T.bd3}`, fontSize:11, color:T.tx, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'text', flexShrink:0, boxSizing:'border-box' });
+  const inpStyle = { background:'transparent', border:'none', outline:`1px solid ${T.acc}`, borderRadius:2, padding:'1px 4px', fontSize:11, color:T.tx, fontFamily:T.font, width:'100%', boxSizing:'border-box' };
+  const hdrStyle = (w) => ({ width:w, padding:'5px 8px', fontSize:9, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px', borderRight:`1px solid ${T.bd3}`, flexShrink:0, boxSizing:'border-box' });
+
+  const EditableCell = ({ id, field, val, width, type='text' }) => {
+    const isEditing = editCell?.id === id && editCell?.field === field;
+    return (
+      <div style={cellStyle(width)} onClick={() => !isEditing && startEdit(id, field, val)}>
+        {isEditing
+          ? <input autoFocus value={editVal} type={type} onChange={e => setEditVal(e.target.value)}
+              onBlur={() => commitEdit(id, field)}
+              onKeyDown={e => { if (e.key === 'Enter') commitEdit(id, field); if (e.key === 'Escape') setEditCell(null); }}
+              style={inpStyle} />
+          : <span style={{ color: val == null || val === '' ? T.tx3 : T.tx, fontStyle: val == null || val === '' ? 'italic' : 'normal' }}>
+              {field === 'prix_unitaire' && val != null ? `${val}$` : val || '—'}
+            </span>
+        }
+      </div>
+    );
+  };
+
+  const StatusCell = ({ id, val, width }) => (
+    <div style={{ ...cellStyle(width), padding:'4px 6px' }}>
+      <select value={val} onChange={e => { saveShopItem(id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === id ? { ...i, status:e.target.value } : i)); }}
+        style={{ background:(PSTATUS[val]||PSTATUS['À trouver']).bg, color:(PSTATUS[val]||PSTATUS['À trouver']).tx,
+          border:'none', borderRadius:4, padding:'2px 5px', fontSize:10, cursor:'pointer', fontFamily:T.font, outline:'none', width:'100%' }}>
+        {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
+      </select>
+    </div>
+  );
+
+  const cols = [
+    { key:'article', label:'Article', w:220 },
+    { key:'magasin', label:'Magasin', w:110 },
+    { key:'prix_unitaire', label:'Prix', w:70, type:'number' },
+    { key:'qty', label:'Qté', w:50, type:'number' },
+    { key:'status', label:'Statut', w:120 },
+    { key:'notes', label:'Notes', w:160 },
+  ];
 
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       {/* Filter bar */}
-      <div style={{ padding:'10px 16px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', background:T.s1 }}>
+      <div style={{ padding:'8px 12px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1, flexShrink:0 }}>
         <select value={fProject} onChange={e => setFProject(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'3px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
           <option value="all">Tous les projets</option>
           {projects.map(p => <option key={p}>{p}</option>)}
@@ -744,107 +807,108 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
           <option value="all">Tous statuts</option>
           {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
         </select>
-        <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center' }}>
-          {totalCost > 0 && <span style={{ fontSize:11, color:T.y, fontFamily:T.mono }}>~{totalCost.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 })} confirmé</span>}
-          <button onClick={openAdd} style={{ ...ss.btn, background:'rgba(91,156,246,0.12)', color:T.acc, border:`1px solid rgba(91,156,246,0.25)` }}>+ Article</button>
-        </div>
+        <span style={{ marginLeft:'auto', fontSize:11, color:T.y, fontFamily:T.mono }}>
+          {grandTotal > 0 ? grandTotal.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 }) : ''}
+        </span>
+        <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Article</button>
       </div>
 
-      {/* Add/Edit form */}
-      {showForm && (
-        <div style={{ padding:'16px', borderBottom:`1px solid ${T.bd}`, background:T.s2 }}>
-          <div style={{ fontSize:12, fontWeight:600, color:T.acc2, marginBottom:12 }}>{editItem ? 'Modifier l\'article' : 'Nouvel article'}</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
-            <div>
-              <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Projet *</div>
-              <input value={form.project} onChange={e => setForm(f=>({...f,project:e.target.value}))} placeholder="Îlot de cuisine…" style={inp} list="projects-list" />
-              <datalist id="projects-list">{projects.map(p=><option key={p} value={p}/>)}</datalist>
-            </div>
-            <div>
-              <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Statut</div>
-              <select value={form.status} onChange={e => setForm(f=>({...f,status:e.target.value}))} style={selStyle}>
-                {Object.keys(PSTATUS).map(s=><option key={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Article *</div>
-            <input value={form.article} onChange={e => setForm(f=>({...f,article:e.target.value}))} placeholder="Description de l'article…" style={inp} />
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px', gap:10, marginBottom:10 }}>
-            <div>
-              <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Magasin / Fournisseur</div>
-              <input value={form.magasin} onChange={e => setForm(f=>({...f,magasin:e.target.value}))} placeholder="IKEA, Rona…" style={inp} />
-            </div>
-            <div>
-              <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Prix unitaire ($)</div>
-              <input type="number" value={form.prix_unitaire} onChange={e => setForm(f=>({...f,prix_unitaire:e.target.value}))} placeholder="0.00" style={inp} />
-            </div>
-            <div>
-              <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Qté</div>
-              <input type="number" min={1} value={form.qty} onChange={e => setForm(f=>({...f,qty:e.target.value}))} style={inp} />
-            </div>
-          </div>
-          <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Lien / URL</div>
-            <input value={form.lien} onChange={e => setForm(f=>({...f,lien:e.target.value}))} placeholder="https://…" style={inp} />
-          </div>
-          <div style={{ marginBottom:12 }}>
-            <div style={{ fontSize:10, color:T.tx3, marginBottom:4 }}>Notes</div>
-            <input value={form.notes} onChange={e => setForm(f=>({...f,notes:e.target.value}))} placeholder="Référence, dimensions, contexte…" style={inp} />
-          </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={handleSave} disabled={!form.project || !form.article}
-              style={{ ...ss.btn, background: form.project&&form.article ? 'rgba(63,182,139,0.15)' : T.s3, color: form.project&&form.article ? T.g : T.tx3, border:`1px solid ${form.project&&form.article ? T.g+'44' : T.bd}` }}>
-              {editItem ? 'Enregistrer' : 'Ajouter'}
-            </button>
-            <button onClick={() => setShowForm(false)} style={ss.btn}>Annuler</button>
-          </div>
-        </div>
-      )}
-
-      {/* Items list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+      {/* Table */}
+      <div style={{ flex:1, overflowY:'auto' }}>
         {Object.entries(grouped).map(([project, items]) => {
           const projTotal = items.filter(i => i.prix_unitaire).reduce((s,i) => s + i.prix_unitaire*(i.qty||1), 0);
           return (
-            <div key={project} style={{ marginBottom:18 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                <span style={{ fontSize:12, fontWeight:600, color:T.tx }}>{project}</span>
+            <div key={project}>
+              {/* Project group header */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}`, borderTop:`1px solid ${T.bd}`, position:'sticky', top:0, zIndex:2 }}>
+                <span style={{ fontSize:12, fontWeight:700, color:T.tx }}>{project}</span>
                 {projTotal > 0 && <span style={{ fontSize:10, color:T.y, fontFamily:T.mono }}>{projTotal.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 })}</span>}
                 <span style={{ fontSize:10, color:T.tx3 }}>{items.length} article{items.length>1?'s':''}</span>
               </div>
-              {items.map(item => (
-                <div key={item.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'9px 12px',
-                  background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, marginBottom:4 }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, color:T.tx, lineHeight:1.4, marginBottom:4 }}>{item.article}</div>
-                    <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-                      {item.magasin && <span style={{ fontSize:10, color:T.tx2 }}>{item.magasin}</span>}
-                      {item.prix_unitaire && <span style={{ fontSize:10, color:T.y, fontFamily:T.mono }}>{(item.prix_unitaire*(item.qty||1)).toLocaleString('fr-CA', { style:'currency', currency:'CAD' })} {item.qty>1 ? `(${item.qty}×${item.prix_unitaire}$)` : ''}</span>}
-                      {item.notes && <span style={{ fontSize:10, color:T.tx3 }}>{item.notes}</span>}
-                    </div>
-                    {item.lien && <a href={item.lien} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{ fontSize:10, color:T.acc, display:'block', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:340 }}>🔗 {item.lien}</a>}
-                  </div>
-                  <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
-                    <select value={item.status} onChange={e => { saveShopItem(item.id, { status:e.target.value }); }}
-                      style={{ background:(PSTATUS[item.status]||PSTATUS['À trouver']).bg, color:(PSTATUS[item.status]||PSTATUS['À trouver']).tx,
-                        border:`1px solid ${(PSTATUS[item.status]||PSTATUS['À trouver']).tx}44`, borderRadius:4, padding:'2px 6px', fontSize:11, cursor:'pointer', fontFamily:T.font, outline:'none' }}
-                    >
-                      {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
-                    </select>
-                    <button onClick={() => openEdit(item)} style={{ ...ss.btn, padding:'2px 7px', fontSize:10 }}>✎</button>
-                    <button onClick={() => deleteShopItem(item.id)} style={{ ...ss.btn, color:T.r, padding:'2px 7px', fontSize:10 }}>✕</button>
+              {/* Column headers */}
+              <div style={{ display:'flex', alignItems:'center', background:T.hdr, borderBottom:`1px solid ${T.bd}`, position:'sticky', top:34, zIndex:1 }}>
+                {cols.map(c => <div key={c.key} style={hdrStyle(c.w)}>{c.label}</div>)}
+                <div style={{ width:32, flexShrink:0 }} />
+              </div>
+              {/* Rows */}
+              {items.map((item, idx) => (
+                <div key={item.id}
+                  style={{ display:'flex', alignItems:'center', borderBottom:`1px solid ${T.bd3}`,
+                    background: idx%2===0 ? T.bg : T.s1, transition:'background .1s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.s2}
+                  onMouseLeave={e => e.currentTarget.style.background = idx%2===0 ? T.bg : T.s1}
+                >
+                  <EditableCell id={item.id} field="article" val={item.article} width={220} />
+                  <EditableCell id={item.id} field="magasin" val={item.magasin} width={110} />
+                  <EditableCell id={item.id} field="prix_unitaire" val={item.prix_unitaire} width={70} type="number" />
+                  <EditableCell id={item.id} field="qty" val={item.qty} width={50} type="number" />
+                  <StatusCell id={item.id} val={item.status} width={120} />
+                  <EditableCell id={item.id} field="notes" val={item.notes} width={160} />
+                  <div style={{ width:32, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <button onClick={() => deleteShopItem(item.id)} title="Supprimer"
+                      style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1 }}
+                      onMouseEnter={e => e.currentTarget.style.color = T.r}
+                      onMouseLeave={e => e.currentTarget.style.color = T.tx3}>✕</button>
                   </div>
                 </div>
               ))}
             </div>
           );
         })}
-        {filtered.length === 0 && (
+
+        {/* Add row form */}
+        {addingRow && (
+          <div style={{ borderTop:`1px solid ${T.bd}` }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}` }}>
+              <span style={{ fontSize:12, fontWeight:700, color:T.acc }}>Nouvel article</span>
+            </div>
+            <div style={{ padding:'12px 16px', background:T.s1, display:'flex', flexWrap:'wrap', gap:10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Projet *</span>
+                <input value={newRow.project} onChange={e => setNewRow(r=>({...r,project:e.target.value}))} list="proj-list" placeholder="Projet…"
+                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
+                <datalist id="proj-list">{projects.map(p=><option key={p} value={p}/>)}</datalist>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Article *</span>
+                <input value={newRow.article} onChange={e => setNewRow(r=>({...r,article:e.target.value}))} placeholder="Description…"
+                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:200 }} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Magasin</span>
+                <input value={newRow.magasin} onChange={e => setNewRow(r=>({...r,magasin:e.target.value}))} placeholder="RONA, IKEA…"
+                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:110 }} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Prix $</span>
+                <input type="number" value={newRow.prix_unitaire} onChange={e => setNewRow(r=>({...r,prix_unitaire:e.target.value}))} placeholder="0.00"
+                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:70 }} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Qté</span>
+                <input type="number" min={1} value={newRow.qty} onChange={e => setNewRow(r=>({...r,qty:e.target.value}))}
+                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:50 }} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Notes</span>
+                <input value={newRow.notes} onChange={e => setNewRow(r=>({...r,notes:e.target.value}))} placeholder="…"
+                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
+              </div>
+              <div style={{ display:'flex', alignItems:'flex-end', gap:6 }}>
+                <button onClick={addRow} disabled={!newRow.project.trim()||!newRow.article.trim()}
+                  style={{ ...ss.btn, background:newRow.project&&newRow.article?'rgba(63,182,139,0.15)':T.s3, color:newRow.project&&newRow.article?T.g:T.tx3, border:`1px solid ${newRow.project&&newRow.article?T.g+'44':T.bd}` }}>
+                  Ajouter
+                </button>
+                <button onClick={() => setAddingRow(false)} style={ss.btn}>Annuler</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {filtered.length === 0 && !addingRow && (
           <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>
-            Aucun article trouvé.<br/>
-            <button onClick={openAdd} style={{ ...ss.btn, marginTop:12, color:T.acc }}>+ Ajouter un article</button>
+            Aucun article trouvé.
+            <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, marginTop:12, display:'block', margin:'12px auto 0', color:T.acc }}>+ Ajouter un article</button>
           </div>
         )}
       </div>
