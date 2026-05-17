@@ -334,6 +334,26 @@ const TimingBadge = ({ t }) => {
   return <span style={{ ...ss.pill(c.bg, c.tx), fontSize:9 }}>{t}</span>;
 };
 
+// ─── RESIZE HANDLE ────────────────────────────────────────────────────────────
+function ResizeHandle({ currentWidth, onResizeLive, onResizeEnd, min=200, max=560 }) {
+  const onMouseDown = e => {
+    e.preventDefault();
+    const startX = e.clientX, startW = currentWidth;
+    const clamp = v => Math.max(min, Math.min(max, v));
+    const onMove = e => onResizeLive(clamp(startW + e.clientX - startX));
+    const onUp = e => { onResizeEnd(clamp(startW + e.clientX - startX)); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+  return (
+    <div onMouseDown={onMouseDown}
+      style={{ width:5, cursor:'col-resize', flexShrink:0, background:'transparent', transition:'background .15s', zIndex:10 }}
+      onMouseEnter={e => e.currentTarget.style.background = T.acc}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    />
+  );
+}
+
 // ─── DASHBOARD VIEW ───────────────────────────────────────────────────────────
 function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
   const allActions = useMemo(() => SYSTEMS.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name }))), []);
@@ -431,21 +451,16 @@ function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
 
 // ─── TRAVAUX VIEW ─────────────────────────────────────────────────────────────
 function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
-  const [expandedSys, setExpandedSys] = useState(null);
-  const [selectedAction, setSelectedAction] = useState(null);
-  const [fSystem, setFSystem] = useState('all');
-  const [fTiming, setFTiming] = useState('all');
+  const [selSys, setSelSys] = useState(null);
+  const [selAction, setSelAction] = useState(null);
   const [fStatus, setFStatus] = useState('all');
   const [fPriority, setFPriority] = useState('all');
-  const detailRef = useRef(null);
+  const [leftW, setLeftW] = useState(300);
+  const [liveW, setLiveW] = useState(null);
+  const panelW = liveW ?? leftW;
 
   const filtered = useMemo(() => {
     return SYSTEMS.filter(sys => {
-      if (fSystem !== 'all' && sys.id !== fSystem) return false;
-      if (fTiming === 'jour1' && !sys.timing.toLowerCase().includes('jour 1')) return false;
-      if (fTiming === 'urgent' && !sys.timing.toLowerCase().includes('urgent') && !sys.timing.toLowerCase().includes('jour 1')) return false;
-      if (fTiming === 'ete2026' && !sys.timing.includes('2026')) return false;
-      if (fTiming === 'later' && !sys.timing.includes('Plus tard') && !sys.timing.includes('2027')) return false;
       if (fStatus !== 'all') {
         const hasMatch = sys.actions.some(a => (statuses[a.id] || 'À faire') === fStatus);
         if (!hasMatch) return false;
@@ -459,169 +474,215 @@ function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
       }
       return true;
     });
-  }, [fSystem, fTiming, fStatus, fPriority, searchQuery, statuses]);
+  }, [fStatus, fPriority, searchQuery, statuses]);
 
-  const selAct = useMemo(() => {
-    if (!selectedAction) return null;
-    for (const s of SYSTEMS) {
-      const a = s.actions.find(a => a.id === selectedAction);
-      if (a) return { action:a, sys:s };
-    }
+  const PRI_ORDER = ['Urgent','Danger','Défaut','Avertissement','Surveillance','Info','Limité','Hors mandat','—'];
+  const byPriority = PRI_ORDER.map(p => ({ p, systems: filtered.filter(s => s.priority === p) })).filter(g => g.systems.length > 0);
+
+  const activeSys = selSys ? SYSTEMS.find(s => s.id === selSys) : null;
+  const activeAction = useMemo(() => {
+    if (!selAction) return null;
+    for (const s of SYSTEMS) { const a = s.actions.find(a => a.id === selAction); if (a) return { action:a, sys:s }; }
     return null;
-  }, [selectedAction]);
+  }, [selAction]);
 
   const handleStatusChange = (id, val) => {
     setStatuses(prev => ({ ...prev, [id]: val }));
     saveStatus(id, val);
   };
 
-  const selectAction = (id) => {
-    setSelectedAction(prev => prev === id ? null : id);
-    setTimeout(() => detailRef.current?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 60);
-  };
+  const selectSys = id => { setSelSys(prev => prev === id ? null : id); setSelAction(null); };
+  const selStyle = { outline:'none', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'3px 6px', fontSize:11, cursor:'pointer', color:T.tx, fontFamily:T.font };
 
-  const selStyle = { outline:'none', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4,
-    padding:'3px 6px', fontSize:11, cursor:'pointer', color:T.tx, fontFamily:T.font };
-
-  return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      {/* Filter bar */}
-      <div style={{ padding:'10px 16px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', background:T.s1 }}>
-        <select value={fSystem} onChange={e => setFSystem(e.target.value)} style={selStyle}>
-          <option value="all">Tous les systèmes</option>
-          {SYSTEMS.map(s => <option key={s.id} value={s.id}>{s.name.length > 45 ? s.name.substring(0,45)+'…' : s.name}</option>)}
-        </select>
-        <select value={fTiming} onChange={e => setFTiming(e.target.value)} style={selStyle}>
-          <option value="all">Tout timing</option>
-          <option value="jour1">Jour 1</option>
-          <option value="urgent">Urgent</option>
-          <option value="ete2026">Été 2026</option>
-          <option value="later">Plus tard</option>
-        </select>
-        <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={selStyle}>
-          <option value="all">Tous statuts</option>
-          {['À faire','En cours','Fait','Reporté'].map(s => <option key={s}>{s}</option>)}
-        </select>
-        <select value={fPriority} onChange={e => setFPriority(e.target.value)} style={selStyle}>
+  // ── Left panel ──
+  const LeftPanel = (
+    <div style={{ width:panelW, flexShrink:0, display:'flex', flexDirection:'column', overflow:'hidden', borderRight:`1px solid ${T.bd}` }}>
+      <div style={{ padding:'8px 10px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0 }}>
+        <div style={{ display:'flex', gap:3, marginBottom:6, flexWrap:'wrap' }}>
+          {['all','À faire','En cours','Fait','Reporté'].map(s => (
+            <button key={s} onClick={() => setFStatus(s)}
+              style={{ ...ss.btn, fontSize:10, padding:'2px 7px', background:fStatus===s?T.acc:'transparent', color:fStatus===s?'#fff':T.tx2, border:`1px solid ${fStatus===s?T.acc:T.bd}` }}>
+              {s === 'all' ? 'Tous' : s}
+            </button>
+          ))}
+        </div>
+        <select value={fPriority} onChange={e => setFPriority(e.target.value)} style={{ ...selStyle, width:'100%' }}>
           <option value="all">Toutes priorités</option>
-          {Object.keys(PRIORITY_ORDER).slice(0,6).map(p => <option key={p}>{p}</option>)}
+          {['Urgent','Danger','Défaut','Avertissement','Surveillance','Limité'].map(p => <option key={p}>{p}</option>)}
         </select>
-        <span style={{ fontSize:11, color:T.tx3, marginLeft:'auto' }}>
-          {filtered.length} système{filtered.length !== 1 ? 's' : ''} · {filtered.reduce((n,s)=>n+s.actions.length,0)} actions
-        </span>
       </div>
-
-      {/* Systems list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
-        {filtered.map(sys => {
-          const isExp = expandedSys === sys.id;
-          const doneCount = sys.actions.filter(a => statuses[a.id] === 'Fait').length;
-          const total = sys.actions.length;
-          const pc = PRIORITY[sys.priority] || PRIORITY['—'];
-          const visibleActions = isExp ? sys.actions.filter(a => fStatus === 'all' || (statuses[a.id] || 'À faire') === fStatus) : [];
-
-          return (
-            <div key={sys.id} style={{ marginBottom:6, borderRadius:7, overflow:'hidden',
-              border:`1px solid ${isUrgentTiming(sys.timing) || sys.priority === 'Urgent' ? pc.border : T.bd}`,
-              borderLeft:`3px solid ${pc.tx}` }}>
-              {/* System header */}
-              <div onClick={() => setExpandedSys(isExp ? null : sys.id)}
-                style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px',
-                  background: isExp ? T.s2 : T.s1, cursor:'pointer', userSelect:'none', transition:'background .1s' }}
-                onMouseEnter={e => !isExp && (e.currentTarget.style.background = T.s2)}
-                onMouseLeave={e => !isExp && (e.currentTarget.style.background = T.s1)}
-              >
-                <span style={{ fontSize:11, color:T.tx3, flexShrink:0, transition:'transform .2s', transform: isExp ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-                <span style={{ fontSize:13, fontWeight:600, color:T.tx, flex:1 }}>{sys.name}</span>
-                <PriorityBadge p={sys.priority} />
-                <TimingBadge t={sys.timing} />
-                <span style={{ fontSize:11, color: doneCount === total ? T.g : T.tx2, fontFamily:T.mono, flexShrink:0 }}>
-                  {doneCount}/{total}
-                </span>
-              </div>
-
-              {/* Expanded: why + actions */}
-              {isExp && (
-                <div>
-                  <div style={{ padding:'8px 14px 8px 32px', borderTop:`1px solid ${T.bd}`, fontSize:12, color:T.tx2, lineHeight:1.6, background:T.bg }}>
-                    <strong style={{ color:T.acc2 }}>Pourquoi:</strong> {sys.pourquoi}
+      <div style={{ flex:1, overflowY:'auto', padding:'8px' }}>
+        {byPriority.length === 0 && <div style={{ textAlign:'center', padding:'30px 10px', color:T.tx3, fontSize:12, fontStyle:'italic' }}>Aucun système.</div>}
+        {byPriority.map(g => (
+          <div key={g.p} style={{ marginBottom:10 }}>
+            <div style={{ fontSize:9, fontWeight:700, color:(PRIORITY[g.p]||PRIORITY['—']).tx, textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:5, paddingLeft:4 }}>
+              {g.p} <span style={{ opacity:0.5 }}>({g.systems.length})</span>
+            </div>
+            {g.systems.map(sys => {
+              const pc = PRIORITY[sys.priority] || PRIORITY['—'];
+              const done = sys.actions.filter(a => statuses[a.id] === 'Fait').length;
+              const isSel = selSys === sys.id;
+              return (
+                <div key={sys.id} onClick={() => selectSys(sys.id)}
+                  style={{ padding:'8px 10px', borderRadius:6, marginBottom:3, cursor:'pointer',
+                    background: isSel ? 'rgba(91,156,246,0.10)' : T.s1,
+                    border:`1px solid ${isSel ? T.acc : T.bd}`,
+                    borderLeft:`3px solid ${pc.tx}`, transition:'background .1s' }}
+                  onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
+                  onMouseLeave={e => !isSel && (e.currentTarget.style.background = T.s1)}
+                >
+                  <div style={{ fontSize:12, fontWeight:600, color:T.tx, lineHeight:1.3, marginBottom:4 }}>{sys.name}</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                    <TimingBadge t={sys.timing} />
+                    <span style={{ marginLeft:'auto', fontSize:10, color:done===sys.actions.length?T.g:T.tx3, fontFamily:T.mono }}>{done}/{sys.actions.length}</span>
                   </div>
-                  {visibleActions.map(a => {
-                    const st = statuses[a.id] || 'À faire';
-                    const isSel = selectedAction === a.id;
-                    const wc = WSTATUS[st] || WSTATUS['À faire'];
-                    return (
-                      <div key={a.id} onClick={() => selectAction(a.id)}
-                        style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'9px 14px 9px 32px',
-                          borderTop:`1px solid ${T.bd3}`, cursor:'pointer', transition:'background .1s',
-                          background: isSel ? 'rgba(91,156,246,0.08)' : st === 'Fait' ? 'rgba(63,182,139,0.04)' : 'transparent',
-                          opacity: st === 'Fait' ? 0.6 : 1 }}
-                        onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
-                        onMouseLeave={e => !isSel && (e.currentTarget.style.background = isSel ? 'rgba(91,156,246,0.08)' : st === 'Fait' ? 'rgba(63,182,139,0.04)' : 'transparent')}
-                      >
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:12, color:T.tx, lineHeight:1.5, marginBottom:4,
-                            textDecoration: st === 'Fait' ? 'line-through' : 'none', color: st === 'Fait' ? T.tx3 : T.tx }}>
-                            {a.desc}
-                          </div>
-                          <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
-                            <TimingBadge t={a.timing} />
-                            <PriorityBadge p={a.priority} />
-                            {a.composantes.slice(0,3).map(c => (
-                              <span key={c} style={{ fontSize:9, background:T.s3, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>
-                            ))}
-                            {a.composantes.length > 3 && <span style={{ fontSize:10, color:T.tx3 }}>+{a.composantes.length-3}</span>}
-                          </div>
-                        </div>
-                        <select value={st} onClick={e => e.stopPropagation()}
-                          onChange={e => handleStatusChange(a.id, e.target.value)}
-                          style={{ ...selStyle, background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}44`, flexShrink:0 }}
-                        >
-                          {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
-                        </select>
-                      </div>
-                    );
-                  })}
                 </div>
-              )}
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:'6px 10px', borderTop:`1px solid ${T.bd}`, background:T.s1, fontSize:10, color:T.tx3, flexShrink:0 }}>
+        {filtered.length} système{filtered.length!==1?'s':''} · {filtered.reduce((n,s)=>n+s.actions.length,0)} actions
+      </div>
+    </div>
+  );
+
+  // ── System detail panel ──
+  const SystemPanel = activeSys && !selAction ? (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:8, marginBottom:8 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:15, fontWeight:700, color:T.tx, lineHeight:1.3, marginBottom:3 }}>{activeSys.name}</div>
+            <div style={{ fontSize:11, color:T.tx3 }}>{activeSys.zone}</div>
+          </div>
+          <button onClick={() => setSelSys(null)} style={{ ...ss.btn, padding:'2px 8px', flexShrink:0 }}>×</button>
+        </div>
+        <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
+          <PriorityBadge p={activeSys.priority} />
+          <TimingBadge t={activeSys.timing} />
+          {(() => { const done = activeSys.actions.filter(a => statuses[a.id] === 'Fait').length; const total = activeSys.actions.length;
+            return <span style={{ ...ss.pill(done===total?'rgba(63,182,139,0.12)':'rgba(62,74,90,0.15)', done===total?T.g:T.tx2), fontSize:9 }}>{done}/{total} fait</span>; })()}
+        </div>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Ce que l'on sait</div>
+          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeSys.ceQueOnSait}</div>
+        </div>
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Pourquoi c'est important</div>
+          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeSys.pourquoi}</div>
+        </div>
+        <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Actions ({activeSys.actions.length})</div>
+        {activeSys.actions.map(a => {
+          const st = statuses[a.id] || 'À faire';
+          const wc = WSTATUS[st] || WSTATUS['À faire'];
+          const pc = PRIORITY[a.priority] || PRIORITY['—'];
+          return (
+            <div key={a.id} onClick={() => setSelAction(a.id)}
+              style={{ padding:'10px 12px', borderRadius:6, marginBottom:5, cursor:'pointer',
+                background: st==='Fait'?'rgba(63,182,139,0.04)':T.s1,
+                border:`1px solid ${T.bd}`, borderLeft:`3px solid ${pc.tx}`,
+                opacity: st==='Fait'?0.65:1, transition:'background .1s' }}
+              onMouseEnter={e => e.currentTarget.style.background = T.s2}
+              onMouseLeave={e => e.currentTarget.style.background = st==='Fait'?'rgba(63,182,139,0.04)':T.s1}
+            >
+              <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12, color:st==='Fait'?T.tx3:T.tx, lineHeight:1.5, marginBottom:5,
+                    textDecoration:st==='Fait'?'line-through':'none' }}>{a.desc}</div>
+                  <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
+                    <TimingBadge t={a.timing} />
+                    <PriorityBadge p={a.priority} />
+                    {a.composantes.slice(0,3).map(c => (
+                      <span key={c} style={{ fontSize:9, background:T.s3, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>
+                    ))}
+                    {a.composantes.length > 3 && <span style={{ fontSize:9, color:T.tx3 }}>+{a.composantes.length-3}</span>}
+                  </div>
+                </div>
+                <select value={st} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); handleStatusChange(a.id, e.target.value); }}
+                  style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}44`, borderRadius:4, padding:'3px 6px', fontSize:11, cursor:'pointer', fontFamily:T.font, outline:'none', flexShrink:0 }}>
+                  {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
             </div>
           );
         })}
-
-        {/* Detail panel */}
-        {selAct && (
-          <div ref={detailRef} style={{ background:T.s1, border:`1px solid ${T.bd2}`, borderRadius:8, padding:'16px', marginTop:14 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:T.tx, flex:1, paddingRight:12, lineHeight:1.4 }}>
-                {selAct.action.desc}
-              </div>
-              <button onClick={() => setSelectedAction(null)} style={{ ...ss.btn, flexShrink:0 }}>×</button>
-            </div>
-            {[
-              ['Système', selAct.sys.name],
-              ['Zone', selAct.sys.zone],
-              ['Priorité', <PriorityBadge p={selAct.action.priority} />],
-              ['Timing', <TimingBadge t={selAct.action.timing} />],
-              ['Statut', <WStatusBadge s={statuses[selAct.action.id] || 'À faire'} />],
-              selAct.action.composantes.length > 0 && ['Composantes', (
-                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
-                  {selAct.action.composantes.map(c => (
-                    <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono, fontWeight:600 }}>{c}</span>
-                  ))}
-                </div>
-              )],
-              ['Pourquoi', selAct.sys.pourquoi],
-              selAct.action.notes && ['Notes', selAct.action.notes],
-              selAct.action.source && ['Source', <span style={{ fontFamily:T.mono, fontSize:11, color:T.tx3 }}>{selAct.action.source}</span>],
-            ].filter(Boolean).map(([label, val]) => (
-              <div key={label} style={{ display:'flex', gap:12, marginBottom:10, alignItems:'flex-start' }}>
-                <span style={{ fontSize:11, fontWeight:600, color:T.tx3, minWidth:88, paddingTop:1, flexShrink:0 }}>{label}</span>
-                <span style={{ fontSize:12, color:T.tx2, flex:1, lineHeight:1.5 }}>{val}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
+    </div>
+  ) : null;
+
+  // ── Action detail panel ──
+  const ActionPanel = activeAction ? (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'10px 14px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
+        <button onClick={() => setSelAction(null)}
+          style={{ ...ss.btn, fontSize:10, padding:'3px 9px', display:'flex', alignItems:'center', gap:4 }}>
+          ← {activeAction.sys.name.length > 28 ? activeAction.sys.name.substring(0,28)+'…' : activeAction.sys.name}
+        </button>
+        <button onClick={() => { setSelSys(null); setSelAction(null); }} style={{ ...ss.btn, padding:'3px 8px', marginLeft:'auto' }}>×</button>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
+        <div style={{ fontSize:14, fontWeight:600, color:T.tx, lineHeight:1.5, marginBottom:16, paddingBottom:14, borderBottom:`1px solid ${T.bd}` }}>
+          {activeAction.action.desc}
+        </div>
+        {/* Prominent status selector */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Statut</div>
+          {(() => {
+            const st = statuses[activeAction.action.id] || 'À faire';
+            const wc = WSTATUS[st] || WSTATUS['À faire'];
+            return (
+              <select value={st} onChange={e => handleStatusChange(activeAction.action.id, e.target.value)}
+                style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}55`,
+                  borderRadius:6, padding:'7px 12px', fontSize:13, fontWeight:600,
+                  cursor:'pointer', fontFamily:T.font, outline:'none', width:'100%' }}>
+                {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
+              </select>
+            );
+          })()}
+        </div>
+        {/* Metadata rows */}
+        {[
+          ['Système', activeAction.sys.name],
+          ['Zone', activeAction.sys.zone],
+          ['Priorité', <PriorityBadge p={activeAction.action.priority} />],
+          ['Timing', <TimingBadge t={activeAction.action.timing} />],
+          activeAction.action.composantes.length > 0 && ['Composantes', (
+            <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+              {activeAction.action.composantes.map(c => (
+                <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono, fontWeight:600 }}>{c}</span>
+              ))}
+            </div>
+          )],
+          activeAction.action.notes && ['Notes', activeAction.action.notes],
+          activeAction.action.source && ['Source', <span style={{ fontFamily:T.mono, fontSize:11, color:T.tx3 }}>{activeAction.action.source}</span>],
+        ].filter(Boolean).map(([label, val]) => (
+          <div key={label} style={{ display:'flex', gap:12, marginBottom:11, paddingBottom:11, borderBottom:`1px solid ${T.bd3}`, alignItems:'flex-start' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:T.tx3, minWidth:90, paddingTop:1, flexShrink:0 }}>{label}</span>
+            <span style={{ fontSize:12, color:T.tx2, flex:1, lineHeight:1.6 }}>{val}</span>
+          </div>
+        ))}
+        <div style={{ marginTop:8 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Pourquoi</div>
+          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeAction.sys.pourquoi}</div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
+      {LeftPanel}
+      <ResizeHandle currentWidth={panelW} onResizeLive={setLiveW} onResizeEnd={v => { setLiveW(null); setLeftW(v); }} />
+      {selAction ? ActionPanel : selSys ? SystemPanel :
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
+          <div style={{ fontSize:32, opacity:0.10 }}>⚒</div>
+          <span style={{ fontSize:13, color:T.tx3, fontStyle:'italic' }}>Sélectionner un système</span>
+        </div>
+      }
     </div>
   );
 }
@@ -867,6 +928,8 @@ function EntretienView({ mDone, onToggleMaint }) {
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
+const DENSITY_ZOOM = { compact:0.88, comfortable:1.0, presentation:1.15 };
+
 export default function DurinsWorksApp() {
   const navigate = useNavigate();
   const [view, setView] = useState('dashboard');
@@ -877,6 +940,9 @@ export default function DurinsWorksApp() {
   const [saved, setSaved] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingGoTo, setPendingGoTo] = useState(null);
+  const [fontScale, setFontScale] = useState(1.0);
+  const [density, setDensity] = useState('comfortable');
+  const effectiveZoom = fontScale * (DENSITY_ZOOM[density] || 1.0);
 
   // Inject fonts
   useEffect(() => {
@@ -989,46 +1055,56 @@ export default function DurinsWorksApp() {
 
   return (
     <div style={{ fontFamily:T.font, display:'flex', flexDirection:'column', height:'100vh', background:T.bg, overflow:'hidden', color:T.tx }}>
-      {/* HEADER */}
-      <div style={{ background:T.hdr, borderBottom:`1px solid ${T.bd}`, padding:'0 12px', display:'flex', alignItems:'center', height:44, flexShrink:0, gap:0 }}>
-        <button onClick={() => navigate('/')} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:5, padding:'3px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', marginRight:10, fontFamily:T.font, letterSpacing:'0.02em', flexShrink:0 }}>KarlOS</button>
-        <span style={{ fontFamily:T.serif, fontSize:14, fontWeight:600, color:T.acc2, letterSpacing:'0.06em', marginRight:14, flexShrink:0 }}>Durin's Works</span>
-        <div style={{ display:'flex', gap:0 }}>
-          {NAV.map(n => (
-            <button key={n.id} onClick={() => setView(n.id)} style={{ padding:'4px 10px', fontSize:11, fontWeight:500, border:'none', background:'transparent', cursor:'pointer', color:view===n.id ? T.acc : T.tx2, borderBottom:`2px solid ${view===n.id ? T.acc : 'transparent'}`, borderRadius:0, fontFamily:T.font, transition:'color .1s', whiteSpace:'nowrap' }}>
-              {n.label}
+      {/* Zoomed area — header + body */}
+      <div style={{ flex:1, zoom:effectiveZoom, display:'flex', flexDirection:'column', overflow:'hidden', background:T.bg, color:T.tx }}>
+        {/* HEADER */}
+        <div style={{ background:T.hdr, borderBottom:`1px solid ${T.bd}`, padding:'0 12px', display:'flex', alignItems:'center', height:44, flexShrink:0, gap:0 }}>
+          <button onClick={() => navigate('/')} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:5, padding:'3px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', marginRight:10, fontFamily:T.font, letterSpacing:'0.02em', flexShrink:0 }}>KarlOS</button>
+          <span style={{ fontFamily:T.serif, fontSize:14, fontWeight:600, color:T.acc2, letterSpacing:'0.06em', marginRight:14, flexShrink:0 }}>Durin's Works</span>
+          <div style={{ display:'flex', gap:0 }}>
+            {NAV.map(n => (
+              <button key={n.id} onClick={() => setView(n.id)} style={{ padding:'4px 10px', fontSize:11, fontWeight:500, border:'none', background:'transparent', cursor:'pointer', color:view===n.id ? T.acc : T.tx2, borderBottom:`2px solid ${view===n.id ? T.acc : 'transparent'}`, borderRadius:0, fontFamily:T.font, transition:'color .1s', whiteSpace:'nowrap' }}>
+                {n.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+            {urgentLeft > 0 && <span style={{ fontSize:10, background:'rgba(217,95,95,0.15)', color:T.r, borderRadius:10, padding:'1px 7px', fontWeight:600 }}>{urgentLeft} urgent{urgentLeft>1?'s':''}</span>}
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher…"
+              style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${T.bd}`, borderRadius:14, padding:'3px 12px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
+            <span style={{ fontSize:10, color:saved ? T.g : T.tx3, fontFamily:T.mono }}>{saved ? '✓' : '…'}</span>
+          </div>
+        </div>
+        {/* BODY */}
+        <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+          {view === 'dashboard' && <DashboardView statuses={statuses} mDone={mDone} onGoToAction={handleGoToAction} onToggleMaint={toggleMaint} />}
+          {view === 'travaux' && <TravauxView statuses={statuses} setStatuses={setStatuses} saveStatus={saveStatus} searchQuery={searchQuery} />}
+          {view === 'achats' && <AchatsView shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />}
+          {view === 'entretien' && <EntretienView mDone={mDone} onToggleMaint={toggleMaint} />}
+        </div>
+      </div>
+
+      {/* BOTTOM BAR — outside zoom */}
+      <div style={{ height:32, background:T.hdr, borderTop:`1px solid ${T.bd}`, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 12px', flexShrink:0, gap:10 }}>
+        <span style={{ fontSize:11, fontFamily:T.serif, color:T.tx3, letterSpacing:'0.04em', flexShrink:0 }}>8235, Avenue Orégon</span>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {[{k:'compact',label:'⊟ Compact'},{k:'comfortable',label:'⊡ Confort'},{k:'presentation',label:'⊞ Grand'}].map(d => (
+            <button key={d.k} onClick={() => setDensity(d.k)}
+              style={{ background:'transparent', border:`1px solid ${density===d.k?T.acc:T.bd}`, borderRadius:4, padding:'1px 7px', fontSize:9,
+                fontWeight:density===d.k?700:400, color:density===d.k?T.acc:T.tx3, cursor:'pointer', fontFamily:T.font }}>
+              {d.label}
             </button>
           ))}
+          <span style={{ fontSize:10, color:T.tx3, marginLeft:4 }}>A</span>
+          <input type="range" min={0.7} max={1.4} step={0.05} value={fontScale}
+            onChange={e => setFontScale(parseFloat(e.target.value))}
+            style={{ width:90, cursor:'pointer', accentColor:T.acc }} />
+          <span style={{ fontSize:13, color:T.tx3 }}>A</span>
+          <span style={{ fontSize:10, color:T.tx3, fontFamily:T.mono, minWidth:30 }}>{Math.round(effectiveZoom*100)}%</span>
         </div>
-        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-          {urgentLeft > 0 && <span style={{ fontSize:10, background:'rgba(217,95,95,0.15)', color:T.r, borderRadius:10, padding:'1px 7px', fontWeight:600 }}>{urgentLeft} urgent{urgentLeft>1?'s':''}</span>}
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Rechercher…"
-            style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${T.bd}`, borderRadius:14, padding:'3px 12px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }}
-          />
-          <span style={{ fontSize:10, color:saved ? T.g : T.tx3, fontFamily:T.mono }}>{saved ? '✓' : '…'}</span>
-        </div>
-      </div>
-
-      {/* BODY */}
-      <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-        {view === 'dashboard' && <DashboardView statuses={statuses} mDone={mDone} onGoToAction={handleGoToAction} onToggleMaint={toggleMaint} />}
-        {view === 'travaux' && <TravauxView statuses={statuses} setStatuses={setStatuses} saveStatus={saveStatus} searchQuery={searchQuery} />}
-        {view === 'achats' && <AchatsView shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />}
-        {view === 'entretien' && <EntretienView mDone={mDone} onToggleMaint={toggleMaint} />}
-      </div>
-
-      {/* BOTTOM BAR */}
-      <div style={{ height:28, background:T.hdr, borderTop:`1px solid ${T.bd}`, display:'flex', alignItems:'center', justifyContent:'center', gap:14, flexShrink:0 }}>
-        <span style={{ fontSize:11, fontFamily:T.serif, color:T.tx3, letterSpacing:'0.04em' }}>8235, Avenue Orégon</span>
-        <span style={{ color:T.bd2, fontSize:11 }}>·</span>
-        <span style={{ fontSize:10, color:T.tx3 }}>
+        <span style={{ fontSize:10, color:T.tx3, flexShrink:0 }}>
           {allActions.filter(a => statuses[a.id] === 'Fait').length}/{allActions.length} actions · {MAINTENANCE.filter(t=>mDone[t.id]).length}/{MAINTENANCE.length} entretien
         </span>
-        <span style={{ color:T.bd2, fontSize:11 }}>·</span>
-        <span style={{ fontSize:10, color:T.tx3 }}>Inspection: 18 mars 2026</span>
       </div>
     </div>
   );
