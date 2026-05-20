@@ -182,7 +182,7 @@ function FlexDateInput({value,onChange,label}){
 }
 
 // ─── TASK PANEL ───────────────────────────────────────────────────────────────
-function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverable}){
+function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverable,onCreateFile}){
   const task=data.tasks.find(t=>t.id===taskId);
   if(!task)return null;
   const file=getFile(data.files,task.fileId||task.projectId);
@@ -193,6 +193,18 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
   const people=allPeopleFrom(data);
   const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='completed').sort((a,b)=>a.title.localeCompare(b.title));
   const fileDeliverables=file?(data.deliverables||[]).filter(d=>d.fileId===file.id&&!isDoneDV(d)):[];
+  const [creatingFile,setCreatingFile]=useState(false);
+  const [newFileTitle,setNewFileTitle]=useState('');
+  const newFileTitleRef=useRef(null);
+  const handleCreateAndLink=()=>{
+    const t=newFileTitle.trim();
+    if(!t||!onCreateFile)return;
+    const newId=uid();
+    onCreateFile({id:newId,title:t});
+    upd({fileId:newId,projectId:newId,deliverableId:null});
+    setNewFileTitle('');
+    setCreatingFile(false);
+  };
   return(
     <div style={{width:360,flexShrink:0,borderLeft:`1px solid ${T.bd}`,background:T.s1,overflowY:'auto',maxHeight:'100%'}}>
       <div style={{padding:'12px 14px',borderBottom:`1px solid ${T.bd}`,display:'flex',alignItems:'flex-start',gap:8,position:'sticky',top:0,background:T.s1,zIndex:5}}>
@@ -206,10 +218,11 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
       <div style={{padding:'12px 14px'}}>
         {blocked&&<div style={{background:'rgba(217,95,95,0.12)',color:T.r,borderRadius:5,padding:'6px 10px',fontSize:11,marginBottom:10,fontWeight:500}}>⛔ Blocked by incomplete dependency</div>}
         {/* File + Deliverable assignment */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:creatingFile?4:10}}>
           <Fld label="File" mb={0}>
-            <select value={task.fileId||task.projectId||''} onChange={e=>{const fid=e.target.value||null;upd({fileId:fid,projectId:fid,deliverableId:null});}} style={ss.sel}>
+            <select value={task.fileId||task.projectId||''} onChange={e=>{const v=e.target.value;if(v==='__new__'){setCreatingFile(true);setNewFileTitle('');setTimeout(()=>newFileTitleRef.current?.focus(),50);}else{const fid=v||null;upd({fileId:fid,projectId:fid,deliverableId:null});}}} style={ss.sel}>
               <option value="">— unlinked —</option>
+              <option value="__new__">+ New file…</option>
               {activeFiles.map(f=><option key={f.id} value={f.id}>{f.title}</option>)}
             </select>
           </Fld>
@@ -220,6 +233,13 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
             </select>
           </Fld>
         </div>
+        {creatingFile&&(
+          <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:10,padding:'7px 10px',background:T.s2,borderRadius:6,border:`1px solid ${T.bd2}`}}>
+            <input ref={newFileTitleRef} value={newFileTitle} onChange={e=>setNewFileTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')handleCreateAndLink();if(e.key==='Escape'){setCreatingFile(false);setNewFileTitle('');}}} placeholder="New file name…" style={{...ss.inp,flex:1,fontSize:11}}/>
+            <button onClick={handleCreateAndLink} disabled={!newFileTitle.trim()} style={{...ss.btnP,fontSize:11,padding:'4px 10px',opacity:newFileTitle.trim()?1:0.4,flexShrink:0}}>Create & link</button>
+            <button onClick={()=>{setCreatingFile(false);setNewFileTitle('');}} style={{...ss.btn,fontSize:11,padding:'4px 8px',flexShrink:0}}>✕</button>
+          </div>
+        )}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
           <Fld label="Status" mb={0}><select value={task.status} onChange={e=>upd({status:e.target.value})} style={ss.sel}>{TASK_STATUS_OPTS.map(s=><option key={s} value={s}>{TS[s]?.label||s}</option>)}{!TASK_STATUS_OPTS.includes(task.status)&&<option value={task.status}>{TS[task.status]?.label||task.status}</option>}</select></Fld>
           <Fld label="Due Date" mb={0}><input type="date" value={task.dueDate||""} onChange={e=>upd({dueDate:e.target.value||null})} style={ss.sel}/></Fld>
@@ -1075,7 +1095,7 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
 }
 
 // ─── FILES VIEW (consolidated — was Dashboard + Files) ───────────────────────
-function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFile,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,pendingFileId,clearPendingFile,saveUiPref}){
+function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFile,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,pendingFileId,clearPendingFile,saveUiPref,createFile}){
   const [search,setSearch]=useState('');
   const [statusF,setStatusF]=useState('active');
   const [mineOnly,setMineOnly]=useState(false);
@@ -1149,7 +1169,7 @@ function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFi
 }
 
 // ─── MY WORK VIEW (wrapper: Today / Board / List) ─────────────────────────────
-function MyWorkView({data,saveTask,delTask,saveUiPref,saveFile,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate}){
+function MyWorkView({data,saveTask,delTask,saveUiPref,saveFile,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,createFile}){
   const savedMode=data.uiPrefs?.myWorkMode||'today';
   const [mode,setMode]=useState(savedMode);
   // Right-panel navigation stack: null | {type:'task'|'file'|'dv', id, prev}
@@ -1169,7 +1189,7 @@ function MyWorkView({data,saveTask,delTask,saveUiPref,saveFile,newTask,addLogEnt
     if(!rightPanel)return null;
     const backBtn=rightPanel.prev&&(<button onClick={goBack} style={{...ss.btn,fontSize:10,padding:'3px 8px',marginBottom:6,display:'flex',alignItems:'center',gap:3}}><span>←</span><span>Back</span></button>);
     if(rightPanel.type==='task'){
-      return(<TaskPanel taskId={rightPanel.id} data={data} onClose={closePanel} saveTask={saveTask} delTask={id=>{delTask(id);closePanel();}} onOpenTask={openTask} onOpenFile={openFile} onOpenDeliverable={openDv}/>);
+      return(<TaskPanel taskId={rightPanel.id} data={data} onClose={closePanel} saveTask={saveTask} delTask={id=>{delTask(id);closePanel();}} onOpenTask={openTask} onOpenFile={openFile} onOpenDeliverable={openDv} onCreateFile={createFile}/>);
     }
     if(rightPanel.type==='file'){
       const file=data.files.find(f=>f.id===rightPanel.id);
@@ -1393,7 +1413,7 @@ function TodayView({data,saveTask,delTask,saveUiPref,saveDeliverable,onOpenTask,
 }
 
 // ─── CALENDAR VIEW ────────────────────────────────────────────────────────────
-function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,newTask,applyTemplate,saveUiPref}){
+function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,newTask,applyTemplate,saveUiPref,createFile}){
   const [refDate,setRefDate]=useState(TODAY);
   // Right panel navigation stack (same pattern as MyWork)
   const [rightPanel,setRightPanel]=useState(null);
@@ -1419,7 +1439,7 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogE
   const RightPanelContent=()=>{
     if(!rightPanel)return null;
     const backBtn=rightPanel.prev&&(<button onClick={goBack} style={{...ss.btn,fontSize:10,padding:'3px 8px',marginBottom:6}}><span>←</span> Back</button>);
-    if(rightPanel.type==='task')return(<TaskPanel taskId={rightPanel.id} data={data} onClose={closePanel} saveTask={saveTask} delTask={id=>{delTask(id);closePanel();}} onOpenTask={openTask} onOpenFile={openFile} onOpenDeliverable={openDv}/>);
+    if(rightPanel.type==='task')return(<TaskPanel taskId={rightPanel.id} data={data} onClose={closePanel} saveTask={saveTask} delTask={id=>{delTask(id);closePanel();}} onOpenTask={openTask} onOpenFile={openFile} onOpenDeliverable={openDv} onCreateFile={createFile}/>);
     if(rightPanel.type==='file'){const file=data.files.find(f=>f.id===rightPanel.id);if(!file)return null;return(<div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>{backBtn&&<div style={{padding:'8px 12px',borderBottom:`1px solid ${T.bd}`,flexShrink:0}}>{backBtn}</div>}<div style={{flex:1,overflow:'hidden'}}><FilePage file={file} onClose={closePanel} {...fileEditProps}/></div></div>);}
     if(rightPanel.type==='dv')return(<div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>{backBtn&&<div style={{padding:'8px 12px',borderBottom:`1px solid ${T.bd}`,flexShrink:0}}>{backBtn}</div>}<div style={{flex:1,overflow:'hidden'}}><DeliverablePanel dvId={rightPanel.id} data={data} onClose={closePanel} saveDeliverable={saveDeliverable} delDeliverable={id=>{delDeliverable(id);closePanel();}} saveTask={saveTask} delTask={delTask} newTask={newTask} onOpenFile={openFile}/></div></div>);
     return null;
@@ -1569,7 +1589,7 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogE
 }
 
 // ─── PEOPLE VIEW — KANBAN ─────────────────────────────────────────────────────
-function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTask,onOpenFile,saveFile,addLogEntry,newDeliverable,applyTemplate,saveUiPref}){
+function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTask,onOpenFile,saveFile,addLogEntry,newDeliverable,applyTemplate,saveUiPref,createFile}){
   const people=(data.people||[]).filter(p=>p.active!==false);
   const savedOrder=data.uiPrefs?.peopleColumnOrder||people.map(p=>p.id);
   const hiddenSet=new Set(data.uiPrefs?.peopleHidden||[]);
@@ -1621,7 +1641,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
   const RightPanelContent=()=>{
     if(!rightPanel)return null;
     const backBtn=rightPanel.prev&&<button onClick={goBack} style={{...ss.btn,fontSize:10,padding:'3px 8px',marginBottom:6}}>← Back</button>;
-    if(rightPanel.type==='task')return<TaskPanel taskId={rightPanel.id} data={data} onClose={closePanel} saveTask={saveTask} delTask={id=>{delTask(id);closePanel();}} onOpenTask={openTask} onOpenFile={openFile} onOpenDeliverable={openDv}/>;
+    if(rightPanel.type==='task')return<TaskPanel taskId={rightPanel.id} data={data} onClose={closePanel} saveTask={saveTask} delTask={id=>{delTask(id);closePanel();}} onOpenTask={openTask} onOpenFile={openFile} onOpenDeliverable={openDv} onCreateFile={createFile}/>;
     if(rightPanel.type==='file'){const file=data.files.find(f=>f.id===rightPanel.id);if(!file)return null;return(<div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>{backBtn&&<div style={{padding:'8px 12px',borderBottom:`1px solid ${T.bd}`,flexShrink:0}}>{backBtn}</div>}<div style={{flex:1,overflow:'hidden'}}><FilePage file={file} onClose={closePanel} {...fileEditProps}/></div></div>);}
     if(rightPanel.type==='dv')return(<div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>{backBtn&&<div style={{padding:'8px 12px',borderBottom:`1px solid ${T.bd}`,flexShrink:0}}>{backBtn}</div>}<div style={{flex:1,overflow:'hidden'}}><DeliverablePanel dvId={rightPanel.id} data={data} onClose={closePanel} saveDeliverable={saveDeliverable} delDeliverable={id=>{delDeliverable(id);closePanel();}} saveTask={saveTask} delTask={delTask} newTask={newTask} onOpenFile={openFile}/></div></div>);
     return null;
@@ -2577,7 +2597,7 @@ export default function App(){
 
   const urgentFiles=data.files.filter(f=>isUrgentFile(f,data.tasks)).length;
   const overdueCount=data.tasks.filter(t=>isMyTask(t)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue').length;
-  const sharedFileProps={saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,saveUiPref};
+  const sharedFileProps={saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,saveUiPref,createFile};
   const NAV=[{id:'files',label:'Files'},{id:'mywork',label:'My Work'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
 
   return(
@@ -2607,9 +2627,9 @@ export default function App(){
           {/* BODY */}
           <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
             {view==='files'     &&<FilesView data={data} {...sharedFileProps} showAddFile={()=>setModal('addFile')} pendingFileId={pendingFileId} clearPendingFile={clearPendingFile}/>}
-            {view==='mywork'    &&<MyWorkView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref} saveFile={saveFile} newTask={newTask} addLogEntry={addLogEntry} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newDeliverable={newDeliverable} applyTemplate={applyTemplate}/>}
-            {view==='calendar'  &&<CalendarView data={data} calMode={calMode} setCalMode={setCalMode} saveTask={saveTask} delTask={delTask} saveFile={saveFile} addLogEntry={addLogEntry} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newDeliverable={newDeliverable} newTask={newTask} applyTemplate={applyTemplate} saveUiPref={saveUiPref}/>}
-            {view==='people'    &&<PeopleView data={data} saveTask={saveTask} delTask={delTask} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newTask={newTask} onOpenFile={openFileInFilesView} saveFile={saveFile} addLogEntry={addLogEntry} newDeliverable={newDeliverable} applyTemplate={applyTemplate} saveUiPref={saveUiPref}/>}
+            {view==='mywork'    &&<MyWorkView data={data} saveTask={saveTask} delTask={delTask} saveUiPref={saveUiPref} saveFile={saveFile} newTask={newTask} addLogEntry={addLogEntry} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newDeliverable={newDeliverable} applyTemplate={applyTemplate} createFile={createFile}/>}
+            {view==='calendar'  &&<CalendarView data={data} calMode={calMode} setCalMode={setCalMode} saveTask={saveTask} delTask={delTask} saveFile={saveFile} addLogEntry={addLogEntry} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newDeliverable={newDeliverable} newTask={newTask} applyTemplate={applyTemplate} saveUiPref={saveUiPref} createFile={createFile}/>}
+            {view==='people'    &&<PeopleView data={data} saveTask={saveTask} delTask={delTask} saveDeliverable={saveDeliverable} delDeliverable={delDeliverable} newTask={newTask} onOpenFile={openFileInFilesView} saveFile={saveFile} addLogEntry={addLogEntry} newDeliverable={newDeliverable} applyTemplate={applyTemplate} saveUiPref={saveUiPref} createFile={createFile}/>}
             {view==='templates' &&<TemplatesView data={data} setData={setData}/>}
             {view==='claude'    &&<ClaudeView data={data} onImport={applyClaudeImport} downloadJson={downloadJson} onOpenSnapshots={()=>setModal('snapshots')} takeSnapshot={takeSnapshot}/>}
           </div>
