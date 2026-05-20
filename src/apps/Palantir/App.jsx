@@ -2358,7 +2358,7 @@ function TeamModal({data,onClose,setData}){
 
 // ─── MEETING PREP MODAL ───────────────────────────────────────────────────────
 function MeetingPrepModal({data,onClose}){
-  const activePeople=(data.people||[]).filter(p=>p.active!==false&&p.name!=='Karl');
+  const activePeople=(data.people||[]).filter(p=>p.active!==false);
   const [sel,setSel]=useState(new Set());
   const [copied,setCopied]=useState(false);
   const printRef=useRef(null);
