@@ -1621,8 +1621,10 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
   const [colWidths,setColWidths]=useState({});
   const setColW=(id,w)=>setColWidths(x=>({...x,[id]:w})); // {personName, fileId|null, insertBeforeTaskId|null}
 
-  const reassignTask=(taskId,toPerson)=>{
-    saveTask(taskId,{assignees:[toPerson]});
+  const dropTask=(taskId,toPerson,toFileId=null)=>{
+    const changes={assignees:[toPerson]};
+    if(toFileId){changes.fileId=toFileId;changes.projectId=toFileId;}
+    saveTask(taskId,changes);
   };
 
   const orderedPeople=[
@@ -1699,7 +1701,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                 onDrop={e=>{
                   e.preventDefault();
                   if(taskDragId&&taskDragRef.current){
-                    reassignTask(taskDragId,p.name);
+                    dropTask(taskDragId,p.name,taskDragOver?.fileId||null);
                     taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);
                   } else dropOnCol(p.id);
                 }}
@@ -1798,7 +1800,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                         <div
                           onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'fileBottom'});}}
                           onDragLeave={()=>setTaskDragOver(null)}
-                          onDrop={e=>{e.preventDefault();e.stopPropagation();if(taskDragId){reassignTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
+                          onDrop={e=>{e.preventDefault();e.stopPropagation();if(taskDragId){dropTask(taskDragId,p.name,file.id);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
                           style={{minHeight:taskDragId?22:6,background:taskDragOver?.personName===p.name&&taskDragOver?.fileId===file.id&&taskDragOver?.zone==='fileBottom'?'rgba(91,156,246,0.08)':'transparent',transition:'all .1s',display:'flex',alignItems:'center',justifyContent:'center'}}
                         >
                           {taskDragId&&taskDragOver?.personName===p.name&&taskDragOver?.fileId===file.id&&taskDragOver?.zone==='fileBottom'&&<span style={{fontSize:8,color:T.acc}}>drop here</span>}
@@ -1812,7 +1814,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                       <div style={{padding:'5px 9px',background:T.s1,borderBottom:`1px solid ${T.bd}`,fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.4px'}}>Other tasks</div>
                       <div
                         onDragOver={e=>{e.preventDefault();setTaskDragOver({personName:p.name,zone:'other'});}}
-                        onDrop={e=>{e.preventDefault();if(taskDragId){reassignTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
+                        onDrop={e=>{e.preventDefault();if(taskDragId){dropTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
                         style={{padding:'4px 6px',minHeight:24,background:taskDragOver?.personName===p.name&&taskDragOver?.zone==='other'?'rgba(91,156,246,0.06)':'transparent'}}
                       >
                         {unlinkedTasks.map(t=>(
@@ -1833,7 +1835,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                   {/* Empty drop zone at bottom */}
                   <div
                     onDragOver={e=>{e.preventDefault();setTaskDragOver({personName:p.name,zone:'col'});}}
-                    onDrop={e=>{e.preventDefault();if(taskDragId){reassignTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
+                    onDrop={e=>{e.preventDefault();if(taskDragId){dropTask(taskDragId,p.name);taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}}
                     style={{minHeight:32,borderRadius:5,border:isColOver?`1px dashed ${T.acc}`:'1px dashed transparent',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
                   >
                     {isColOver&&taskDragId&&<span style={{fontSize:10,color:T.acc}}>Drop to reassign to {p.name.split(' ')[0]}</span>}
