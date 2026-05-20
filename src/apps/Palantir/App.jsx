@@ -138,7 +138,7 @@ const StatusDot=({map,val})=>{const c=map?.[val];if(!c)return null;return<span s
 const DueChip=({date})=>{if(!date)return null;const c=DD[ds(date)];return<Chip text={fmt(date)} bg={c.bg} tx={c.tx} small/>;};
 const FlexChip=({fd})=>{if(!fd)return null;const c=flexDueColor(fd);const label=fmtFlex(fd);if(!label||label==='—')return null;const style=c?{bg:c.bg,tx:c.tx}:{bg:'rgba(62,74,90,0.18)',tx:T.tx2};return<Chip text={label} bg={style.bg} tx={style.tx} small/>;};
 const Fld=({label,children,mb=10})=><div style={{marginBottom:mb}}><span style={ss.lbl}>{label}</span>{children}</div>;
-const Inp=({value,onChange,placeholder,rows,style})=>rows?<textarea value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows} style={{...ss.inp,resize:'vertical',lineHeight:1.5,...style}}/>:<input value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...ss.inp,...style}}/>;
+const Inp=({value,onChange,onBlur,placeholder,rows,style})=>rows?<textarea value={value||""} onChange={e=>onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder} rows={rows} style={{...ss.inp,resize:'vertical',lineHeight:1.5,...style}}/>:<input value={value||""} onChange={e=>onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder} style={{...ss.inp,...style}}/>;
 const Overlay=({onClose,children,wide,extraWide})=>(<div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:50,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60}}><div onClick={e=>e.stopPropagation()} style={{background:T.s1,border:`1px solid ${T.bd2}`,borderRadius:10,padding:'1.25rem',width:extraWide?860:wide?700:480,maxHeight:'82vh',overflowY:'auto',boxShadow:'0 24px 60px rgba(0,0,0,0.6)'}}>{children}</div></div>);
 const ModalH=({title,onClose})=>(<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,paddingBottom:10,borderBottom:`1px solid ${T.bd}`}}><span style={{fontSize:14,fontWeight:600,color:T.tx,fontFamily:T.font}}>{title}</span><button onClick={onClose} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:T.tx3,lineHeight:1}}>×</button></div>);
 
@@ -196,6 +196,13 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
   const [creatingFile,setCreatingFile]=useState(false);
   const [newFileTitle,setNewFileTitle]=useState('');
   const newFileTitleRef=useRef(null);
+  // Buffer text fields locally — only flush to saveTask on blur to prevent scroll-on-keystroke
+  const [localTitle,setLocalTitle]=useState(task.title||'');
+  const [localNotes,setLocalNotes]=useState(task.notes||'');
+  const [localGate,setLocalGate]=useState(task.gate||'');
+  // Sync local state if a different task is opened
+  const prevTaskId=useRef(taskId);
+  if(prevTaskId.current!==taskId){prevTaskId.current=taskId;setLocalTitle(task.title||'');setLocalNotes(task.notes||'');setLocalGate(task.gate||'');}
   const handleCreateAndLink=()=>{
     const t=newFileTitle.trim();
     if(!t||!onCreateFile)return;
@@ -211,7 +218,7 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
         <div style={{flex:1,minWidth:0}}>
           {file&&(onOpenFile?<button onClick={()=>onOpenFile(file.id)} title="Open file" style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontSize:9,fontWeight:700,color:T.acc,textTransform:'uppercase',marginBottom:1,letterSpacing:'0.5px',textAlign:'left',display:'block',maxWidth:'100%',fontFamily:T.font,...trunc}}>→ {file.title}</button>:<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',marginBottom:1,letterSpacing:'0.5px',...trunc}}>{file.title}</div>)}
           {dv&&(onOpenDeliverable?<button onClick={()=>onOpenDeliverable(dv.id)} title="Open deliverable" style={{background:'transparent',border:'none',padding:0,cursor:'pointer',fontSize:9,color:T.acc,marginBottom:2,textAlign:'left',display:'block',maxWidth:'100%',fontFamily:T.font,textDecoration:'underline',...trunc}}>↳ {dv.title}</button>:<div style={{fontSize:9,color:T.acc,marginBottom:2,...trunc}}>↳ {dv.title}</div>)}
-          <textarea value={task.title} onChange={e=>upd({title:e.target.value})} rows={2} style={{width:'100%',border:'none',outline:'none',background:'transparent',fontSize:13,fontWeight:600,color:T.tx,resize:'none',lineHeight:1.4,fontFamily:T.font,wordBreak:'break-word'}}/>
+          <textarea value={localTitle} onChange={e=>setLocalTitle(e.target.value)} onBlur={()=>upd({title:localTitle})} rows={2} style={{width:'100%',border:'none',outline:'none',background:'transparent',fontSize:13,fontWeight:600,color:T.tx,resize:'none',lineHeight:1.4,fontFamily:T.font,wordBreak:'break-word'}}/>
         </div>
         <button onClick={onClose} style={{background:'transparent',border:'none',color:T.tx3,cursor:'pointer',fontSize:18,lineHeight:1,padding:2,flexShrink:0}}>×</button>
       </div>
@@ -246,8 +253,8 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
         </div>
         <Fld label="Assignees"><div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:4}}>{taskAssignees(task).map(a=>(<span key={a} style={{fontSize:10,padding:'2px 6px',borderRadius:10,background:'rgba(91,156,246,0.12)',color:T.acc,display:'flex',alignItems:'center',gap:3,maxWidth:120,...trunc}}>{a}<button onClick={()=>upd({assignees:taskAssignees(task).filter(x=>x!==a)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.acc,padding:0,fontSize:10,lineHeight:1,flexShrink:0}}>×</button></span>))}</div><select value="" onChange={e=>{if(e.target.value&&!taskAssignees(task).includes(e.target.value))upd({assignees:[...taskAssignees(task),e.target.value]});}} style={ss.sel}><option value="">+ Add assignee</option>{people.filter(m=>!taskAssignees(task).includes(m)).map(m=><option key={m}>{m}</option>)}</select></Fld>
         <Fld label="Dependencies">{(task.dependsOn||[]).map(did=>{const dep=data.tasks.find(t=>t.id===did);return dep?(<div key={did} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',borderBottom:`1px solid ${T.bd3}`}}><span style={{fontSize:9,padding:'1px 5px',borderRadius:10,background:isDone(dep)?'rgba(63,182,139,0.12)':'rgba(217,95,95,0.12)',color:isDone(dep)?T.g:T.r,flexShrink:0}}>{isDone(dep)?'✓':'⏳'}</span>{onOpenTask?<button onClick={()=>onOpenTask(did)} style={{flex:1,background:'transparent',border:'none',cursor:'pointer',fontSize:11,color:T.acc,textAlign:'left',padding:0,textDecoration:'underline',...trunc}}>{dep.title}</button>:<span style={{flex:1,fontSize:11,color:T.tx2,...trunc}}>{dep.title}</span>}<button onClick={()=>upd({dependsOn:(task.dependsOn||[]).filter(x=>x!==did)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:13,flexShrink:0}}>×</button></div>):null;})}<select value="" onChange={e=>{if(e.target.value&&!(task.dependsOn||[]).includes(e.target.value))upd({dependsOn:[...(task.dependsOn||[]),e.target.value]});}} style={{...ss.sel,marginTop:4}}><option value="">+ Add dependency</option>{fileTasks.filter(t=>!(task.dependsOn||[]).includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></Fld>
-        <Fld label="Notes"><Inp value={task.notes} onChange={v=>upd({notes:v})} placeholder="Notes…" rows={2}/></Fld>
-        <Fld label="Gate / External blocker"><Inp value={task.gate} onChange={v=>upd({gate:v})} placeholder="e.g. Waiting for legal…"/></Fld>
+        <Fld label="Notes"><Inp value={localNotes} onChange={setLocalNotes} onBlur={()=>upd({notes:localNotes})} placeholder="Notes…" rows={2}/></Fld>
+        <Fld label="Gate / External blocker"><Inp value={localGate} onChange={setLocalGate} onBlur={()=>upd({gate:localGate})} placeholder="e.g. Waiting for legal…"/></Fld>
         <button onClick={()=>{if(window.confirm("Delete this task?"))delTask(taskId);}} style={{width:'100%',padding:7,background:'transparent',border:`1px solid rgba(217,95,95,0.25)`,borderRadius:5,color:T.r,fontSize:11,cursor:'pointer',marginTop:4,fontFamily:T.font}}>Delete task</button>
       </div>
     </div>
