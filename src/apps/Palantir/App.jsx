@@ -92,7 +92,7 @@ const isMyTask=t=>taskAssignees(t).includes("Karl");
 const getFile=(files,id)=>files?.find(f=>f.id===id);
 const getDV=(deliverables,id)=>deliverables?.find(d=>d.id===id);
 const stripHtml=h=>h?.replace(/<[^>]+>/g,"").trim()||"";
-const addDays=(dateStr,n)=>{if(!dateStr)return null;const d=pd(dateStr);d.setDate(d.getDate()+n);return toStr(d);};
+const taskDateStr=d=>d?(typeof d==='string'?d:flexToExact(d)||null):null;
 const allPeopleFrom=data=>[...(data.people||[]).map(p=>p.name),...(data.teamMembers||[])].filter((v,i,a)=>a.indexOf(v)===i);
 
 // Derive file urgency from real data (no health field)
@@ -101,7 +101,7 @@ const isUrgentFile=(f,tasks)=>{
   if(f.priority==='urgent')return true;
   if((f.risks||[]).some(r=>r.status!=='resolved'&&(r.severity==='high'||r.severity==='critical')))return true;
   const ft=tasks.filter(t=>(t.fileId||t.projectId)===f.id&&!isDone(t));
-  if(ft.some(t=>t.dueDate&&ds(t.dueDate)==='overdue'))return true;
+  if(ft.some(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue'))return true;
   if(ft.some(t=>t.status==='blocked'))return true;
   return false;
 };
@@ -143,13 +143,14 @@ const Overlay=({onClose,children,wide,extraWide})=>(<div onClick={onClose} style
 const ModalH=({title,onClose})=>(<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,paddingBottom:10,borderBottom:`1px solid ${T.bd}`}}><span style={{fontSize:14,fontWeight:600,color:T.tx,fontFamily:T.font}}>{title}</span><button onClick={onClose} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:18,color:T.tx3,lineHeight:1}}>×</button></div>);
 
 // Column resize handle (vertical drag — sits on the right edge of a column header)
-function ColResizer({onResize}){
+function ColResizer({onResize,startWidth}){
   const startX=useRef(0),startW=useRef(0);
   const onMouseDown=e=>{
     e.preventDefault();e.stopPropagation();
     startX.current=e.clientX;
-    const parent=e.currentTarget.parentElement;
-    startW.current=parent?parent.offsetWidth:200;
+    // Use explicit startWidth from state when provided — avoids reading offsetWidth
+    // on table <th> elements which returns the full table width, not the column width
+    startW.current=startWidth??e.currentTarget.parentElement?.getBoundingClientRect().width??200;
     const onMove=e=>onResize(Math.max(140,startW.current+(e.clientX-startX.current)));
     const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
     document.addEventListener('mousemove',onMove);
@@ -247,10 +248,10 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
             <button onClick={()=>{setCreatingFile(false);setNewFileTitle('');}} style={{...ss.btn,fontSize:11,padding:'4px 8px',flexShrink:0}}>✕</button>
           </div>
         )}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+        <div style={{marginBottom:10}}>
           <Fld label="Status" mb={0}><select value={task.status} onChange={e=>upd({status:e.target.value})} style={ss.sel}>{TASK_STATUS_OPTS.map(s=><option key={s} value={s}>{TS[s]?.label||s}</option>)}{!TASK_STATUS_OPTS.includes(task.status)&&<option value={task.status}>{TS[task.status]?.label||task.status}</option>}</select></Fld>
-          <Fld label="Due Date" mb={0}><input type="date" value={task.dueDate||""} onChange={e=>upd({dueDate:e.target.value||null})} style={ss.sel}/></Fld>
         </div>
+        <Fld label="Due Date"><FlexDateInput value={task.dueDate&&typeof task.dueDate==='object'?task.dueDate:task.dueDate?mkFlexDate('exact',{date:task.dueDate,confidence:'confirmed'}):mkFlexDate('tbd')} onChange={v=>upd({dueDate:v})}/></Fld>
         <Fld label="Assignees"><div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:4}}>{taskAssignees(task).map(a=>(<span key={a} style={{fontSize:10,padding:'2px 6px',borderRadius:10,background:'rgba(91,156,246,0.12)',color:T.acc,display:'flex',alignItems:'center',gap:3,maxWidth:120,...trunc}}>{a}<button onClick={()=>upd({assignees:taskAssignees(task).filter(x=>x!==a)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.acc,padding:0,fontSize:10,lineHeight:1,flexShrink:0}}>×</button></span>))}</div><select value="" onChange={e=>{if(e.target.value&&!taskAssignees(task).includes(e.target.value))upd({assignees:[...taskAssignees(task),e.target.value]});}} style={ss.sel}><option value="">+ Add assignee</option>{people.filter(m=>!taskAssignees(task).includes(m)).map(m=><option key={m}>{m}</option>)}</select></Fld>
         <Fld label="Dependencies">{(task.dependsOn||[]).map(did=>{const dep=data.tasks.find(t=>t.id===did);return dep?(<div key={did} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',borderBottom:`1px solid ${T.bd3}`}}><span style={{fontSize:9,padding:'1px 5px',borderRadius:10,background:isDone(dep)?'rgba(63,182,139,0.12)':'rgba(217,95,95,0.12)',color:isDone(dep)?T.g:T.r,flexShrink:0}}>{isDone(dep)?'✓':'⏳'}</span>{onOpenTask?<button onClick={()=>onOpenTask(did)} style={{flex:1,background:'transparent',border:'none',cursor:'pointer',fontSize:11,color:T.acc,textAlign:'left',padding:0,textDecoration:'underline',...trunc}}>{dep.title}</button>:<span style={{flex:1,fontSize:11,color:T.tx2,...trunc}}>{dep.title}</span>}<button onClick={()=>upd({dependsOn:(task.dependsOn||[]).filter(x=>x!==did)})} style={{background:'transparent',border:'none',cursor:'pointer',color:T.tx3,fontSize:13,flexShrink:0}}>×</button></div>):null;})}<select value="" onChange={e=>{if(e.target.value&&!(task.dependsOn||[]).includes(e.target.value))upd({dependsOn:[...(task.dependsOn||[]),e.target.value]});}} style={{...ss.sel,marginTop:4}}><option value="">+ Add dependency</option>{fileTasks.filter(t=>!(task.dependsOn||[]).includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></Fld>
         <Fld label="Notes"><Inp value={localNotes} onChange={setLocalNotes} onBlur={()=>upd({notes:localNotes})} placeholder="Notes…" rows={2}/></Fld>
@@ -328,7 +329,7 @@ function DeliverablePanel({dvId,data,onClose,saveDeliverable,delDeliverable,save
                   <span draggable onDragStart={e=>{e.stopPropagation();setPanelDragId(t.id);}} onDragEnd={()=>{setPanelDragId(null);setPanelDragOver(null);}} style={{color:T.tx3,fontSize:12,cursor:'grab',flexShrink:0,userSelect:'none',padding:'0 2px'}}>⠿</span>
                   <div style={{flex:1,minWidth:0}} onClick={()=>setSelTask(selTask===t.id?null:t.id)}>
                     <div style={{fontSize:11,color:isDone(t)?T.tx3:T.tx,textDecoration:isDone(t)?'line-through':'none',lineHeight:1.3,...wrap2}}>{t.title}</div>
-                    <div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}><StatusDot map={TS} val={t.status}/>{t.dueDate&&<DueChip date={t.dueDate}/>}</div>
+                    <div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}><StatusDot map={TS} val={t.status}/>{t.dueDate&&<DueChip date={taskDateStr(t.dueDate)}/>}</div>
                   </div>
                   {!isDone(t)&&<button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed'});upd({taskIds:(dv.taskIds||[]).filter(id=>id!==t.id)});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.25)',flexShrink:0}}>✓</button>}
                 </div>
@@ -396,7 +397,7 @@ function ApplyTemplateModal({file,data,onClose,onApply}){
       <ModalH title={`Apply Template — ${file.title}`} onClose={onClose}/>
       {step===1&&(<div><p style={{fontSize:12,color:T.tx2,margin:'0 0 14px'}}>Select a template to generate a deliverable and its tasks.</p><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>{[...BUILT_IN_TEMPLATES,...(data.templates||[])].map(t=>(<div key={t.id} onClick={()=>{setSelTpl(t.id);setSkipFoundational(false);}} style={{padding:'10px 12px',border:`1.5px solid ${selTpl===t.id?T.acc:T.bd}`,borderRadius:7,cursor:'pointer',background:selTpl===t.id?T.s3:T.s2}}><div style={{fontSize:12,fontWeight:600,color:T.tx,marginBottom:2,...trunc}}>{t.name}</div><div style={{fontSize:10,color:T.tx3,lineHeight:1.4,marginBottom:4,...wrap2}}>{t.description}</div><div style={{fontSize:9,color:T.acc}}>{t.taskTemplates.length} tasks{t.isCustom?' · Custom':''}</div></div>))}</div><div style={{marginTop:14,display:'flex',justifyContent:'flex-end'}}><button onClick={()=>{if(selTpl)setStep(2);}} disabled={!selTpl} style={{...ss.btnP,opacity:selTpl?1:0.4}}>Configure →</button></div></div>)}
       {step===2&&tpl&&(<div><div style={{marginBottom:12,padding:'8px 10px',background:T.s2,borderRadius:5,border:`1px solid ${T.bd}`}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:2}}>{tpl.name}</div><div style={{fontSize:10,color:T.tx3}}>{tpl.taskTemplates.length} tasks · {tpl.defaultDurationDays} day default timeline</div></div><Fld label="Target date (due date or publication date)"><FlexDateInput value={targetDate} onChange={setTargetDate}/></Fld><Fld label="Deliverable owner"><select value={ownerName} onChange={e=>setOwnerName(e.target.value)} style={ss.sel}>{people.map(m=><option key={m}>{m}</option>)}</select></Fld>{showSkipToggle&&(<div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:T.s2,borderRadius:5,border:`1px solid ${T.bd}`,marginBottom:10}}><input type="checkbox" id="skipf" checked={skipFoundational} onChange={e=>setSkipFoundational(e.target.checked)}/><label htmlFor="skipf" style={{fontSize:12,color:T.tx2,cursor:'pointer',lineHeight:1.4}}>Skip foundational phase — mandate, source material, key messages and validation already done for this file</label></div>)}<div style={{display:'flex',gap:6,justifyContent:'space-between',marginTop:4}}><button onClick={()=>setStep(1)} style={ss.btn}>← Back</button><button onClick={buildPreview} style={ss.btnP}>Preview tasks →</button></div></div>)}
-      {step===3&&preview&&(<div><div style={{marginBottom:10}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:4}}>Tasks to be created ({preview.length})</div><div style={{fontSize:10,color:T.tx3,marginBottom:8}}>Dates are calculated backward from your target date. You can edit them after creating.</div></div><div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',marginBottom:12}}>{preview.map((t,i)=>{const isFoundational=!!FOUNDATIONAL_TASKS.find(ft=>ft.title===t.title);return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderBottom:`1px solid ${T.bd3}`,background:i%2===0?T.s1:T.s2}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.tx,fontWeight:500,...wrap2}}>{t.title}</div>{t.notes&&<div style={{fontSize:10,color:T.tx3,marginTop:1,...trunc}}>{t.notes}</div>}</div><div style={{display:'flex',gap:4,flexShrink:0,alignItems:'center'}}>{isFoundational&&<Chip text="Foundational" bg="rgba(91,156,246,0.09)" tx={T.acc2} small/>}{t.dueDate?<DueChip date={t.dueDate}/>:<span style={{fontSize:9,color:T.tx3}}>No date</span>}{t.requiresApproval&&<Chip text="Approval" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div>);})}</div><div style={{display:'flex',gap:6,justifyContent:'space-between'}}><button onClick={()=>setStep(2)} style={ss.btn}>← Back</button><button onClick={handleApply} style={ss.btnP}>✓ Create deliverable & tasks</button></div></div>)}
+      {step===3&&preview&&(<div><div style={{marginBottom:10}}><div style={{fontSize:11,fontWeight:600,color:T.tx,marginBottom:4}}>Tasks to be created ({preview.length})</div><div style={{fontSize:10,color:T.tx3,marginBottom:8}}>Dates are calculated backward from your target date. You can edit them after creating.</div></div><div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',marginBottom:12}}>{preview.map((t,i)=>{const isFoundational=!!FOUNDATIONAL_TASKS.find(ft=>ft.title===t.title);return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderBottom:`1px solid ${T.bd3}`,background:i%2===0?T.s1:T.s2}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.tx,fontWeight:500,...wrap2}}>{t.title}</div>{t.notes&&<div style={{fontSize:10,color:T.tx3,marginTop:1,...trunc}}>{t.notes}</div>}</div><div style={{display:'flex',gap:4,flexShrink:0,alignItems:'center'}}>{isFoundational&&<Chip text="Foundational" bg="rgba(91,156,246,0.09)" tx={T.acc2} small/>}{t.dueDate?<DueChip date={taskDateStr(t.dueDate)}/>:<span style={{fontSize:9,color:T.tx3}}>No date</span>}{t.requiresApproval&&<Chip text="Approval" bg="rgba(212,146,42,0.12)" tx={T.y} small/>}</div></div>);})}</div><div style={{display:'flex',gap:6,justifyContent:'space-between'}}><button onClick={()=>setStep(2)} style={ss.btn}>← Back</button><button onClick={handleApply} style={ss.btnP}>✓ Create deliverable & tasks</button></div></div>)}
     </Overlay>
   );
 }
@@ -411,7 +412,7 @@ function TaskRow({task,data,selTask,setSelTask,saveTask}){
         <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
           <StatusDot map={TS} val={task.status}/>
           {blocked&&<Chip text="⛔ Blocked" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
-          {task.dueDate&&<DueChip date={task.dueDate}/>}
+          {task.dueDate&&<DueChip date={taskDateStr(task.dueDate)}/>}
           {taskAssignees(task).map(a=><Chip key={a} text={a} bg="rgba(91,156,246,0.10)" tx={T.acc} small/>)}
         </div>
       </div>
@@ -748,7 +749,7 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
                     onDrop={e=>{e.preventDefault();dropOnDeliverable(dv.id);}}
                   >
                     {dvTasks.map(task=>{
-                      const isOver=dragOver?.id===task.id&&dragInfo?.type==='task'&&dragInfo.fromDvId===dv.id;
+                      const isOver=dragOver?.id===task.id&&dragInfo?.type==='task';
                       return(
                         <div key={task.id} style={{borderTop:isOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragInfo?.id===task.id?0.4:1}}>
                           <div style={{display:'flex',alignItems:'flex-start',paddingLeft:28}}>
@@ -768,7 +769,7 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
             {/* Standalone tasks (no deliverable) */}
             {orderedStandalone.length>0&&(<div style={{marginTop:4}}>
               {orderedDvList.length>0&&<div style={{fontSize:9,fontWeight:700,color:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:5,paddingLeft:2}}>Standalone tasks</div>}
-              {orderedStandalone.map(task=>{const isOver=dragOver?.id===task.id&&dragInfo?.type==='task'&&!dragInfo.fromDvId;return(<div key={task.id} style={{borderTop:isOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragInfo?.id===task.id?0.4:1}}><div style={{display:'flex',alignItems:'flex-start'}}><span draggable onDragStart={e=>{e.stopPropagation();setDragInfo({type:'task',id:task.id,fromDvId:null});}} onDragEnd={stopDrag} style={{color:T.tx3,fontSize:12,cursor:'grab',padding:'8px 4px 0 2px',flexShrink:0,userSelect:'none'}}>⠿</span><div style={{flex:1}} onDragOver={e=>{e.preventDefault();setDragOver({id:task.id});}} onDragLeave={()=>setDragOver(null)} onDrop={e=>{e.preventDefault();dropOnTask(task.id,null);}}><TaskRow task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/></div></div></div>);})}
+              {orderedStandalone.map(task=>{const isOver=dragOver?.id===task.id&&dragInfo?.type==='task';return(<div key={task.id} style={{borderTop:isOver?`2px solid ${T.acc}`:'2px solid transparent',opacity:dragInfo?.id===task.id?0.4:1}}><div style={{display:'flex',alignItems:'flex-start'}}><span draggable onDragStart={e=>{e.stopPropagation();setDragInfo({type:'task',id:task.id,fromDvId:null});}} onDragEnd={stopDrag} style={{color:T.tx3,fontSize:12,cursor:'grab',padding:'8px 4px 0 2px',flexShrink:0,userSelect:'none'}}>⠿</span><div style={{flex:1}} onDragOver={e=>{e.preventDefault();setDragOver({id:task.id});}} onDragLeave={()=>setDragOver(null)} onDrop={e=>{e.preventDefault();dropOnTask(task.id,null);}}><TaskRow task={task} data={data} selTask={selTask} setSelTask={setSelTask} saveTask={saveTask}/></div></div></div>);})}
             </div>)}
             {/* Completed */}
             {(fileDeliverables.filter(isDoneDV).length>0||fileTasks.filter(isDone).length>0)&&<details style={{marginTop:8}}><summary style={{fontSize:10,color:T.tx3,cursor:'pointer',padding:'4px 0'}}>Completed ({fileDeliverables.filter(isDoneDV).length+fileTasks.filter(isDone).length})</summary>{fileDeliverables.filter(isDoneDV).map(dv=>(<div key={dv.id} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:9,color:T.tx3}}>DV</span><span style={{fontSize:11,color:T.tx3,flex:1,...trunc,textDecoration:'line-through'}}>{dv.title}</span></div>))}{fileTasks.filter(isDone).map(task=>(<div key={task.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderBottom:`1px solid ${T.bd3}`,opacity:0.5}}><span style={{fontSize:11,color:T.tx3,flex:1,...wrap2,textDecoration:'line-through'}}>{task.title}</span></div>))}</details>}
@@ -979,10 +980,10 @@ function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverab
               <div key={t.id} onClick={()=>onOpenTask(t.id)} style={{display:'flex',alignItems:'center',gap:5,padding:'4px 9px 4px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'pointer',background:'transparent'}} onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <span style={{fontSize:9,color:T.tx3,flexShrink:0}}>•</span>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:11,color:T.tx,...trunc}}>{t.title}</div>
+                  <div style={{fontSize:11,color:T.tx,...wrap2}}>{t.title}</div>
                   <div style={{display:'flex',gap:2,marginTop:1,flexWrap:'wrap'}}>
                     {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
-                    {t.dueDate&&<DueChip date={t.dueDate}/>}
+                    {t.dueDate&&<DueChip date={taskDateStr(t.dueDate)}/>}
                   </div>
                 </div>
                 <button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'1px 5px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0}}>✓</button>
@@ -1001,7 +1002,7 @@ function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverab
               <div style={{display:'flex',gap:2,marginTop:1,flexWrap:'wrap'}}>
                 <StatusDot map={TS} val={t.status}/>
                 {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
-                {t.dueDate&&<DueChip date={t.dueDate}/>}
+                {t.dueDate&&<DueChip date={taskDateStr(t.dueDate)}/>}
               </div>
             </div>
             <button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'1px 5px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0}}>✓</button>
@@ -1022,7 +1023,7 @@ function KanbanView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDeliverab
             <div style={{padding:'5px 8px',marginBottom:6,borderBottom:`2px solid ${col.color}`,display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0,position:'relative'}}>
               <span style={{fontSize:11,fontWeight:700,color:col.color}}>{col.label}</span>
               <span style={{fontSize:10,color:T.tx3,fontFamily:T.mono}}>{totalTasks}</span>
-              <ColResizer onResize={w=>setColW(col.id,w)}/>
+              <ColResizer onResize={w=>setColW(col.id,w)} startWidth={colWidths[col.id]||240}/>
             </div>
             <div style={{overflowY:'auto',flex:1}}>
               {hierarchy.map(g=><FileGroupCard key={g.fid} {...g} colColor={col.color}/>)}
@@ -1043,7 +1044,7 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
   const setColW=(id,w)=>setColWidths(x=>({...x,[id]:w}));
   const toggleSort=col=>setSort(s=>({col,dir:s.col===col&&s.dir==='asc'?'desc':'asc'}));
   const myTasks=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
-  const filtered=filter==='overdue'?myTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue'):myTasks;
+  const filtered=filter==='overdue'?myTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue'):myTasks;
   const sorted=[...filtered].sort((a,b)=>{
     const d=sort.dir==='asc'?1:-1;
     if(sort.col==='file'){const fa=getFile(data.files,a.fileId||a.projectId)?.title||'';const fb=getFile(data.files,b.fileId||b.projectId)?.title||'';return fa.localeCompare(fb)*d;}
@@ -1054,7 +1055,7 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
     return 0;
   });
   const getBlocker=task=>{if(isBlocked(task,data.tasks))return'⛔ Dependencies';if(task.gate&&task.gate.trim())return task.gate;if(task.status==='blocked')return'⛔ Blocked';return null;};
-  const ColH=({id,label,w})=>{const active=sort.col===id;return(<th onClick={()=>toggleSort(id)} style={{padding:'6px 10px',textAlign:'left',fontSize:10,fontWeight:700,color:active?T.acc:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',cursor:'pointer',userSelect:'none',borderBottom:`1px solid ${T.bd}`,whiteSpace:'nowrap',background:T.hdr,position:'sticky',top:0,zIndex:2,width:colWidths[id]||'auto',minWidth:80,position:'relative'}}>{label}{active?sort.dir==='asc'?' ↑':' ↓':''}<ColResizer onResize={nw=>setColW(id,nw)}/></th>);};
+  const ColH=({id,label,w})=>{const active=sort.col===id;return(<th onClick={()=>toggleSort(id)} style={{padding:'6px 10px',textAlign:'left',fontSize:10,fontWeight:700,color:active?T.acc:T.tx3,textTransform:'uppercase',letterSpacing:'0.5px',cursor:'pointer',userSelect:'none',borderBottom:`1px solid ${T.bd}`,whiteSpace:'nowrap',background:T.hdr,position:'sticky',top:0,zIndex:2,width:colWidths[id]||'auto',minWidth:80,position:'relative'}}>{label}{active?sort.dir==='asc'?' ↑':' ↓':''}<ColResizer onResize={nw=>setColW(id,nw)} startWidth={colWidths[id]}/></th>);};
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -1086,7 +1087,7 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
                     <td style={{padding:'7px 10px',maxWidth:0}}>{dv?<button onClick={e=>{e.stopPropagation();onOpenDeliverable(dv.id);}} style={{background:'transparent',border:'none',padding:0,cursor:'pointer',color:T.acc,fontSize:11,textAlign:'left',fontFamily:T.font,...trunc,maxWidth:'100%',display:'block'}}>↳ {dv.title}</button>:<span style={{color:T.tx3,fontSize:11}}>—</span>}</td>
                     <td style={{padding:'7px 10px',maxWidth:0}}><div style={{fontSize:12,color:T.tx,...wrap2}}>{task.title}</div></td>
                     <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}><StatusDot map={TS} val={task.status}/></td>
-                    <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}>{task.dueDate?<DueChip date={task.dueDate}/>:<span style={{color:T.tx3,fontSize:10}}>—</span>}</td>
+                    <td style={{padding:'7px 10px',whiteSpace:'nowrap'}}>{task.dueDate?<DueChip date={taskDateStr(task.dueDate)}/>:<span style={{color:T.tx3,fontSize:10}}>—</span>}</td>
                     <td style={{padding:'7px 10px',maxWidth:0}}>{blocker?<div style={{fontSize:10,color:T.r,...trunc}}>{blocker}</div>:<span style={{color:T.tx3,fontSize:10}}>—</span>}</td>
                     <td style={{padding:'7px 10px',textAlign:'right'}}><button onClick={e=>{e.stopPropagation();saveTask(task.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.25)'}}>✓</button></td>
                   </tr>
@@ -1245,9 +1246,9 @@ function TodayView({data,saveTask,delTask,saveUiPref,saveDeliverable,onOpenTask,
   const [dragOverGroupId,setDragOverGroupId]=useState(null);
   const savedGroupOrder=data.uiPrefs?.todayGroupOrder||[];
   const allMyTasks=data.tasks.filter(t=>isMyTask(t)&&!isDone(t));
-  const overdue=allMyTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue');
-  const todayRaw=allMyTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='today');
-  const thisWeek=allMyTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='soon');
+  const overdue=allMyTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue');
+  const todayRaw=allMyTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='today');
+  const thisWeek=allMyTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='soon');
   const noDate=allMyTasks.filter(t=>!t.dueDate);
   const myDVs=(data.deliverables||[]).filter(d=>d.ownerName==='Karl'&&!isDoneDV(d));
   const dvDueToday=myDVs.filter(d=>{const ex=flexToExact(d.dueDate);return ex&&(ds(ex)==='today'||ds(ex)==='overdue');});
@@ -1348,7 +1349,7 @@ function TodayView({data,saveTask,delTask,saveUiPref,saveDeliverable,onOpenTask,
                         <div style={{display:'flex',gap:3,flexWrap:'wrap',alignItems:'center',marginTop:2}}>
                           <StatusDot map={TS} val={task.status}/>
                           {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
-                          {task.dueDate&&<DueChip date={task.dueDate}/>}
+                          {task.dueDate&&<DueChip date={taskDateStr(task.dueDate)}/>}
                         </div>
                       </div>
                       <button onClick={e=>{e.stopPropagation();saveTask(task.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0}}>✓</button>
@@ -1368,7 +1369,7 @@ function TodayView({data,saveTask,delTask,saveUiPref,saveDeliverable,onOpenTask,
                   <div style={{display:'flex',gap:3,flexWrap:'wrap',alignItems:'center',marginTop:2}}>
                     <StatusDot map={TS} val={task.status}/>
                     {blocked&&<Chip text="⛔" bg="rgba(217,95,95,0.12)" tx={T.r} small/>}
-                    {task.dueDate&&<DueChip date={task.dueDate}/>}
+                    {task.dueDate&&<DueChip date={taskDateStr(task.dueDate)}/>}
                   </div>
                 </div>
                 <button onClick={e=>{e.stopPropagation();saveTask(task.id,{status:'completed',completedAt:TODAY_STR});}} style={{...ss.btn,fontSize:9,padding:'2px 6px',color:T.g,borderColor:'rgba(63,182,139,0.3)',flexShrink:0}}>✓</button>
@@ -1432,7 +1433,7 @@ function CalendarView({data,calMode,setCalMode,saveTask,delTask,saveFile,addLogE
   const fileEditProps={data,saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,saveUiPref};
 
   const yr=refDate.getFullYear(),mo=refDate.getMonth();
-  const tasksByDate=useMemo(()=>{const map={};data.tasks.filter(t=>t.dueDate&&!isDone(t)).forEach(t=>{if(!map[t.dueDate])map[t.dueDate]=[];map[t.dueDate].push(t);});return map;},[data.tasks]);
+  const tasksByDate=useMemo(()=>{const map={};data.tasks.filter(t=>t.dueDate&&!isDone(t)).forEach(t=>{const ds=taskDateStr(t.dueDate);if(!ds)return;if(!map[ds])map[ds]=[];map[ds].push(t);});return map;},[data.tasks]);
   const dvsByDate=useMemo(()=>{const map={};(data.deliverables||[]).filter(d=>!isDoneDV(d)).forEach(d=>{const ex=flexToExact(d.dueDate);if(ex){if(!map[ex])map[ex]=[];map[ex].push(d);}});return map;},[data.deliverables]);
 
   // Group tasks by file for a given day
@@ -1686,7 +1687,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
             // Sort: led files first (★), then others
             touchedFiles.sort((a,b)=>{const al=isLead(a)?0:1,bl=isLead(b)?0:1;return al-bl||(FP_ORDER[a.priority]||2)-(FP_ORDER[b.priority]||2);});
             const unlinkedTasks=personTasks.filter(t=>!t.fileId&&!t.projectId);
-            const overdue=personTasks.filter(t=>t.dueDate&&ds(t.dueDate)==='overdue');
+            const overdue=personTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue');
             const isColOver=taskDragOver?.personName===p.name&&taskDragOver?.zone==='col';
             const isOver=dragOverColId===p.id&&dragColId!==p.id;
 
@@ -1710,7 +1711,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                   onDragEnd={()=>{dragRef.current=null;setDragColId(null);setDragOverColId(null);}}
                   style={{padding:'8px 10px',background:T.s2,border:`1px solid ${T.bd}`,borderRadius:'7px 7px 0 0',cursor:'grab',flexShrink:0,opacity:dragColId===p.id?0.4:1,userSelect:'none',position:'relative'}}
                 >
-                  <ColResizer onResize={w=>setColW(p.id,w)}/>
+                  <ColResizer onResize={w=>setColW(p.id,w)} startWidth={colWidths[p.id]||240}/>
                   <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
                     <span style={{fontSize:13,color:T.tx3,flexShrink:0}}>⠿</span>
                     <span style={{fontSize:12,fontWeight:700,color:T.tx,flex:1,...trunc}}>{p.name}</span>
@@ -1769,7 +1770,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                                   onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
                                   onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'task',insertBeforeTaskId:t.id});}}
                                   onClick={e=>{e.stopPropagation();openTask(t.id);}}
-                                  style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...trunc}}
+                                  style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2}}
                                   onMouseEnter={e=>e.currentTarget.style.background=T.s3}
                                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                                 >• {t.title}</div>
@@ -1787,7 +1788,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                               onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
                               onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'task',insertBeforeTaskId:t.id});}}
                               onClick={e=>{e.stopPropagation();openTask(t.id);}}
-                              style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...trunc}}
+                              style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2}}
                               onMouseEnter={e=>e.currentTarget.style.background=T.s3}
                               onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                             >• {t.title}</div>
@@ -1821,7 +1822,7 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                             onDragStart={e=>{e.stopPropagation();taskDragRef.current={taskId:t.id,fromPerson:p.name};setTaskDragId(t.id);}}
                             onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
                             onClick={()=>openTask(t.id)}
-                            style={{fontSize:10,color:T.tx,padding:'3px 6px',borderRadius:3,marginBottom:2,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...trunc}}
+                            style={{fontSize:10,color:T.tx,padding:'3px 6px',borderRadius:3,marginBottom:2,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2}}
                             onMouseEnter={e=>e.currentTarget.style.background=T.s3}
                             onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                           >• {t.title}</div>
@@ -2350,7 +2351,7 @@ function AddFileModal({data,onClose,onCreate}){
 function TeamModal({data,onClose,setData}){
   const [newName,setNewName]=useState('');const[newTitle,setNewTitle]=useState('');
   const people=data.people||[];
-  return(<Overlay onClose={onClose} wide><ModalH title="People & Team" onClose={onClose}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}><div><div style={ss.lbl}>TEAM MEMBERS</div><div style={{marginBottom:10}}>{people.map(p=>(<div key={p.id} style={{display:'flex',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:T.tx,fontWeight:500,...trunc}}>{p.name}</div>{p.title&&<div style={{fontSize:10,color:T.tx3,...trunc}}>{p.title}</div>}</div>{p.name!=='Karl'&&<button onClick={()=>setData(d=>({...d,people:d.people.map(x=>x.id===p.id?{...x,active:!x.active}:x)}))} style={{...ss.btn,fontSize:10,padding:'2px 7px',color:p.active!==false?T.tx2:T.r,flexShrink:0}}>{p.active!==false?'Active':'Inactive'}</button>}</div>))}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,marginBottom:4}}><Inp value={newName} onChange={setNewName} placeholder="Name"/><Inp value={newTitle} onChange={setNewTitle} placeholder="Title / Role"/></div><button onClick={()=>{if(newName.trim()&&!people.find(p=>p.name===newName.trim())){setData(d=>({...d,people:[...(d.people||[]),{id:uid(),name:newName.trim(),title:newTitle.trim(),active:true}]}));setNewName('');setNewTitle('');}}} style={ss.btnP}>Add person</button></div><div><div style={ss.lbl}>WORKLOAD SUMMARY</div>{people.filter(p=>p.active!==false).map(p=>{const led=data.files.filter(f=>f.lead===p.name&&!f.archived).length;const tasks=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t)).length;const overdue=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue').length;const dvs=(data.deliverables||[]).filter(d=>d.ownerName===p.name&&!isDoneDV(d)).length;return(<div key={p.id} style={{padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:12,color:T.tx,fontWeight:500,...trunc,maxWidth:100}}>{p.name}</span><div style={{display:'flex',gap:5,flexShrink:0}}><span style={{fontSize:10,color:T.tx2}}>{led}f</span><span style={{fontSize:10,color:T.tx2}}>{tasks}t</span>{dvs>0&&<span style={{fontSize:10,color:T.acc}}>{dvs}d</span>}{overdue>0&&<span style={{fontSize:10,color:T.r}}>{overdue}!</span>}</div></div></div>);})}</div></div></Overlay>);
+  return(<Overlay onClose={onClose} wide><ModalH title="People & Team" onClose={onClose}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}><div><div style={ss.lbl}>TEAM MEMBERS</div><div style={{marginBottom:10}}>{people.map(p=>(<div key={p.id} style={{display:'flex',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:T.tx,fontWeight:500,...trunc}}>{p.name}</div>{p.title&&<div style={{fontSize:10,color:T.tx3,...trunc}}>{p.title}</div>}</div>{p.name!=='Karl'&&<button onClick={()=>setData(d=>({...d,people:d.people.map(x=>x.id===p.id?{...x,active:!x.active}:x)}))} style={{...ss.btn,fontSize:10,padding:'2px 7px',color:p.active!==false?T.tx2:T.r,flexShrink:0}}>{p.active!==false?'Active':'Inactive'}</button>}</div>))}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,marginBottom:4}}><Inp value={newName} onChange={setNewName} placeholder="Name"/><Inp value={newTitle} onChange={setNewTitle} placeholder="Title / Role"/></div><button onClick={()=>{if(newName.trim()&&!people.find(p=>p.name===newName.trim())){setData(d=>({...d,people:[...(d.people||[]),{id:uid(),name:newName.trim(),title:newTitle.trim(),active:true}]}));setNewName('');setNewTitle('');}}} style={ss.btnP}>Add person</button></div><div><div style={ss.lbl}>WORKLOAD SUMMARY</div>{people.filter(p=>p.active!==false).map(p=>{const led=data.files.filter(f=>f.lead===p.name&&!f.archived).length;const tasks=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t)).length;const overdue=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t)&&t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue').length;const dvs=(data.deliverables||[]).filter(d=>d.ownerName===p.name&&!isDoneDV(d)).length;return(<div key={p.id} style={{padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:12,color:T.tx,fontWeight:500,...trunc,maxWidth:100}}>{p.name}</span><div style={{display:'flex',gap:5,flexShrink:0}}><span style={{fontSize:10,color:T.tx2}}>{led}f</span><span style={{fontSize:10,color:T.tx2}}>{tasks}t</span>{dvs>0&&<span style={{fontSize:10,color:T.acc}}>{dvs}d</span>}{overdue>0&&<span style={{fontSize:10,color:T.r}}>{overdue}!</span>}</div></div></div>);})}</div></div></Overlay>);
 }
 
 // ─── MEETING PREP MODAL ───────────────────────────────────────────────────────
@@ -2529,6 +2530,9 @@ export default function App(){
           // Seed configurable lists if missing
           if(!s.deliverableTypes)s.deliverableTypes=[...DELIVERABLE_TYPES];
           if(!s.linkTypes)s.linkTypes=LINK_TYPES.map(v=>({id:`lt-${v}`,value:v,label:v.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}));
+          // Bump uid counter past all existing IDs to prevent collisions on reload
+          const allIds=[...(s.tasks||[]),...(s.deliverables||[]),...(s.files||[]),...(s.people||[])].map(x=>parseInt((x.id||'').replace(/\D/g,''))||0);
+          if(allIds.length)_u=Math.max(_u,...allIds);
           setData(s);
           setFontScaleState(s.uiPrefs?.fontScale||1.0);
           return;
@@ -2603,7 +2607,7 @@ export default function App(){
   if(!data)return(<div style={{height:'100vh',background:T.bg,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.font}}><div style={{textAlign:'center'}}><div style={{fontSize:20,fontFamily:T.serif,color:T.acc2,marginBottom:8,letterSpacing:'0.05em'}}>Palantír</div><div style={{fontSize:12,color:T.tx3}}>Loading…</div></div></div>);
 
   const urgentFiles=data.files.filter(f=>isUrgentFile(f,data.tasks)).length;
-  const overdueCount=data.tasks.filter(t=>isMyTask(t)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue').length;
+  const overdueCount=data.tasks.filter(t=>isMyTask(t)&&!isDone(t)&&t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue').length;
   const sharedFileProps={saveFile,saveTask,delTask,newTask,addLogEntry,saveDeliverable,delDeliverable,newDeliverable,applyTemplate,saveUiPref,createFile};
   const NAV=[{id:'files',label:'Files'},{id:'mywork',label:'My Work'},{id:'calendar',label:'Calendar'},{id:'people',label:'People'},{id:'templates',label:'Templates'}];
 
