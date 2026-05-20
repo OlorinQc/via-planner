@@ -2367,22 +2367,54 @@ function MeetingPrepModal({data,onClose}){
   const selectAll=()=>setSel(new Set(activePeople.map(p=>p.name)));
   const clearAll=()=>setSel(new Set());
 
-  // Build briefing data for a person
+  // Build deliverable+task structure for a person within a file
+  const buildFileSection=(fileId,name)=>{
+    const allDvs=(data.deliverables||[]).filter(d=>d.fileId===fileId&&!isDoneDV(d));
+    const myTasks=data.tasks.filter(t=>(t.fileId||t.projectId)===fileId&&taskAssignees(t).includes(name)&&!isDone(t));
+    const myTaskDvIds=new Set(myTasks.filter(t=>t.deliverableId).map(t=>t.deliverableId));
+    const relevantDvs=allDvs.filter(d=>d.ownerName===name||myTaskDvIds.has(d.id));
+    const dvSections=relevantDvs.map(dv=>({dv,tasks:myTasks.filter(t=>t.deliverableId===dv.id)}));
+    const coveredTaskIds=new Set(dvSections.flatMap(s=>s.tasks.map(t=>t.id)));
+    const standaloneTasks=myTasks.filter(t=>!coveredTaskIds.has(t.id));
+    return{dvSections,standaloneTasks};
+  };
+
   const buildBriefing=name=>{
     const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='archived');
     const ledFiles=activeFiles.filter(f=>f.lead===name);
-    const openTasks=data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t));
-    // Files where person has open tasks but is not the lead
-    const supportFileIds=[...new Set(openTasks.filter(t=>t.fileId&&!ledFiles.find(f=>f.id===t.fileId)).map(t=>t.fileId))];
+    const myTasks=data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t));
+    const supportFileIds=[...new Set(myTasks.filter(t=>t.fileId&&!ledFiles.find(f=>f.id===t.fileId)).map(t=>t.fileId))];
     const supportFiles=supportFileIds.map(id=>data.files.find(f=>f.id===id)).filter(Boolean);
-    const standaloneT=openTasks.filter(t=>!t.fileId&&!t.projectId);
-    const dvs=(data.deliverables||[]).filter(d=>d.ownerName===name&&!isDoneDV(d));
-    return{name,ledFiles,supportFiles,openTasks,standaloneT,dvs};
+    const standaloneT=myTasks.filter(t=>!t.fileId&&!t.projectId);
+    return{name,ledFiles,supportFiles,standaloneT};
   };
 
   const selectedPeople=activePeople.filter(p=>sel.has(p.name));
 
-  // Build HTML for clipboard (rich text)
+  const renderFileHtml=(f,name)=>{
+    const statusLabel=FS[f.status]?.label||f.status;
+    const prioLabel=FP[f.priority]?.label||f.priority;
+    const{dvSections,standaloneTasks}=buildFileSection(f.id,name);
+    const isEmpty=dvSections.length===0&&standaloneTasks.length===0;
+    let h=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:8px">`;
+    h+=`<strong>${f.title}</strong> <span style="color:#888;font-size:11px">[${statusLabel} · ${prioLabel}]</span>`;
+    if(f.memory){const mem=stripHtml(f.memory).slice(0,160);h+=`<br/><span style="color:#666;font-size:11px;font-style:italic">${mem}${stripHtml(f.memory).length>160?'…':''}</span>`;}
+    if(!isEmpty){
+      h+=`<ul style="margin:4px 0 0;padding-left:16px">`;
+      for(const{dv,tasks}of dvSections){
+        const due=fmtFlex(dv.dueDate)||'';
+        const st=DVS[dv.status]?.label||dv.status;
+        h+=`<li style="font-family:sans-serif;font-size:11px;margin-bottom:4px;list-style:none"><span style="color:#b07d0a">↳ ${dv.title}</span> <span style="color:#888;font-size:10px">[${st}${due?` · ${due}`:''}]</span>`;
+        if(tasks.length){h+=`<ul style="margin:2px 0 0;padding-left:14px">`;for(const t of tasks){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';h+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${td?` <span style="color:#888">(${td})</span>`:''}</li>`;}h+=`</ul>`;}
+        h+=`</li>`;
+      }
+      for(const t of standaloneTasks){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';h+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${td?` <span style="color:#888">(${td})</span>`:''}</li>`;}
+      h+=`</ul>`;
+    }
+    h+=`</li>`;
+    return h;
+  };
+
   const buildHtml=()=>{
     const today=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
     let html=`<h2 style="font-family:sans-serif;font-size:16px;margin:0 0 4px">Meeting Prep — ${today}</h2><hr style="margin:8px 0"/>`;
@@ -2390,40 +2422,21 @@ function MeetingPrepModal({data,onClose}){
       const b=buildBriefing(p.name);
       html+=`<h3 style="font-family:sans-serif;font-size:14px;margin:16px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">${b.name}</h3>`;
       if(b.ledFiles.length){
-        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">FILES LED</p><ul style="margin:0 0 8px;padding-left:20px">`;
-        for(const f of b.ledFiles){
-          const statusLabel=FS[f.status]?.label||f.status;
-          const prioLabel=FP[f.priority]?.label||f.priority;
-          const dvCount=(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d)).length;
-          const openT=data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&taskAssignees(t).includes(p.name)&&!isDone(t));
-          html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:6px"><strong>${f.title}</strong> <span style="color:#888;font-size:11px">[${statusLabel} · ${prioLabel}${dvCount>0?` · ${dvCount} deliverable${dvCount>1?'s':''}`:''}]</span>`;
-          if(f.memory){const mem=stripHtml(f.memory).slice(0,160);html+=`<br/><span style="color:#666;font-size:11px;font-style:italic">${mem}${f.memory.length>160?'…':''}</span>`;}
-          if(openT.length){html+=`<ul style="margin:4px 0 0;padding-left:16px">`;for(const t of openT){const due=fmtFlex(t.dueDate)||fmt(t.dueDate)||'';html+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${due?` <span style="color:#888">(${due})</span>`:''}</li>`;}html+=`</ul>`;}
-          html+=`</li>`;
-        }
+        html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:8px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Files Led</p><ul style="margin:0 0 10px;padding-left:18px">`;
+        for(const f of b.ledFiles)html+=renderFileHtml(f,b.name);
         html+=`</ul>`;
       }
       if(b.supportFiles.length){
-        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">SUPPORTING</p><ul style="margin:0 0 8px;padding-left:20px">`;
-        for(const f of b.supportFiles){
-          const myT=b.openTasks.filter(t=>(t.fileId||t.projectId)===f.id);
-          html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:6px"><strong>${f.title}</strong>`;
-          if(myT.length){html+=`<ul style="margin:4px 0 0;padding-left:16px">`;for(const t of myT){const due=fmtFlex(t.dueDate)||fmt(t.dueDate)||'';html+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${due?` <span style="color:#888">(${due})</span>`:''}</li>`;}html+=`</ul>`;}
-          html+=`</li>`;
-        }
-        html+=`</ul>`;
-      }
-      if(b.dvs.length){
-        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">DELIVERABLES OWNED</p><ul style="margin:0 0 8px;padding-left:20px">`;
-        for(const d of b.dvs){const due=fmtFlex(d.dueDate)||fmt(d.dueDate)||'';const st=DVS[d.status]?.label||d.status;html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:2px">${d.title} <span style="color:#888;font-size:11px">[${st}${due?` · ${due}`:''}]</span></li>`;}
+        html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:8px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Supporting</p><ul style="margin:0 0 10px;padding-left:18px">`;
+        for(const f of b.supportFiles)html+=renderFileHtml(f,b.name);
         html+=`</ul>`;
       }
       if(b.standaloneT.length){
-        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">OTHER TASKS</p><ul style="margin:0 0 8px;padding-left:20px">`;
-        for(const t of b.standaloneT){const due=fmtFlex(t.dueDate)||fmt(t.dueDate)||'';html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:2px">${t.title}${due?` <span style="color:#888">(${due})</span>`:''}</li>`;}
+        html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:8px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Other Tasks</p><ul style="margin:0 0 10px;padding-left:18px">`;
+        for(const t of b.standaloneT){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:2px">${t.title}${td?` <span style="color:#888">(${td})</span>`:''}</li>`;}
         html+=`</ul>`;
       }
-      if(!b.ledFiles.length&&!b.supportFiles.length&&!b.dvs.length&&!b.standaloneT.length){
+      if(!b.ledFiles.length&&!b.supportFiles.length&&!b.standaloneT.length){
         html+=`<p style="font-family:sans-serif;font-size:12px;color:#999;font-style:italic">No active files or open tasks.</p>`;
       }
     }
@@ -2437,7 +2450,6 @@ function MeetingPrepModal({data,onClose}){
       await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([printRef.current?.innerText||''],{type:'text/plain'})})]);
       setCopied(true);setTimeout(()=>setCopied(false),2500);
     }catch(e){
-      // Fallback: select all text in the preview
       if(printRef.current){const r=document.createRange();r.selectNodeContents(printRef.current);const s=window.getSelection();s.removeAllRanges();s.addRange(r);}
     }
   };
@@ -2445,26 +2457,58 @@ function MeetingPrepModal({data,onClose}){
   const doPrint=()=>{
     const w=window.open('','_blank');
     const today=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
-    w.document.write(`<!DOCTYPE html><html><head><title>Meeting Prep — ${today}</title><style>body{font-family:sans-serif;font-size:12px;color:#111;max-width:700px;margin:30px auto;line-height:1.5}h2{font-size:16px;margin-bottom:4px}h3{font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px}ul{margin:4px 0 8px;padding-left:20px}li{margin-bottom:3px}.section-lbl{font-weight:700;font-size:11px;text-transform:uppercase;color:#555;margin:8px 0 4px}@media print{body{margin:15px}}</style></head><body>${buildHtml()}</body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><title>Meeting Prep — ${today}</title><style>body{font-family:sans-serif;font-size:12px;color:#111;max-width:700px;margin:30px auto;line-height:1.5}h2{font-size:16px;margin-bottom:4px}h3{font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px}ul{margin:4px 0 6px;padding-left:18px}li{margin-bottom:3px}@media print{body{margin:15px}}</style></head><body>${buildHtml()}</body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),300);
   };
 
-  // Preview component (dark-themed for the modal)
+  const FileBlock=({file,name,accent})=>{
+    const{dvSections,standaloneTasks}=buildFileSection(file.id,name);
+    const isEmpty=dvSections.length===0&&standaloneTasks.length===0;
+    return(
+      <div style={{marginBottom:6,paddingLeft:8,borderLeft:`2px solid ${accent}`}}>
+        <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap',marginBottom:2}}>
+          <span style={{fontSize:12,color:T.tx,fontWeight:600}}>{file.title}</span>
+          <StatusDot map={FS} val={file.status}/>
+          {file.priority!=='medium'&&<StatusDot map={FP} val={file.priority}/>}
+        </div>
+        {file.memory&&<div style={{fontSize:10,color:T.tx3,marginBottom:4,fontStyle:'italic'}}>{stripHtml(file.memory).slice(0,160)}{stripHtml(file.memory).length>160?'…':''}</div>}
+        {dvSections.map(({dv,tasks})=>(
+          <div key={dv.id} style={{marginBottom:4,paddingLeft:8}}>
+            <div style={{display:'flex',gap:4,alignItems:'baseline',flexWrap:'wrap',marginBottom:2}}>
+              <span style={{fontSize:10,color:T.y}}>↳</span>
+              <span style={{fontSize:11,color:T.tx,fontWeight:500}}>{dv.title}</span>
+              <span style={{fontSize:9,color:T.tx3}}>[{DVS[dv.status]?.label||dv.status}{fmtFlex(dv.dueDate)?' · '+fmtFlex(dv.dueDate):''}]</span>
+            </div>
+            {tasks.map(t=>(
+              <div key={t.id} style={{fontSize:10,color:T.tx2,paddingLeft:12,marginBottom:1}}>
+                • {t.title}{(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
+              </div>
+            ))}
+          </div>
+        ))}
+        {standaloneTasks.map(t=>(
+          <div key={t.id} style={{fontSize:10,color:T.tx2,paddingLeft:8,marginBottom:1}}>
+            • {t.title}{(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
+          </div>
+        ))}
+        {isEmpty&&<div style={{fontSize:10,color:T.tx3,paddingLeft:8,fontStyle:'italic'}}>No tasks or deliverables.</div>}
+      </div>
+    );
+  };
+
   const PreviewSection=({briefing:b})=>(
     <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${T.bd}`}}>
       <div style={{fontSize:13,fontWeight:700,color:T.tx,fontFamily:T.serif,marginBottom:8,letterSpacing:'0.02em'}}>{b.name}</div>
-      {b.ledFiles.length>0&&(<div style={{marginBottom:8}}><div style={ss.lbl}>FILES LED</div>{b.ledFiles.map(f=>{const openT=data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&taskAssignees(t).includes(b.name)&&!isDone(t));const dvCount=(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d)).length;return(<div key={f.id} style={{marginBottom:6,paddingLeft:8,borderLeft:`2px solid ${T.acc}`}}><div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap',marginBottom:2}}><span style={{fontSize:12,color:T.tx,fontWeight:600}}>{f.title}</span><StatusDot map={FS} val={f.status}/><StatusDot map={FP} val={f.priority}/>{dvCount>0&&<Chip text={`${dvCount}dv`} bg="rgba(91,156,246,0.09)" tx={T.acc} small/>}</div>{f.memory&&<div style={{fontSize:10,color:T.tx3,marginBottom:3,fontStyle:'italic'}}>{stripHtml(f.memory).slice(0,160)}{stripHtml(f.memory).length>160?'…':''}</div>}{openT.length>0&&<div style={{paddingLeft:8}}>{openT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:1}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(t.dueDate))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(t.dueDate)}</span>}</div>)}</div>}</div>);})}</div>)}
-      {b.supportFiles.length>0&&(<div style={{marginBottom:8}}><div style={ss.lbl}>SUPPORTING</div>{b.supportFiles.map(f=>{const myT=b.openTasks.filter(t=>(t.fileId||t.projectId)===f.id);return(<div key={f.id} style={{marginBottom:6,paddingLeft:8,borderLeft:`2px solid ${T.bd2}`}}><div style={{fontSize:12,color:T.tx,fontWeight:600,marginBottom:2}}>{f.title}</div>{myT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:1,paddingLeft:8}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(t.dueDate))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(t.dueDate)}</span>}</div>)}</div>);})}</div>)}
-      {b.dvs.length>0&&(<div style={{marginBottom:8}}><div style={ss.lbl}>DELIVERABLES OWNED</div>{b.dvs.map(d=><div key={d.id} style={{fontSize:11,color:T.tx2,marginBottom:2,paddingLeft:8}}>• {d.title} <span style={{color:T.tx3}}>[{DVS[d.status]?.label||d.status}{(fmtFlex(d.dueDate)||fmt(d.dueDate))?' · '+(fmtFlex(d.dueDate)||fmt(d.dueDate)):''}]</span></div>)}</div>)}
-      {b.standaloneT.length>0&&(<div style={{marginBottom:4}}><div style={ss.lbl}>OTHER TASKS</div>{b.standaloneT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:2,paddingLeft:8}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(t.dueDate))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(t.dueDate)}</span>}</div>)}</div>)}
-      {!b.ledFiles.length&&!b.supportFiles.length&&!b.dvs.length&&!b.standaloneT.length&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic'}}>No active files or open tasks.</div>}
+      {b.ledFiles.length>0&&(<div style={{marginBottom:10}}><div style={ss.lbl}>FILES LED</div>{b.ledFiles.map(f=><FileBlock key={f.id} file={f} name={b.name} accent={T.acc}/>)}</div>)}
+      {b.supportFiles.length>0&&(<div style={{marginBottom:10}}><div style={ss.lbl}>SUPPORTING</div>{b.supportFiles.map(f=><FileBlock key={f.id} file={f} name={b.name} accent={T.bd2}/>)}</div>)}
+      {b.standaloneT.length>0&&(<div style={{marginBottom:4}}><div style={ss.lbl}>OTHER TASKS</div>{b.standaloneT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:2,paddingLeft:8}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}</div>)}</div>)}
+      {!b.ledFiles.length&&!b.supportFiles.length&&!b.standaloneT.length&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic'}}>No active files or open tasks.</div>}
     </div>
   );
 
   return(
     <Overlay onClose={onClose} wide>
       <ModalH title="Meeting Prep" onClose={onClose}/>
-      {/* PEOPLE PICKER */}
       <div style={{marginBottom:12}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           <span style={ss.lbl}>SELECT TEAM MEMBERS</span>
@@ -2481,14 +2525,12 @@ function MeetingPrepModal({data,onClose}){
           ))}
         </div>
       </div>
-      {/* ACTIONS */}
       {selectedPeople.length>0&&(
         <div style={{display:'flex',gap:6,marginBottom:12}}>
           <button onClick={copyRichText} style={{...ss.btnP,flex:1}}>{copied?'✓ Copied!':'📋 Copy (rich text)'}</button>
           <button onClick={doPrint} style={{...ss.btn,flex:1}}>🖨 Print / PDF</button>
         </div>
       )}
-      {/* PREVIEW */}
       {selectedPeople.length>0?(
         <div ref={printRef} style={{maxHeight:460,overflowY:'auto',borderTop:`1px solid ${T.bd}`,paddingTop:12}}>
           {selectedPeople.map(p=><PreviewSection key={p.name} briefing={buildBriefing(p.name)}/>)}
@@ -2499,7 +2541,6 @@ function MeetingPrepModal({data,onClose}){
     </Overlay>
   );
 }
-
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App(){
   const [data,setData]=useState(null);
