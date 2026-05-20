@@ -191,7 +191,7 @@ function TaskPanel({taskId,data,onClose,saveTask,delTask,onOpenTask,onOpenFile,o
   const blocked=isBlocked(task,data.tasks);
   const upd=ch=>saveTask(taskId,ch);
   const people=allPeopleFrom(data);
-  const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='completed');
+  const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='completed').sort((a,b)=>a.title.localeCompare(b.title));
   const fileDeliverables=file?(data.deliverables||[]).filter(d=>d.fileId===file.id&&!isDoneDV(d)):[];
   return(
     <div style={{width:360,flexShrink:0,borderLeft:`1px solid ${T.bd}`,background:T.s1,overflowY:'auto',maxHeight:'100%'}}>
@@ -1108,7 +1108,7 @@ function FilesView({data,saveFile,saveTask,delTask,newTask,addLogEntry,showAddFi
 
   // Group by priority
   const PRI_ORDER=['urgent','high','medium','low'];
-  const byPriority=PRI_ORDER.map(pri=>({pri,files:filtered.filter(f=>(f.priority||'medium')===pri)})).filter(g=>g.files.length>0);
+  const byPriority=PRI_ORDER.map(pri=>({pri,files:filtered.filter(f=>(f.priority||'medium')===pri).sort((a,b)=>a.title.localeCompare(b.title))})).filter(g=>g.files.length>0);
 
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
