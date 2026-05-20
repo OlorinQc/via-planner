@@ -2326,6 +2326,150 @@ function TeamModal({data,onClose,setData}){
   return(<Overlay onClose={onClose} wide><ModalH title="People & Team" onClose={onClose}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}><div><div style={ss.lbl}>TEAM MEMBERS</div><div style={{marginBottom:10}}>{people.map(p=>(<div key={p.id} style={{display:'flex',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:T.tx,fontWeight:500,...trunc}}>{p.name}</div>{p.title&&<div style={{fontSize:10,color:T.tx3,...trunc}}>{p.title}</div>}</div>{p.name!=='Karl'&&<button onClick={()=>setData(d=>({...d,people:d.people.map(x=>x.id===p.id?{...x,active:!x.active}:x)}))} style={{...ss.btn,fontSize:10,padding:'2px 7px',color:p.active!==false?T.tx2:T.r,flexShrink:0}}>{p.active!==false?'Active':'Inactive'}</button>}</div>))}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,marginBottom:4}}><Inp value={newName} onChange={setNewName} placeholder="Name"/><Inp value={newTitle} onChange={setNewTitle} placeholder="Title / Role"/></div><button onClick={()=>{if(newName.trim()&&!people.find(p=>p.name===newName.trim())){setData(d=>({...d,people:[...(d.people||[]),{id:uid(),name:newName.trim(),title:newTitle.trim(),active:true}]}));setNewName('');setNewTitle('');}}} style={ss.btnP}>Add person</button></div><div><div style={ss.lbl}>WORKLOAD SUMMARY</div>{people.filter(p=>p.active!==false).map(p=>{const led=data.files.filter(f=>f.lead===p.name&&!f.archived).length;const tasks=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t)).length;const overdue=data.tasks.filter(t=>taskAssignees(t).includes(p.name)&&!isDone(t)&&t.dueDate&&ds(t.dueDate)==='overdue').length;const dvs=(data.deliverables||[]).filter(d=>d.ownerName===p.name&&!isDoneDV(d)).length;return(<div key={p.id} style={{padding:'5px 0',borderBottom:`1px solid ${T.bd3}`}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:12,color:T.tx,fontWeight:500,...trunc,maxWidth:100}}>{p.name}</span><div style={{display:'flex',gap:5,flexShrink:0}}><span style={{fontSize:10,color:T.tx2}}>{led}f</span><span style={{fontSize:10,color:T.tx2}}>{tasks}t</span>{dvs>0&&<span style={{fontSize:10,color:T.acc}}>{dvs}d</span>}{overdue>0&&<span style={{fontSize:10,color:T.r}}>{overdue}!</span>}</div></div></div>);})}</div></div></Overlay>);
 }
 
+// ─── MEETING PREP MODAL ───────────────────────────────────────────────────────
+function MeetingPrepModal({data,onClose}){
+  const activePeople=(data.people||[]).filter(p=>p.active!==false&&p.name!=='Karl');
+  const [sel,setSel]=useState(new Set());
+  const [copied,setCopied]=useState(false);
+  const printRef=useRef(null);
+
+  const togglePerson=name=>setSel(s=>{const n=new Set(s);n.has(name)?n.delete(name):n.add(name);return n;});
+  const selectAll=()=>setSel(new Set(activePeople.map(p=>p.name)));
+  const clearAll=()=>setSel(new Set());
+
+  // Build briefing data for a person
+  const buildBriefing=name=>{
+    const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='archived');
+    const ledFiles=activeFiles.filter(f=>f.lead===name);
+    const openTasks=data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t));
+    // Files where person has open tasks but is not the lead
+    const supportFileIds=[...new Set(openTasks.filter(t=>t.fileId&&!ledFiles.find(f=>f.id===t.fileId)).map(t=>t.fileId))];
+    const supportFiles=supportFileIds.map(id=>data.files.find(f=>f.id===id)).filter(Boolean);
+    const standaloneT=openTasks.filter(t=>!t.fileId&&!t.projectId);
+    const dvs=(data.deliverables||[]).filter(d=>d.ownerName===name&&!isDoneDV(d));
+    return{name,ledFiles,supportFiles,openTasks,standaloneT,dvs};
+  };
+
+  const selectedPeople=activePeople.filter(p=>sel.has(p.name));
+
+  // Build HTML for clipboard (rich text)
+  const buildHtml=()=>{
+    const today=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+    let html=`<h2 style="font-family:sans-serif;font-size:16px;margin:0 0 4px">Meeting Prep — ${today}</h2><hr style="margin:8px 0"/>`;
+    for(const p of selectedPeople){
+      const b=buildBriefing(p.name);
+      html+=`<h3 style="font-family:sans-serif;font-size:14px;margin:16px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">${b.name}</h3>`;
+      if(b.ledFiles.length){
+        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">FILES LED</p><ul style="margin:0 0 8px;padding-left:20px">`;
+        for(const f of b.ledFiles){
+          const statusLabel=FS[f.status]?.label||f.status;
+          const prioLabel=FP[f.priority]?.label||f.priority;
+          const dvCount=(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d)).length;
+          const openT=data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&taskAssignees(t).includes(p.name)&&!isDone(t));
+          html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:6px"><strong>${f.title}</strong> <span style="color:#888;font-size:11px">[${statusLabel} · ${prioLabel}${dvCount>0?` · ${dvCount} deliverable${dvCount>1?'s':''}`:''}]</span>`;
+          if(f.memory){const mem=stripHtml(f.memory).slice(0,160);html+=`<br/><span style="color:#666;font-size:11px;font-style:italic">${mem}${f.memory.length>160?'…':''}</span>`;}
+          if(openT.length){html+=`<ul style="margin:4px 0 0;padding-left:16px">`;for(const t of openT){const due=fmtFlex(t.dueDate)||fmt(t.dueDate)||'';html+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${due?` <span style="color:#888">(${due})</span>`:''}</li>`;}html+=`</ul>`;}
+          html+=`</li>`;
+        }
+        html+=`</ul>`;
+      }
+      if(b.supportFiles.length){
+        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">SUPPORTING</p><ul style="margin:0 0 8px;padding-left:20px">`;
+        for(const f of b.supportFiles){
+          const myT=b.openTasks.filter(t=>(t.fileId||t.projectId)===f.id);
+          html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:6px"><strong>${f.title}</strong>`;
+          if(myT.length){html+=`<ul style="margin:4px 0 0;padding-left:16px">`;for(const t of myT){const due=fmtFlex(t.dueDate)||fmt(t.dueDate)||'';html+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${due?` <span style="color:#888">(${due})</span>`:''}</li>`;}html+=`</ul>`;}
+          html+=`</li>`;
+        }
+        html+=`</ul>`;
+      }
+      if(b.dvs.length){
+        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">DELIVERABLES OWNED</p><ul style="margin:0 0 8px;padding-left:20px">`;
+        for(const d of b.dvs){const due=fmtFlex(d.dueDate)||fmt(d.dueDate)||'';const st=DVS[d.status]?.label||d.status;html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:2px">${d.title} <span style="color:#888;font-size:11px">[${st}${due?` · ${due}`:''}]</span></li>`;}
+        html+=`</ul>`;
+      }
+      if(b.standaloneT.length){
+        html+=`<p style="font-family:sans-serif;font-size:12px;font-weight:700;margin:8px 0 4px;color:#555">OTHER TASKS</p><ul style="margin:0 0 8px;padding-left:20px">`;
+        for(const t of b.standaloneT){const due=fmtFlex(t.dueDate)||fmt(t.dueDate)||'';html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:2px">${t.title}${due?` <span style="color:#888">(${due})</span>`:''}</li>`;}
+        html+=`</ul>`;
+      }
+      if(!b.ledFiles.length&&!b.supportFiles.length&&!b.dvs.length&&!b.standaloneT.length){
+        html+=`<p style="font-family:sans-serif;font-size:12px;color:#999;font-style:italic">No active files or open tasks.</p>`;
+      }
+    }
+    return html;
+  };
+
+  const copyRichText=async()=>{
+    if(!selectedPeople.length)return;
+    const html=buildHtml();
+    try{
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([printRef.current?.innerText||''],{type:'text/plain'})})]);
+      setCopied(true);setTimeout(()=>setCopied(false),2500);
+    }catch(e){
+      // Fallback: select all text in the preview
+      if(printRef.current){const r=document.createRange();r.selectNodeContents(printRef.current);const s=window.getSelection();s.removeAllRanges();s.addRange(r);}
+    }
+  };
+
+  const doPrint=()=>{
+    const w=window.open('','_blank');
+    const today=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+    w.document.write(`<!DOCTYPE html><html><head><title>Meeting Prep — ${today}</title><style>body{font-family:sans-serif;font-size:12px;color:#111;max-width:700px;margin:30px auto;line-height:1.5}h2{font-size:16px;margin-bottom:4px}h3{font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px}ul{margin:4px 0 8px;padding-left:20px}li{margin-bottom:3px}.section-lbl{font-weight:700;font-size:11px;text-transform:uppercase;color:#555;margin:8px 0 4px}@media print{body{margin:15px}}</style></head><body>${buildHtml()}</body></html>`);
+    w.document.close();w.focus();setTimeout(()=>w.print(),300);
+  };
+
+  // Preview component (dark-themed for the modal)
+  const PreviewSection=({briefing:b})=>(
+    <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${T.bd}`}}>
+      <div style={{fontSize:13,fontWeight:700,color:T.tx,fontFamily:T.serif,marginBottom:8,letterSpacing:'0.02em'}}>{b.name}</div>
+      {b.ledFiles.length>0&&(<div style={{marginBottom:8}}><div style={ss.lbl}>FILES LED</div>{b.ledFiles.map(f=>{const openT=data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&taskAssignees(t).includes(b.name)&&!isDone(t));const dvCount=(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d)).length;return(<div key={f.id} style={{marginBottom:6,paddingLeft:8,borderLeft:`2px solid ${T.acc}`}}><div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap',marginBottom:2}}><span style={{fontSize:12,color:T.tx,fontWeight:600}}>{f.title}</span><StatusDot map={FS} val={f.status}/><StatusDot map={FP} val={f.priority}/>{dvCount>0&&<Chip text={`${dvCount}dv`} bg="rgba(91,156,246,0.09)" tx={T.acc} small/>}</div>{f.memory&&<div style={{fontSize:10,color:T.tx3,marginBottom:3,fontStyle:'italic'}}>{stripHtml(f.memory).slice(0,160)}{stripHtml(f.memory).length>160?'…':''}</div>}{openT.length>0&&<div style={{paddingLeft:8}}>{openT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:1}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(t.dueDate))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(t.dueDate)}</span>}</div>)}</div>}</div>);})}</div>)}
+      {b.supportFiles.length>0&&(<div style={{marginBottom:8}}><div style={ss.lbl}>SUPPORTING</div>{b.supportFiles.map(f=>{const myT=b.openTasks.filter(t=>(t.fileId||t.projectId)===f.id);return(<div key={f.id} style={{marginBottom:6,paddingLeft:8,borderLeft:`2px solid ${T.bd2}`}}><div style={{fontSize:12,color:T.tx,fontWeight:600,marginBottom:2}}>{f.title}</div>{myT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:1,paddingLeft:8}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(t.dueDate))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(t.dueDate)}</span>}</div>)}</div>);})}</div>)}
+      {b.dvs.length>0&&(<div style={{marginBottom:8}}><div style={ss.lbl}>DELIVERABLES OWNED</div>{b.dvs.map(d=><div key={d.id} style={{fontSize:11,color:T.tx2,marginBottom:2,paddingLeft:8}}>• {d.title} <span style={{color:T.tx3}}>[{DVS[d.status]?.label||d.status}{(fmtFlex(d.dueDate)||fmt(d.dueDate))?' · '+(fmtFlex(d.dueDate)||fmt(d.dueDate)):''}]</span></div>)}</div>)}
+      {b.standaloneT.length>0&&(<div style={{marginBottom:4}}><div style={ss.lbl}>OTHER TASKS</div>{b.standaloneT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:2,paddingLeft:8}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(t.dueDate))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(t.dueDate)}</span>}</div>)}</div>)}
+      {!b.ledFiles.length&&!b.supportFiles.length&&!b.dvs.length&&!b.standaloneT.length&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic'}}>No active files or open tasks.</div>}
+    </div>
+  );
+
+  return(
+    <Overlay onClose={onClose} wide>
+      <ModalH title="Meeting Prep" onClose={onClose}/>
+      {/* PEOPLE PICKER */}
+      <div style={{marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+          <span style={ss.lbl}>SELECT TEAM MEMBERS</span>
+          <div style={{display:'flex',gap:4}}>
+            <button onClick={selectAll} style={{...ss.btn,fontSize:10,padding:'2px 8px'}}>All</button>
+            <button onClick={clearAll} style={{...ss.btn,fontSize:10,padding:'2px 8px'}}>Clear</button>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {activePeople.map(p=>(
+            <button key={p.name} onClick={()=>togglePerson(p.name)} style={{padding:'4px 10px',fontSize:11,borderRadius:5,border:`1.5px solid ${sel.has(p.name)?T.acc:T.bd}`,background:sel.has(p.name)?'rgba(91,156,246,0.12)':'transparent',color:sel.has(p.name)?T.acc:T.tx2,cursor:'pointer',fontFamily:T.font,fontWeight:sel.has(p.name)?600:400}}>
+              {p.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* ACTIONS */}
+      {selectedPeople.length>0&&(
+        <div style={{display:'flex',gap:6,marginBottom:12}}>
+          <button onClick={copyRichText} style={{...ss.btnP,flex:1}}>{copied?'✓ Copied!':'📋 Copy (rich text)'}</button>
+          <button onClick={doPrint} style={{...ss.btn,flex:1}}>🖨 Print / PDF</button>
+        </div>
+      )}
+      {/* PREVIEW */}
+      {selectedPeople.length>0?(
+        <div ref={printRef} style={{maxHeight:460,overflowY:'auto',borderTop:`1px solid ${T.bd}`,paddingTop:12}}>
+          {selectedPeople.map(p=><PreviewSection key={p.name} briefing={buildBriefing(p.name)}/>)}
+        </div>
+      ):(
+        <div style={{textAlign:'center',padding:'30px 0',color:T.tx3,fontSize:12,fontStyle:'italic'}}>Select one or more team members above to generate their briefing sheet.</div>
+      )}
+    </Overlay>
+  );
+}
+
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App(){
   const [data,setData]=useState(null);
@@ -2334,10 +2478,7 @@ export default function App(){
   const [saved,setSaved]=useState(true);
   const [modal,setModal]=useState(null);
   const [fontScale,setFontScaleState]=useState(1.0);
-  const DENSITY_ZOOM={compact:0.82,comfortable:1.0,presentation:1.18};
-  const density=data?.uiPrefs?.density||'comfortable';
-  const effectiveZoom=fontScale*(DENSITY_ZOOM[density]||1.0);
-  const saveDensity=d=>{saveUiPref('density',d);};
+  const effectiveZoom=fontScale;
   const [pendingFileId,setPendingFileId]=useState(null);
   const saveRef=useRef(null);
   const navigate=useNavigate();
@@ -2458,6 +2599,7 @@ export default function App(){
               {overdueCount>0&&<span style={{fontSize:10,background:'rgba(212,146,42,0.15)',color:T.y,borderRadius:10,padding:'1px 7px',fontWeight:600}}>{overdueCount} overdue</span>}
               <button onClick={()=>setView('claude')} style={{...ss.btn,fontSize:11,color:view==='claude'?T.acc:T.tx2,background:view==='claude'?'rgba(91,156,246,0.10)':'transparent',border:`1px solid ${view==='claude'?T.acc:T.bd}`}}>Claude</button>
               <button onClick={()=>setModal('settings')} style={{...ss.btn,fontSize:11}}>⚙</button>
+              <button onClick={()=>setModal('meetingprep')} style={{...ss.btn,fontSize:11}}>📋 Meeting</button>
               <button onClick={()=>setModal('team')} style={{...ss.btn,fontSize:11}}>Team</button>
               <span style={{fontSize:10,color:saved?T.g:T.tx3,fontFamily:T.mono}}>{saved?'✓':'…'}</span>
             </div>
@@ -2475,14 +2617,11 @@ export default function App(){
           {modal==='team'   &&<TeamModal data={data} onClose={()=>setModal(null)} setData={setData}/>}
           {modal==='settings'&&<SettingsModal data={data} setData={setData} onClose={()=>setModal(null)}/>}
           {modal==='snapshots'&&<SnapshotModal data={data} onClose={()=>setModal(null)} onRestore={newState=>{setData(newState);setFontScaleState(newState.uiPrefs?.fontScale||1.0);}}/>}
+          {modal==='meetingprep'&&<MeetingPrepModal data={data} onClose={()=>setModal(null)}/>}
         </div>
 
         <div style={{height:32,background:T.hdr,borderTop:`1px solid ${T.bd}`,display:'flex',alignItems:'center',justifyContent:'center',gap:10,flexShrink:0,userSelect:'none'}}>
           <span style={{fontSize:11,fontFamily:T.serif,color:T.tx3,letterSpacing:'0.04em'}}>Palantír</span>
-          <span style={{color:T.bd2,fontSize:12}}>·</span>
-          {[{k:'compact',label:'⊟ Compact'},{k:'comfortable',label:'⊡ Comfortable'},{k:'presentation',label:'⊞ Present'}].map(d=>(
-            <button key={d.k} onClick={()=>saveDensity(d.k)} style={{background:'transparent',border:`1px solid ${density===d.k?T.acc:T.bd}`,borderRadius:4,padding:'1px 7px',fontSize:9,fontWeight:density===d.k?700:400,color:density===d.k?T.acc:T.tx3,cursor:'pointer',fontFamily:T.font}}>{d.label}</button>
-          ))}
           <span style={{color:T.bd2,fontSize:12}}>·</span>
           <span style={{fontSize:10,color:T.tx3}}>A</span>
           <input type="range" min={0.5} max={2.0} step={0.05} value={fontScale}
