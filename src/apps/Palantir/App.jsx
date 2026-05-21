@@ -1964,7 +1964,7 @@ function ClaudeView({data,onImport,downloadJson,onOpenSnapshots,takeSnapshot}){
   const [applied,setApplied]=useState(false);
   const [snapLabel,setSnapLabel]=useState('');
   const [snapDone,setSnapDone]=useState('');
-  const parseImport=jsonStr=>{try{const imp=JSON.parse(jsonStr);const changes=[];if(imp.memoryUpdates?.length)changes.push(`${imp.memoryUpdates.length} memory update(s)`);if(imp.logEntriesToCreate?.length)changes.push(`${imp.logEntriesToCreate.length} log entr${imp.logEntriesToCreate.length===1?'y':'ies'}`);if(imp.tasksToComplete?.length)changes.push(`${imp.tasksToComplete.length} task(s) completed`);if(imp.tasksToCreate?.length)changes.push(`${imp.tasksToCreate.length} new task(s)`);if(imp.tasksToUpdate?.length)changes.push(`${imp.tasksToUpdate.length} task update(s)`);if(imp.filesToCreate?.length)changes.push(`${imp.filesToCreate.length} new file(s)`);if(imp.filesToUpdate?.length)changes.push(`${imp.filesToUpdate.length} file update(s)`);if(imp.deliverablesToCreate?.length)changes.push(`${imp.deliverablesToCreate.length} new deliverable(s)`);if(imp.deliverablesToUpdate?.length)changes.push(`${imp.deliverablesToUpdate.length} deliverable update(s)`);if(imp.milestonesToCreate?.length)changes.push(`${imp.milestonesToCreate.length} milestone(s)`);if(imp.risksToCreate?.length)changes.push(`${imp.risksToCreate.length} risk(s)`);if(imp.questionsToCreate?.length)changes.push(`${imp.questionsToCreate.length} question(s)`);if(imp.sharePointLinksToCreate?.length)changes.push(`${imp.sharePointLinksToCreate.length} link(s)`);if(changes.length===0)changes.push('No recognised changes found.');setPreview({imp,changes,summary:imp.summary||'No summary provided.'});setImportErr('');}catch(e){setImportErr('Invalid JSON — check the format and try again.');setPreview(null);}};
+  const parseImport=jsonStr=>{try{const imp=JSON.parse(jsonStr);const changes=[];if(imp.memoryUpdates?.length)changes.push(`${imp.memoryUpdates.length} memory update(s)`);if(imp.logEntriesToCreate?.length)changes.push(`${imp.logEntriesToCreate.length} log entr${imp.logEntriesToCreate.length===1?'y':'ies'}`);if(imp.tasksToComplete?.length)changes.push(`${imp.tasksToComplete.length} task(s) completed`);if(imp.tasksToCreate?.length)changes.push(`${imp.tasksToCreate.length} new task(s)`);if(imp.tasksToUpdate?.length)changes.push(`${imp.tasksToUpdate.length} task update(s)`);if(imp.filesToCreate?.length)changes.push(`${imp.filesToCreate.length} new file(s)`);if(imp.filesToUpdate?.length)changes.push(`${imp.filesToUpdate.length} file update(s)`);if(imp.deliverablesToCreate?.length)changes.push(`${imp.deliverablesToCreate.length} new deliverable(s)`);if(imp.deliverablesToUpdate?.length)changes.push(`${imp.deliverablesToUpdate.length} deliverable update(s)`);if(imp.milestonesToCreate?.length)changes.push(`${imp.milestonesToCreate.length} milestone(s) created`);if(imp.milestonesToComplete?.length)changes.push(`${imp.milestonesToComplete.length} milestone(s) completed`);if(imp.risksToCreate?.length)changes.push(`${imp.risksToCreate.length} risk(s)`);if(imp.questionsToCreate?.length)changes.push(`${imp.questionsToCreate.length} question(s) created`);if(imp.questionsToClose?.length)changes.push(`${imp.questionsToClose.length} question(s) closed`);if(imp.peopleToCreate?.length)changes.push(`${imp.peopleToCreate.length} new person/people`);if(imp.sharePointLinksToCreate?.length)changes.push(`${imp.sharePointLinksToCreate.length} link(s)`);if(changes.length===0)changes.push('No recognised changes found.');setPreview({imp,changes,summary:imp.summary||'No summary provided.'});setImportErr('');}catch(e){setImportErr('Invalid JSON — check the format and try again.');setPreview(null);}};
   return(
     <div style={{height:'100%',overflow:'auto',padding:'14px 20px',maxWidth:700}}>
       {/* IMPORT SECTION */}
@@ -2367,84 +2367,80 @@ function MeetingPrepModal({data,onClose}){
   const selectAll=()=>setSel(new Set(activePeople.map(p=>p.name)));
   const clearAll=()=>setSel(new Set());
 
-  // Build deliverable+task structure for a person within a file
-  const buildFileSection=(fileId,name)=>{
-    const allDvs=(data.deliverables||[]).filter(d=>d.fileId===fileId&&!isDoneDV(d));
-    const myTasks=data.tasks.filter(t=>(t.fileId||t.projectId)===fileId&&taskAssignees(t).includes(name)&&!isDone(t));
-    const myTaskDvIds=new Set(myTasks.filter(t=>t.deliverableId).map(t=>t.deliverableId));
-    const relevantDvs=allDvs.filter(d=>d.ownerName===name||myTaskDvIds.has(d.id));
-    const dvSections=relevantDvs.map(dv=>({dv,tasks:myTasks.filter(t=>t.deliverableId===dv.id)}));
-    const coveredTaskIds=new Set(dvSections.flatMap(s=>s.tasks.map(t=>t.id)));
-    const standaloneTasks=myTasks.filter(t=>!coveredTaskIds.has(t.id));
+  const selNames=sel; // Set of selected names
+
+  // Returns true if this file is relevant to the filter (any selected person is lead or has a task/dv)
+  const fileIsRelevant=f=>{
+    if(sel.size===0)return true;
+    for(const name of selNames){
+      if(f.lead===name)return true;
+      if(data.tasks.some(t=>(t.fileId||t.projectId)===f.id&&taskAssignees(t).includes(name)&&!isDone(t)))return true;
+      if((data.deliverables||[]).some(d=>d.fileId===f.id&&d.ownerName===name&&!isDoneDV(d)))return true;
+    }
+    return false;
+  };
+
+  // For a file, build full dv→task tree (all dvs and tasks, with assignee/owner labels)
+  const buildFileTree=f=>{
+    const allDvs=(data.deliverables||[]).filter(d=>d.fileId===f.id&&!isDoneDV(d));
+    const allTasks=data.tasks.filter(t=>(t.fileId||t.projectId)===f.id&&!isDone(t));
+    const dvSections=allDvs.map(dv=>{
+      const tasks=allTasks.filter(t=>t.deliverableId===dv.id);
+      return{dv,tasks};
+    });
+    const coveredIds=new Set(dvSections.flatMap(s=>s.tasks.map(t=>t.id)));
+    const standaloneTasks=allTasks.filter(t=>!coveredIds.has(t.id));
     return{dvSections,standaloneTasks};
   };
 
-  const buildBriefing=name=>{
-    const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='archived');
-    const ledFiles=activeFiles.filter(f=>f.lead===name);
-    const myTasks=data.tasks.filter(t=>taskAssignees(t).includes(name)&&!isDone(t));
-    const supportFileIds=[...new Set(myTasks.filter(t=>t.fileId&&!ledFiles.find(f=>f.id===t.fileId)).map(t=>t.fileId))];
-    const supportFiles=supportFileIds.map(id=>data.files.find(f=>f.id===id)).filter(Boolean);
-    const standaloneT=myTasks.filter(t=>!t.fileId&&!t.projectId);
-    return{name,ledFiles,supportFiles,standaloneT};
-  };
+  const activeFiles=data.files.filter(f=>!f.archived&&f.status!=='archived');
+  const filteredFiles=activeFiles.filter(fileIsRelevant).sort((a,b)=>a.title.localeCompare(b.title));
+
+  // Standalone tasks (no file) assigned to any selected person
+  const standaloneTasks=data.tasks.filter(t=>!t.fileId&&!t.projectId&&!isDone(t)&&(sel.size===0||[...selNames].some(n=>taskAssignees(t).includes(n))));
 
   const selectedPeople=activePeople.filter(p=>sel.has(p.name));
 
-  const renderFileHtml=(f,name)=>{
-    const statusLabel=FS[f.status]?.label||f.status;
-    const prioLabel=FP[f.priority]?.label||f.priority;
-    const{dvSections,standaloneTasks}=buildFileSection(f.id,name);
-    const isEmpty=dvSections.length===0&&standaloneTasks.length===0;
-    let h=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:8px">`;
-    h+=`<strong>${f.title}</strong> <span style="color:#888;font-size:11px">[${statusLabel} · ${prioLabel}]</span>`;
-    if(f.memory){const mem=stripHtml(f.memory).slice(0,160);h+=`<br/><span style="color:#666;font-size:11px;font-style:italic">${mem}${stripHtml(f.memory).length>160?'…':''}</span>`;}
-    if(!isEmpty){
-      h+=`<ul style="margin:4px 0 0;padding-left:16px">`;
-      for(const{dv,tasks}of dvSections){
-        const due=fmtFlex(dv.dueDate)||'';
-        const st=DVS[dv.status]?.label||dv.status;
-        h+=`<li style="font-family:sans-serif;font-size:11px;margin-bottom:4px;list-style:none"><span style="color:#b07d0a">↳ ${dv.title}</span> <span style="color:#888;font-size:10px">[${st}${due?` · ${due}`:''}]</span>`;
-        if(tasks.length){h+=`<ul style="margin:2px 0 0;padding-left:14px">`;for(const t of tasks){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';h+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${td?` <span style="color:#888">(${td})</span>`:''}</li>`;}h+=`</ul>`;}
-        h+=`</li>`;
-      }
-      for(const t of standaloneTasks){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';h+=`<li style="font-family:sans-serif;font-size:11px;color:#333;margin-bottom:2px">${t.title}${td?` <span style="color:#888">(${td})</span>`:''}</li>`;}
-      h+=`</ul>`;
-    }
-    h+=`</li>`;
-    return h;
-  };
+  // Person chip helper
+  const personChipHtml=name=>`<span style="display:inline-block;font-size:9px;background:#eef2ff;color:#3a4a7a;border-radius:3px;padding:0 4px;margin-left:3px;font-family:sans-serif">${name.split(' ')[0]}</span>`;
 
+  // ── HTML for clipboard ──────────────────────────────────────────────────
   const buildHtml=()=>{
     const today=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
-    let html=`<h2 style="font-family:sans-serif;font-size:16px;margin:0 0 4px">Meeting Prep — ${today}</h2><hr style="margin:8px 0"/>`;
-    for(const p of selectedPeople){
-      const b=buildBriefing(p.name);
-      html+=`<h3 style="font-family:sans-serif;font-size:14px;margin:16px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">${b.name}</h3>`;
-      if(b.ledFiles.length){
-        html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:8px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Files Led</p><ul style="margin:0 0 10px;padding-left:18px">`;
-        for(const f of b.ledFiles)html+=renderFileHtml(f,b.name);
+    let html=`<h2 style="font-family:sans-serif;font-size:16px;margin:0 0 4px">Meeting Prep — ${today}</h2>`;
+    if(sel.size>0)html+=`<p style="font-family:sans-serif;font-size:11px;color:#666;margin:0 0 8px">Filter: ${[...selNames].join(', ')}</p>`;
+    html+=`<hr style="margin:8px 0"/>`;
+
+    for(const f of filteredFiles){
+      const{dvSections,standaloneTasks:st}=buildFileTree(f);
+      const statusLabel=FS[f.status]?.label||f.status;
+      const prioLabel=FP[f.priority]?.label||f.priority;
+      html+=`<div style="margin-bottom:14px">`;
+      html+=`<p style="font-family:sans-serif;font-size:13px;font-weight:700;margin:0 0 2px;color:#111">${f.title} <span style="font-size:10px;color:#888;font-weight:400">[${statusLabel} · ${prioLabel}]</span> ${personChipHtml(f.lead+' (lead)')}</p>`;
+      if(f.memory){const mem=stripHtml(f.memory).slice(0,160);html+=`<p style="font-family:sans-serif;font-size:10px;color:#666;font-style:italic;margin:0 0 4px">${mem}${stripHtml(f.memory).length>160?'…':''}</p>`;}
+      if(dvSections.length||st.length){
+        html+=`<ul style="margin:4px 0 0;padding-left:18px">`;
+        for(const{dv,tasks}of dvSections){
+          const due=fmtFlex(dv.dueDate)||'';
+          const st2=DVS[dv.status]?.label||dv.status;
+          html+=`<li style="font-family:sans-serif;font-size:11px;margin-bottom:4px;list-style:disc"><strong>${dv.title}</strong> <span style="color:#888;font-size:10px">[${st2}${due?' · '+due:''}]</span>${dv.ownerName?personChipHtml(dv.ownerName+' (owner)') :''}`;
+          if(tasks.length){html+=`<ul style="margin:3px 0 0;padding-left:16px">`;for(const t of tasks){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';const assigns=(t.assignees||[t.assignee]).filter(Boolean);html+=`<li style="font-family:sans-serif;font-size:10px;color:#333;margin-bottom:2px">${t.title}${td?' <span style="color:#888">('+td+')</span>':''}${assigns.map(a=>personChipHtml(a)).join('')}</li>`;}html+=`</ul>`;}
+          html+=`</li>`;
+        }
+        for(const t of st){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';const assigns=(t.assignees||[t.assignee]).filter(Boolean);html+=`<li style="font-family:sans-serif;font-size:10px;color:#333;margin-bottom:2px;list-style:circle">${t.title}${td?' <span style="color:#888">('+td+')</span>':''}${assigns.map(a=>personChipHtml(a)).join('')}</li>`;}
         html+=`</ul>`;
       }
-      if(b.supportFiles.length){
-        html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:8px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Supporting</p><ul style="margin:0 0 10px;padding-left:18px">`;
-        for(const f of b.supportFiles)html+=renderFileHtml(f,b.name);
-        html+=`</ul>`;
-      }
-      if(b.standaloneT.length){
-        html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:8px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Other Tasks</p><ul style="margin:0 0 10px;padding-left:18px">`;
-        for(const t of b.standaloneT){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';html+=`<li style="font-family:sans-serif;font-size:12px;margin-bottom:2px">${t.title}${td?` <span style="color:#888">(${td})</span>`:''}</li>`;}
-        html+=`</ul>`;
-      }
-      if(!b.ledFiles.length&&!b.supportFiles.length&&!b.standaloneT.length){
-        html+=`<p style="font-family:sans-serif;font-size:12px;color:#999;font-style:italic">No active files or open tasks.</p>`;
-      }
+      html+=`</div>`;
+    }
+    if(standaloneTasks.length){
+      html+=`<p style="font-family:sans-serif;font-size:11px;font-weight:700;margin:12px 0 4px;color:#555;text-transform:uppercase;letter-spacing:.5px">Unlinked Tasks</p><ul style="margin:0;padding-left:18px">`;
+      for(const t of standaloneTasks){const td=fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))||'';const assigns=(t.assignees||[t.assignee]).filter(Boolean);html+=`<li style="font-family:sans-serif;font-size:11px;margin-bottom:2px">${t.title}${td?' <span style="color:#888">('+td+')</span>':''}${assigns.map(a=>personChipHtml(a)).join('')}</li>`;}
+      html+=`</ul>`;
     }
     return html;
   };
 
   const copyRichText=async()=>{
-    if(!selectedPeople.length)return;
     const html=buildHtml();
     try{
       await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([printRef.current?.innerText||''],{type:'text/plain'})})]);
@@ -2457,61 +2453,71 @@ function MeetingPrepModal({data,onClose}){
   const doPrint=()=>{
     const w=window.open('','_blank');
     const today=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
-    w.document.write(`<!DOCTYPE html><html><head><title>Meeting Prep — ${today}</title><style>body{font-family:sans-serif;font-size:12px;color:#111;max-width:700px;margin:30px auto;line-height:1.5}h2{font-size:16px;margin-bottom:4px}h3{font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:20px}ul{margin:4px 0 6px;padding-left:18px}li{margin-bottom:3px}@media print{body{margin:15px}}</style></head><body>${buildHtml()}</body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><title>Meeting Prep — ${today}</title><style>body{font-family:sans-serif;font-size:12px;color:#111;max-width:720px;margin:30px auto;line-height:1.6}h2{font-size:16px;margin-bottom:2px}ul{margin:4px 0 6px;padding-left:18px}li{margin-bottom:3px}.chip{display:inline-block;font-size:9px;background:#eef2ff;color:#3a4a7a;border-radius:3px;padding:0 4px;margin-left:3px}@media print{body{margin:15px}}</style></head><body>${buildHtml()}</body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),300);
   };
 
-  const FileBlock=({file,name,accent})=>{
-    const{dvSections,standaloneTasks}=buildFileSection(file.id,name);
-    const isEmpty=dvSections.length===0&&standaloneTasks.length===0;
+  // ── Preview (dark-themed) ───────────────────────────────────────────────
+  const PersonChip=({name,role})=>(
+    <span style={{fontSize:9,background:'rgba(91,156,246,0.12)',color:T.acc,borderRadius:3,padding:'1px 5px',marginLeft:3,whiteSpace:'nowrap'}}>{name.split(' ')[0]}{role?' · '+role:''}</span>
+  );
+
+  const FileCard=({f})=>{
+    const{dvSections,standaloneTasks:st}=buildFileTree(f);
+    const isEmpty=dvSections.length===0&&st.length===0;
     return(
-      <div style={{marginBottom:6,paddingLeft:8,borderLeft:`2px solid ${accent}`}}>
-        <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap',marginBottom:2}}>
-          <span style={{fontSize:12,color:T.tx,fontWeight:600}}>{file.title}</span>
-          <StatusDot map={FS} val={file.status}/>
-          {file.priority!=='medium'&&<StatusDot map={FP} val={file.priority}/>}
+      <div style={{marginBottom:12,paddingBottom:10,borderBottom:`1px solid ${T.bd3}`}}>
+        {/* File header */}
+        <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap',marginBottom:f.memory?3:6}}>
+          <span style={{fontSize:12,color:T.tx,fontWeight:700}}>{f.title}</span>
+          <StatusDot map={FS} val={f.status}/>
+          {f.priority!=='medium'&&<StatusDot map={FP} val={f.priority}/>}
+          {f.lead&&<PersonChip name={f.lead} role="lead"/>}
         </div>
-        {file.memory&&<div style={{fontSize:10,color:T.tx3,marginBottom:4,fontStyle:'italic'}}>{stripHtml(file.memory).slice(0,160)}{stripHtml(file.memory).length>160?'…':''}</div>}
+        {f.memory&&<div style={{fontSize:10,color:T.tx3,marginBottom:5,fontStyle:'italic',paddingLeft:2}}>{stripHtml(f.memory).slice(0,160)}{stripHtml(f.memory).length>160?'…':''}</div>}
+        {isEmpty&&<div style={{fontSize:10,color:T.tx3,paddingLeft:4,fontStyle:'italic'}}>No open deliverables or tasks.</div>}
+        {/* Deliverables */}
         {dvSections.map(({dv,tasks})=>(
-          <div key={dv.id} style={{marginBottom:4,paddingLeft:8}}>
+          <div key={dv.id} style={{marginBottom:5,paddingLeft:10,borderLeft:`2px solid ${T.y}33`}}>
             <div style={{display:'flex',gap:4,alignItems:'baseline',flexWrap:'wrap',marginBottom:2}}>
-              <span style={{fontSize:10,color:T.y}}>↳</span>
-              <span style={{fontSize:11,color:T.tx,fontWeight:500}}>{dv.title}</span>
+              <span style={{fontSize:11,color:T.tx,fontWeight:600}}>{dv.title}</span>
               <span style={{fontSize:9,color:T.tx3}}>[{DVS[dv.status]?.label||dv.status}{fmtFlex(dv.dueDate)?' · '+fmtFlex(dv.dueDate):''}]</span>
+              {dv.ownerName&&<PersonChip name={dv.ownerName} role="owner"/>}
             </div>
-            {tasks.map(t=>(
-              <div key={t.id} style={{fontSize:10,color:T.tx2,paddingLeft:12,marginBottom:1}}>
-                • {t.title}{(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
-              </div>
-            ))}
+            {tasks.map(t=>{
+              const assigns=(t.assignees||[t.assignee]).filter(Boolean);
+              return(
+                <div key={t.id} style={{fontSize:10,color:T.tx2,paddingLeft:10,marginBottom:2,display:'flex',gap:4,alignItems:'baseline',flexWrap:'wrap'}}>
+                  <span>• {t.title}</span>
+                  {(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3,fontSize:9}}>{fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
+                  {assigns.map(a=><PersonChip key={a} name={a}/>)}
+                </div>
+              );
+            })}
           </div>
         ))}
-        {standaloneTasks.map(t=>(
-          <div key={t.id} style={{fontSize:10,color:T.tx2,paddingLeft:8,marginBottom:1}}>
-            • {t.title}{(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
-          </div>
-        ))}
-        {isEmpty&&<div style={{fontSize:10,color:T.tx3,paddingLeft:8,fontStyle:'italic'}}>No tasks or deliverables.</div>}
+        {/* Standalone tasks (no deliverable) */}
+        {st.map(t=>{
+          const assigns=(t.assignees||[t.assignee]).filter(Boolean);
+          return(
+            <div key={t.id} style={{fontSize:10,color:T.tx2,paddingLeft:10,marginBottom:2,display:'flex',gap:4,alignItems:'baseline',flexWrap:'wrap',borderLeft:`2px solid ${T.bd2}`,marginTop:2}}>
+              <span>• {t.title}</span>
+              {(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3,fontSize:9}}>{fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
+              {assigns.map(a=><PersonChip key={a} name={a}/>)}
+            </div>
+          );
+        })}
       </div>
     );
   };
 
-  const PreviewSection=({briefing:b})=>(
-    <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${T.bd}`}}>
-      <div style={{fontSize:13,fontWeight:700,color:T.tx,fontFamily:T.serif,marginBottom:8,letterSpacing:'0.02em'}}>{b.name}</div>
-      {b.ledFiles.length>0&&(<div style={{marginBottom:10}}><div style={ss.lbl}>FILES LED</div>{b.ledFiles.map(f=><FileBlock key={f.id} file={f} name={b.name} accent={T.acc}/>)}</div>)}
-      {b.supportFiles.length>0&&(<div style={{marginBottom:10}}><div style={ss.lbl}>SUPPORTING</div>{b.supportFiles.map(f=><FileBlock key={f.id} file={f} name={b.name} accent={T.bd2}/>)}</div>)}
-      {b.standaloneT.length>0&&(<div style={{marginBottom:4}}><div style={ss.lbl}>OTHER TASKS</div>{b.standaloneT.map(t=><div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:2,paddingLeft:8}}>• {t.title}{(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3}}> · {fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}</div>)}</div>)}
-      {!b.ledFiles.length&&!b.supportFiles.length&&!b.standaloneT.length&&<div style={{fontSize:11,color:T.tx3,fontStyle:'italic'}}>No active files or open tasks.</div>}
-    </div>
-  );
-
   return(
     <Overlay onClose={onClose} wide>
       <ModalH title="Meeting Prep" onClose={onClose}/>
+      {/* People filter */}
       <div style={{marginBottom:12}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-          <span style={ss.lbl}>SELECT TEAM MEMBERS</span>
+          <span style={{...ss.lbl,margin:0}}>FILTER BY PERSON <span style={{color:T.tx3,fontWeight:400,textTransform:'none'}}>(leave empty to show all)</span></span>
           <div style={{display:'flex',gap:4}}>
             <button onClick={selectAll} style={{...ss.btn,fontSize:10,padding:'2px 8px'}}>All</button>
             <button onClick={clearAll} style={{...ss.btn,fontSize:10,padding:'2px 8px'}}>Clear</button>
@@ -2525,19 +2531,36 @@ function MeetingPrepModal({data,onClose}){
           ))}
         </div>
       </div>
-      {selectedPeople.length>0&&(
-        <div style={{display:'flex',gap:6,marginBottom:12}}>
-          <button onClick={copyRichText} style={{...ss.btnP,flex:1}}>{copied?'✓ Copied!':'📋 Copy (rich text)'}</button>
-          <button onClick={doPrint} style={{...ss.btn,flex:1}}>🖨 Print / PDF</button>
-        </div>
-      )}
-      {selectedPeople.length>0?(
-        <div ref={printRef} style={{maxHeight:460,overflowY:'auto',borderTop:`1px solid ${T.bd}`,paddingTop:12}}>
-          {selectedPeople.map(p=><PreviewSection key={p.name} briefing={buildBriefing(p.name)}/>)}
-        </div>
-      ):(
-        <div style={{textAlign:'center',padding:'30px 0',color:T.tx3,fontSize:12,fontStyle:'italic'}}>Select one or more team members above to generate their briefing sheet.</div>
-      )}
+      {/* Actions */}
+      <div style={{display:'flex',gap:6,marginBottom:12}}>
+        <button onClick={copyRichText} style={{...ss.btnP,flex:1}}>{copied?'✓ Copied!':'📋 Copy (rich text)'}</button>
+        <button onClick={doPrint} style={{...ss.btn,flex:1}}>🖨 Print / PDF</button>
+      </div>
+      {/* Preview */}
+      <div ref={printRef} style={{maxHeight:460,overflowY:'auto',borderTop:`1px solid ${T.bd}`,paddingTop:12}}>
+        {filteredFiles.length===0&&standaloneTasks.length===0?(
+          <div style={{textAlign:'center',padding:'20px 0',color:T.tx3,fontSize:12,fontStyle:'italic'}}>No active files match the current filter.</div>
+        ):(
+          <>
+            {filteredFiles.map(f=><FileCard key={f.id} f={f}/>)}
+            {standaloneTasks.length>0&&(
+              <div>
+                <div style={ss.lbl}>UNLINKED TASKS</div>
+                {standaloneTasks.map(t=>{
+                  const assigns=(t.assignees||[t.assignee]).filter(Boolean);
+                  return(
+                    <div key={t.id} style={{fontSize:11,color:T.tx2,marginBottom:3,display:'flex',gap:4,alignItems:'baseline',flexWrap:'wrap'}}>
+                      <span>• {t.title}</span>
+                      {(fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate)))&&<span style={{color:T.tx3,fontSize:10}}>{fmtFlex(t.dueDate)||fmt(taskDateStr(t.dueDate))}</span>}
+                      {assigns.map(a=><span key={a} style={{fontSize:9,background:'rgba(91,156,246,0.12)',color:T.acc,borderRadius:3,padding:'1px 5px'}}>{a.split(' ')[0]}</span>)}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </Overlay>
   );
 }
@@ -2640,8 +2663,11 @@ export default function App(){
       (imp.deliverablesToUpdate||[]).forEach(du=>{const dv=(nd.deliverables||[]).find(x=>x.id===du.deliverableId||x.title===du.deliverableTitle);if(dv&&du.changes)Object.assign(dv,du.changes);});
       (imp.deliverablesToCreate||[]).forEach(dc=>{const f=nd.files.find(x=>x.id===dc.fileId||x.title===dc.fileTitle);if(!f)return;const dvId=uid();nd.deliverables=[...(nd.deliverables||[]),{id:dvId,fileId:f.id,title:dc.title||'New Deliverable',type:dc.type||'other',ownerName:dc.ownerName||'',status:dc.status||'not_started',dueDate:dc.dueDate||null,publicationDate:dc.publicationDate||null,approvalStatus:dc.approvalStatus||'not_required',taskIds:[],sharePointUrl:dc.sharePointUrl||'',notes:dc.notes||'',createdAt:TODAY_STR,updatedAt:TODAY_STR}];});
       (imp.milestonesToCreate||[]).forEach(m=>{const f=nd.files.find(x=>x.id===m.fileId||x.title===m.fileTitle);if(f){f.milestones=[...(f.milestones||[]),{id:uid(),title:m.title,status:m.status||'not_started',date:m.date||''}];}});
+      (imp.milestonesToComplete||[]).forEach(m=>{const f=nd.files.find(x=>x.id===m.fileId||x.title===m.fileTitle);if(f){const ms=(f.milestones||[]).find(x=>x.id===m.milestoneId||x.title===m.milestoneTitle);if(ms){ms.status='completed';ms.completedAt=TODAY_STR;}}});
       (imp.risksToCreate||[]).forEach(r=>{const f=nd.files.find(x=>x.id===r.fileId||x.title===r.fileTitle);if(f){f.risks=[...(f.risks||[]),{id:uid(),title:r.title,description:r.description||'',severity:r.severity||'medium',status:r.status||'open',ownerName:r.ownerName||'',notes:''}];}});
       (imp.questionsToCreate||[]).forEach(q=>{const f=nd.files.find(x=>x.id===q.fileId||x.title===q.fileTitle);if(f){f.openQuestions=[...(f.openQuestions||[]),{id:uid(),question:q.question,ownerName:q.ownerName||'',status:'open',answer:'',notes:''}];}});
+      (imp.questionsToClose||[]).forEach(q=>{const f=nd.files.find(x=>x.id===q.fileId||x.title===q.fileTitle);if(f){const oq=(f.openQuestions||[]).find(x=>x.id===q.questionId||x.question===q.questionTitle||x.question===q.question);if(oq){oq.status='closed';oq.answer=q.answer||'';oq.closedAt=TODAY_STR;}}});
+      (imp.peopleToCreate||[]).forEach(p=>{if(!nd.people)nd.people=[];if(!nd.people.find(x=>x.name===p.name)){nd.people.push({id:uid(),name:p.name,title:p.title||'',active:true});}});
       (imp.sharePointLinksToCreate||[]).forEach(l=>{const f=nd.files.find(x=>x.id===l.fileId||x.title===l.fileTitle);if(f){f.sharePointLinks=[...(f.sharePointLinks||[]),{id:uid(),label:l.label||'',url:l.url||'',type:l.type||'folder',createdAt:TODAY_STR}];}});
       return nd;
     });
