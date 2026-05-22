@@ -882,7 +882,7 @@ function FilePage({file,data,onClose,saveFile,saveTask,delTask,newTask,addLogEnt
 function FileCard({file,data,onClick,selected}){
   const openTasks=data.tasks.filter(t=>(t.fileId||t.projectId)===file.id&&!isDone(t));
   const openDVs=(data.deliverables||[]).filter(d=>d.fileId===file.id&&!isDoneDV(d));
-  const nextTask=[...openTasks].sort((a,b)=>{if(!a.dueDate&&!b.dueDate)return 0;if(!a.dueDate)return 1;if(!b.dueDate)return-1;return a.dueDate.localeCompare(b.dueDate);})[0];
+  const nextTask=[...openTasks].sort((a,b)=>{const ad=taskDateStr(a.dueDate),bd=taskDateStr(b.dueDate);if(!ad&&!bd)return 0;if(!ad)return 1;if(!bd)return-1;return ad.localeCompare(bd);})[0];
   const priColor=FP[file.priority]?.tx||T.tx3;
   const urgent=isUrgentFile(file,data.tasks);
   const daysSince=file.updatedAt?Math.floor((TODAY-pd(file.updatedAt))/864e5):null;
@@ -1051,7 +1051,7 @@ function MyTasksView({data,saveTask,delTask,onOpenTask,onOpenFile,onOpenDelivera
     if(sort.col==='dv'){const da=getDV(data.deliverables,a.deliverableId)?.title||'';const db=getDV(data.deliverables,b.deliverableId)?.title||'';return da.localeCompare(db)*d;}
     if(sort.col==='task')return a.title.localeCompare(b.title)*d;
     if(sort.col==='status')return(a.status||'').localeCompare(b.status||'')*d;
-    if(sort.col==='due'){if(!a.dueDate&&!b.dueDate)return 0;if(!a.dueDate)return d;if(!b.dueDate)return-d;return a.dueDate.localeCompare(b.dueDate)*d;}
+    if(sort.col==='due'){const ad=taskDateStr(a.dueDate),bd=taskDateStr(b.dueDate);if(!ad&&!bd)return 0;if(!ad)return d;if(!bd)return-d;return ad.localeCompare(bd)*d;}
     return 0;
   });
   const getBlocker=task=>{if(isBlocked(task,data.tasks))return'⛔ Dependencies';if(task.gate&&task.gate.trim())return task.gate;if(task.status==='blocked')return'⛔ Blocked';return null;};
@@ -2656,7 +2656,7 @@ export default function App(){
       (imp.memoryUpdates||[]).forEach(u=>{const f=nd.files.find(x=>x.id===u.fileId||x.title===u.fileTitle);if(f){f.memory=u.newMemory;f.updatedAt=TODAY_STR;}});
       (imp.logEntriesToCreate||[]).forEach(e=>{const f=nd.files.find(x=>x.id===e.fileId||x.title===e.fileTitle);if(f){f.log=[{id:uid(),date:e.date||TODAY_STR,title:e.title||'Update',summary:e.summary},...(f.log||[])];f.updatedAt=TODAY_STR;}});
       (imp.tasksToComplete||[]).forEach(tc=>{const t=nd.tasks.find(x=>x.id===tc.taskId||x.title===tc.taskTitle);if(t){t.status='completed';t.completedAt=TODAY_STR;}});
-      (imp.tasksToCreate||[]).forEach(t=>{nd.tasks.push({id:uid(),fileId:t.fileId,projectId:t.fileId,title:t.title,assignees:t.assignees||['Karl'],status:t.status||'not_started',dueDate:t.dueDate||null,dependsOn:[],dependencies:[],notes:t.notes||'',gate:'',link:null,approvalChain:[],source:'claude_import',createdAt:TODAY_STR});});
+      (imp.tasksToCreate||[]).forEach(t=>{const rawDate=t.dueDate;const normDate=(rawDate&&typeof rawDate==='object'&&rawDate.precision==='tbd')?null:rawDate||null;nd.tasks.push({id:uid(),fileId:t.fileId,projectId:t.fileId,deliverableId:t.deliverableId||null,title:t.title,assignees:t.assignees||['Karl'],status:t.status||'not_started',dueDate:normDate,dependsOn:[],dependencies:[],notes:t.notes||'',gate:'',link:null,approvalChain:[],source:'claude_import',createdAt:TODAY_STR});});
       (imp.tasksToUpdate||[]).forEach(tu=>{const t=nd.tasks.find(x=>x.id===tu.taskId||x.title===tu.taskTitle);if(t&&tu.changes)Object.assign(t,tu.changes);});
       (imp.filesToUpdate||[]).forEach(fu=>{const f=nd.files.find(x=>x.id===fu.fileId||x.title===fu.fileTitle);if(f&&fu.changes)Object.assign(f,fu.changes);});
       (imp.filesToCreate||[]).forEach(fc=>{nd.files.push({id:uid(),title:fc.title,status:fc.status||'active',priority:fc.priority||'medium',health:'unknown',sensitivity:'normal',lead:fc.lead||'Karl',memory:fc.memory||'',milestones:[],risks:[],openQuestions:[],log:[],sharePointLinks:[],deliverableIds:[],archived:false,createdAt:TODAY_STR,updatedAt:TODAY_STR});});
