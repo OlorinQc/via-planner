@@ -902,7 +902,7 @@ function FileCard({file,data,onClick,selected}){
       {nextTask&&<div style={{fontSize:11,color:T.tx2,background:T.s2,borderRadius:4,padding:'4px 8px',marginBottom:6,borderLeft:`2px solid ${T.acc}40`}}>
         <span style={{color:T.tx3,fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.4px'}}>Next · </span>
         <span style={{wordBreak:'break-word'}}>{nextTask.title.slice(0,60)}{nextTask.title.length>60?'…':''}</span>
-        {nextTask.dueDate&&<span style={{float:'right',marginLeft:4}}><DueChip date={nextTask.dueDate}/></span>}
+        {nextTask.dueDate&&taskDateStr(nextTask.dueDate)&&<span style={{float:'right',marginLeft:4}}><DueChip date={taskDateStr(nextTask.dueDate)}/></span>}
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{display:'flex',gap:5}}>
