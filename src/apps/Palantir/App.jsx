@@ -1249,7 +1249,7 @@ function TodayView({data,saveTask,delTask,saveUiPref,saveDeliverable,onOpenTask,
   const overdue=allMyTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='overdue');
   const todayRaw=allMyTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='today');
   const thisWeek=allMyTasks.filter(t=>t.dueDate&&ds(taskDateStr(t.dueDate))==='soon');
-  const noDate=allMyTasks.filter(t=>!t.dueDate);
+  const noDate=allMyTasks.filter(t=>!taskDateStr(t.dueDate));
   const myDVs=(data.deliverables||[]).filter(d=>d.ownerName==='Karl'&&!isDoneDV(d));
   const dvDueToday=myDVs.filter(d=>{const ex=flexToExact(d.dueDate);return ex&&(ds(ex)==='today'||ds(ex)==='overdue');});
 
