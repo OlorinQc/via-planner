@@ -1772,10 +1772,10 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                                   onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
                                   onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'task',insertBeforeTaskId:t.id});}}
                                   onClick={e=>{e.stopPropagation();openTask(t.id);}}
-                                  style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2}}
+                                  style={{fontSize:10,color:T.tx,padding:'3px 9px 3px 20px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2,display:'flex',alignItems:'flex-start',gap:4}}
                                   onMouseEnter={e=>e.currentTarget.style.background=T.s3}
                                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-                                >• {t.title}</div>
+                                ><span style={{flex:1}}>• {t.title}</span><button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{background:'transparent',border:`1px solid rgba(63,182,139,0.3)`,borderRadius:3,color:T.g,cursor:'pointer',fontSize:9,padding:'1px 4px',flexShrink:0,lineHeight:1}}>✓</button></div>
                               </div>);
                             })}
                           </div>);
@@ -1790,10 +1790,10 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                               onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
                               onDragOver={e=>{e.preventDefault();e.stopPropagation();setTaskDragOver({personName:p.name,fileId:file.id,zone:'task',insertBeforeTaskId:t.id});}}
                               onClick={e=>{e.stopPropagation();openTask(t.id);}}
-                              style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2}}
+                              style={{fontSize:10,color:T.tx,padding:'4px 9px',borderBottom:`1px solid ${T.bd3}`,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2,display:'flex',alignItems:'flex-start',gap:4}}
                               onMouseEnter={e=>e.currentTarget.style.background=T.s3}
                               onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-                            >• {t.title}</div>
+                            ><span style={{flex:1}}>• {t.title}</span><button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{background:'transparent',border:`1px solid rgba(63,182,139,0.3)`,borderRadius:3,color:T.g,cursor:'pointer',fontSize:9,padding:'1px 4px',flexShrink:0,lineHeight:1}}>✓</button></div>
                           </div>);
                         })}
                         {/* Drop zone at bottom of file card — catches drops even when card is empty */}
@@ -1824,10 +1824,10 @@ function PeopleView({data,saveTask,delTask,saveDeliverable,delDeliverable,newTas
                             onDragStart={e=>{e.stopPropagation();taskDragRef.current={taskId:t.id,fromPerson:p.name};setTaskDragId(t.id);}}
                             onDragEnd={()=>{taskDragRef.current=null;setTaskDragId(null);setTaskDragOver(null);}}
                             onClick={()=>openTask(t.id)}
-                            style={{fontSize:10,color:T.tx,padding:'3px 6px',borderRadius:3,marginBottom:2,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2}}
+                            style={{fontSize:10,color:T.tx,padding:'3px 6px',borderRadius:3,marginBottom:2,cursor:'grab',opacity:taskDragId===t.id?0.4:1,...wrap2,display:'flex',alignItems:'flex-start',gap:4}}
                             onMouseEnter={e=>e.currentTarget.style.background=T.s3}
                             onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-                          >• {t.title}</div>
+                          ><span style={{flex:1}}>• {t.title}</span><button onClick={e=>{e.stopPropagation();saveTask(t.id,{status:'completed',completedAt:TODAY_STR});}} style={{background:'transparent',border:`1px solid rgba(63,182,139,0.3)`,borderRadius:3,color:T.g,cursor:'pointer',fontSize:9,padding:'1px 4px',flexShrink:0,lineHeight:1}}>✓</button></div>
                         ))}
                       </div>
                     </div>
