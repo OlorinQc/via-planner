@@ -7,6 +7,7 @@ import Hub from "./Hub";
 import ViaPlanner from "./apps/ViaPlanner/App";
 import PalantirApp from "./apps/Palantir/App";
 import DurinsWorksApp from "./apps/Durin's Works/App";
+import CelebrimborRulerApp from "./apps/CelebrimborRuler/App";
 
 function AppRouter({ unlocking }) {
   return (
@@ -16,6 +17,7 @@ function AppRouter({ unlocking }) {
         <Route path="/planner" element={<ViaPlanner />} />
         <Route path="/palantir" element={<PalantirApp />} />
 	<Route path="/durins-works" element={<DurinsWorksApp />} />
+        <Route path="/celebrimbors-ruler" element={<CelebrimborRulerApp />} />
         {/* /house will be added when House Manager is ready */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

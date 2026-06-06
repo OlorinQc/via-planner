@@ -52,6 +52,22 @@ const apps = [
       </svg>
     ),
   },
+  {
+    id: "celebrimbors-ruler",
+    title: "Celebrimbor's Ruler",
+    desc: "Measure rooms from a single photo.",
+    route: "/celebrimbors-ruler",
+    active: true,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="9" width="20" height="6" rx="1" />
+        <line x1="6" y1="9" x2="6" y2="12" />
+        <line x1="10" y1="9" x2="10" y2="11" />
+        <line x1="14" y1="9" x2="14" y2="11" />
+        <line x1="18" y1="9" x2="18" y2="12" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Hub({ unlocking = false }) {
