@@ -558,6 +558,7 @@ export default function CelebrimborRuler() {
   const containerRef = useRef(null);
   const fileRef      = useRef(null);
   const isPanning    = useRef(false);
+  const panButton    = useRef(null); // which button triggered pan: 0=left,1=mid,2=right
   const panStart     = useRef(null);
   const didDrag      = useRef(false);
   const mouseDownPos = useRef(null);
@@ -599,26 +600,28 @@ export default function CelebrimborRuler() {
   }
 
   function onMouseDown(e) {
-    if (e.button===1) { // middle mouse -- always pan
-      isPanning.current=true; panStart.current={x:e.clientX-pan.x,y:e.clientY-pan.y};
+    if (e.button===1||e.button===2) { // middle or right -- always pan, any mode
+      isPanning.current=true; panButton.current=e.button;
+      panStart.current={x:e.clientX-pan.x,y:e.clientY-pan.y};
       e.preventDefault(); return;
     }
     if (e.button===0) {
       mouseDownPos.current={x:e.clientX,y:e.clientY}; didDrag.current=false;
       if (mode==="idle") { // left drag pans only in idle
-        isPanning.current=true; panStart.current={x:e.clientX-pan.x,y:e.clientY-pan.y};
+        isPanning.current=true; panButton.current=0;
+        panStart.current={x:e.clientX-pan.x,y:e.clientY-pan.y};
       }
     }
   }
 
   function onMouseMove(e) {
-    // Track drag distance
+    // Track drag distance (left button)
     if (mouseDownPos.current&&(e.buttons&1)) {
       if (Math.hypot(e.clientX-mouseDownPos.current.x,e.clientY-mouseDownPos.current.y)>5)
         didDrag.current=true;
     }
-    // Pan
-    if (isPanning.current&&mode==="idle")
+    // Pan: right/middle pans in any mode; left pans only in idle
+    if (isPanning.current&&(panButton.current!==0||mode==="idle"))
       setPan({x:e.clientX-panStart.current.x, y:e.clientY-panStart.current.y});
     // Hover for draw modes
     if (mode!=="idle"&&!inlineForm&&containerRef.current&&image) {
@@ -796,7 +799,8 @@ export default function CelebrimborRuler() {
            onMouseUp={onMouseUp}   onMouseLeave={onMouseUp}
            onClick={onCanvasClick}  onWheel={onWheel}
            onDrop={e=>{e.preventDefault();loadFile(e.dataTransfer.files[0]);}}
-           onDragOver={e=>e.preventDefault()}>
+           onDragOver={e=>e.preventDefault()}
+           onContextMenu={e=>e.preventDefault()}>
 
         {/* Drop/paste prompt */}
         {!image&&(
