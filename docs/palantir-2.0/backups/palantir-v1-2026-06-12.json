@@ -1,0 +1,6972 @@
+{
+ "files": [
+  {
+   "id": "p01",
+   "log": [
+    {
+     "id": "p1778885900135",
+     "date": "2026-06-03",
+     "title": "Key messages updated; partner quote circulation launched; web page scoped",
+     "summary": "William-Antoine completed updated Dorval key messages and Q&A by June 8. Partner quote circulation initiated week of June 5. New task added to create a dedicated project web page."
+    },
+    {
+     "id": "p1778885900119",
+     "date": "2026-05-27",
+     "title": "Dorval key messages redone with narrative",
+     "summary": "William-Antoine completed revised Dorval key messages integrating the VIA narrative, week of May 25. Karl to review by May 29. Once reviewed, messages to be circulated with partners for quotes, week of June 1."
+    },
+    {
+     "id": "p1778885900086",
+     "date": "2026-05-22",
+     "title": "Comms strategy approved May 21",
+     "summary": "Comms strategy approved by Mathieu Paquette on May 21. Carl Delisle and Michael Acosta had previously approved. William-Antoine to lead execution starting early June for approximately two weeks."
+    },
+    {
+     "id": "p8001",
+     "date": "2026-05-15",
+     "title": "Narrative messages not yet integrated — Karl's priority for May 15",
+     "summary": "Messages not yet reinjected into the Dorval file as of May 15. Karl's priority task for today. Carl Delisle and Michael Acosta have approved the strategy; Mathieu Paquette approval pending."
+    }
+   ],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "Gare de Dorval",
+   "health": "unknown",
+   "memory": "Comms strategy approved May 21 by Mathieu Paquette. Carl Delisle and Michael Acosta had previously approved. William-Antoine leading. William-Antoine completed updated key messages and Q&A by June 8. Partner quote circulation underway week of June 5. Web page for the project to be created. Execution planned early June.",
+   "status": "active",
+   "archived": false,
+   "priority": "urgent",
+   "createdAt": "2026-05-11",
+   "updatedAt": "2026-06-03",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "medium",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900123",
+     "url": "https://viarailonline.sharepoint.com/sites/PublicAffairsandCommunications/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FPublicAffairsandCommunications%2FShared%20Documents%2F0%2E%20Projects%2F2026%2F35%2E%20Gare%20de%20Dorval&viewid=566b7b62%2D4872%2D4004%2Db61d%2D36135db459bb",
+     "type": "folder",
+     "label": "Dorval — dossier Teams",
+     "createdAt": "2026-05-22"
+    }
+   ],
+   "supportPersonIds": [],
+   "standaloneTaskOrder": []
+  },
+  {
+   "id": "p02",
+   "log": [
+    {
+     "id": "p1778885900115",
+     "date": "2026-05-27",
+     "title": "Alto documentation gathered; Changemakers briefed",
+     "summary": "Karl completed documentation gathering and mapped current government messaging on transition. Changemakers briefed and onboarded. Karl to prep official Changemaker brief by May 28."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Alto",
+   "health": "unknown",
+   "memory": "<div><ul><li><b>Messages clés généraux</b> pour la transition Alto.&nbsp;</li></ul></div><div><ul><li>Chercher discours de Vincent Robitaille pour ce qu'il a di sur la transition.\n\n</li></ul></div>",
+   "status": "active",
+   "archived": false,
+   "priority": "urgent",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-27",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "high",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": [],
+   "standaloneTaskOrder": []
+  },
+  {
+   "id": "p03",
+   "log": [
+    {
+     "id": "p1778885900006",
+     "date": "2026-05-20",
+     "title": "Board presentation delivered; Q1 press release cancelled",
+     "summary": "Q1 report presented to Board May 19–20 and approved. Go/no go decision on press release taken: no — Q1 press release cancelled."
+    },
+    {
+     "id": "p8002",
+     "date": "2026-05-15",
+     "title": "Q1 report finalization in progress",
+     "summary": "First report ready May 15. Karl applying Carl Delisle's comments ahead of Board presentation May 19–20."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Rapport trimestriel",
+   "health": "unknown",
+   "memory": "Q1 report presented to Board May 19–20 and approved. Go/no go decision on press release: no — Q1 press release cancelled. Recommendation to explore shifting to editorial/proof-of-progress format for 2027 previously tabled.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-27",
+   "archivedAt": null,
+   "milestones": [
+    {
+     "id": "p8056",
+     "date": "2026-05-19",
+     "title": "Board presentation",
+     "status": "not_started"
+    }
+   ],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p04",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Calendrier institutionnel",
+   "health": "unknown",
+   "memory": "Collecte des tâches actuelles et prévues de l'équipe comm externe pour remise à Casacom.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p05",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Reputation Score",
+   "health": "unknown",
+   "memory": "Rapport de suivi du Reputation Score. Amélioration des prochains rapports.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p06",
+   "log": [
+    {
+     "id": "p1778885900143",
+     "date": "2026-06-03",
+     "title": "Lessons learned task added for FAM",
+     "summary": "Marie-Élise flagged the need to capture lessons learned from the FAM trip — specifically around putting deliverables on contract and formalizing the results handoff process."
+    },
+    {
+     "id": "p1778885900083",
+     "date": "2026-05-22",
+     "title": "3 scopes signed; Crestview begins design May 25",
+     "summary": "3 scopes of work approved and signed by Philippe Normand on May 15. Réquisitions and SOF submitted by Marie-Élise around May 19. Debrief email sent to Crestview and comms/marketing synergy meeting held May 21. Crestview begins full program design week of May 25."
+    },
+    {
+     "id": "p1778885900063",
+     "date": "2026-05-22",
+     "title": "Champions program alignment meeting — partnership portfolio reviewed and prioritized",
+     "summary": "Team aligned on Champions program structure and budget across agency fees, partnerships, and influencer campaigns. Five partnership streams assigned to Marie-Élise Jarry. Influencer strategy confirmed: awareness-focused, top-performing content to be selectively amplified, amplification rights to be included in agreements. Lise Arsenault to define content creator shortlist. Vanessa Zieman to evaluate paid media boosting and advance hockey and tennis negotiations. Cirque du Soleil deferred due to high cost. Biweekly working group to follow once program direction confirmed."
+    },
+    {
+     "id": "p8003",
+     "date": "2026-05-15",
+     "title": "Contracts sent; presentation held May 14",
+     "summary": "Contracts received May 14 and sent by Marie-Élise to Philippe Normand for signature. Presentation to Philippe Normand and Vanessa Ziemans held May 14."
+    }
+   ],
+   "lead": "Marie-Élise Jarry",
+   "risks": [
+    {
+     "id": "p1778885900081",
+     "notes": "",
+     "title": "Cirque du Soleil — high cost and rigid package structure",
+     "status": "monitoring",
+     "severity": "medium",
+     "ownerName": "Marie-Élise Jarry",
+     "description": "Cirque du Soleil proposal deemed too expensive and sponsorship package not flexible enough for current budget. Deferred to a future milestone year. Custom activation could potentially be negotiated but no current path forward."
+    }
+   ],
+   "title": "Champions",
+   "health": "unknown",
+   "memory": "Champions program active. Lead: Marie-Élise Jarry. 3 scopes of work approved and signed (Philippe Normand, May 15). Réquisitions et SOF submitted ~May 19 by Marie-Élise. Debrief email to Crestview and comms/marketing alignment meeting held May 21. Crestview begins full program design week of May 25. External champions and content creators: deployment June–July. Internal amplifiers: deployment August. Five active partnership streams: Eugene Levy content collaboration, Indigo, Children's Hospital & Cause Partnerships, Influencer & Content Creator Campaign, Sports & Events Partnerships. Budget confirmed; awareness campaigns prioritized this summer; additional spend starting late August. Cirque du Soleil deferred — high cost, rigid package. Biweekly working group to be established with agency once program direction confirmed.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-06-03",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [
+    {
+     "id": "p1778885900082",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "Which partnerships should be prioritized within current budget constraints?",
+     "ownerName": "Marie-Élise Jarry"
+    },
+    {
+     "id": "p1778885900083",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "Should the Indigo partnership scope stay limited to content, or expand to a broader commercial integration?",
+     "ownerName": "Marie-Élise Jarry"
+    },
+    {
+     "id": "p1778885900084",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "Should influencer efforts be merged into a single campaign structure with a shared budget?",
+     "ownerName": "Marie-Élise Jarry"
+    },
+    {
+     "id": "p1778885900085",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "What is the exact Eugene Levy production timeline, and does it align with VIA Rail's rollout schedule?",
+     "ownerName": "Marie-Élise Jarry"
+    }
+   ],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900120",
+     "url": "https://viarailonline.sharepoint.com/:f:/r/sites/PublicAffairsandCommunications/Shared%20Documents/0.%20Projects/2026/01.%20Champions%20Program%202026?csf=1&web=1&e=Epro2b",
+     "type": "folder",
+     "label": "Champions Program 2026 — dossier Teams",
+     "createdAt": "2026-05-22"
+    }
+   ],
+   "supportPersonIds": [],
+   "standaloneTaskOrder": []
+  },
+  {
+   "id": "p07",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Gaspésie",
+   "health": "unknown",
+   "memory": "Revoir les déclarations de Mathieu dans les médias et ajuster les messages clés avant le 15 mai.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-15",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": [],
+   "standaloneTaskOrder": []
+  },
+  {
+   "id": "p08",
+   "log": [
+    {
+     "id": "p1778885900122",
+     "date": "2026-05-27",
+     "title": "File archived — merged into LDRR (p25)",
+     "summary": "LDRR Engine Contract archived May 27 and consolidated into LDRR (p25). Open tasks migrated: Connect with Benjamin Pelletier and Draft LDRR message map."
+    },
+    {
+     "id": "p1778885900004",
+     "date": "2026-05-20",
+     "title": "Comms approach confirmed; Benjamin Pelletier identified as Karl's counterpart",
+     "summary": "Comms approach confirmed May 20. Susan Williams continues exclusively with change management. Karl to align positioning and messaging with Benjamin Pelletier (Lead PMO, LDRR) and provide a message map for change management to activate with Susan."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "LDRR Engine Contract",
+   "health": "unknown",
+   "memory": "Comms approach confirmed May 20. Susan Williams (lead, Product and Service Delivery stream) continues discussions with change management only — does not want multiple contacts. Karl to coordinate overall messaging and positioning with Benjamin Pelletier (Lead PMO de LDRR, reporting to Arnaud). Karl to provide a clear message map to change management, who will activate it with Susan Williams. Supplier visit May 20.",
+   "status": "active",
+   "archived": true,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-27",
+   "archivedAt": "2026-05-27",
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p09",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Révision des pratiques d'équipe",
+   "health": "unknown",
+   "memory": "21 ou 22 mai. Évaluation de ce qui fonctionne et ce qui doit changer. Modèle TC pour la boîte média. Réintégrer les GR dans la rotation de garde.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p10",
+   "log": [
+    {
+     "id": "p1778885900153",
+     "date": "2026-06-12",
+     "title": "Dry run held June 8; speeches sent to board by Philippe",
+     "summary": "Dry run held June 8 with Jonathan Goldbloom, Mathieu Paquette, and Carl Delisle. Philippe Normand sent speeches to Mathieu, Jonathan, and Carl as requested. APA recording at CASACOM on track for June 11."
+    },
+    {
+     "id": "p1778885900133",
+     "date": "2026-06-03",
+     "title": "Multiple APA tasks completed; assignees confirmed",
+     "summary": "Several APA tasks completed ahead of the June 3 meeting: William-Antoine added the audience questions section to APA, coordinated approvals from Mathieu Paquette, Jonathan Goldbloom, and Philippe Normand, and folded the top 3 public questions into the speeches. Karl sent speeches to Carl, Jonathan, and Mathieu for review (May 25), sent revised texts with Q&A answers (May 27), and William-Antoine edited and finalized APA texts (June 1). Dry-run June 8 assigned to both Karl and William-Antoine. Recording date confirmed as June 11 at CASACOM."
+    },
+    {
+     "id": "p1778885900116",
+     "date": "2026-05-27",
+     "title": "Question period closed; speeches reviewed; recording moved to June 11",
+     "summary": "Public question period closed May 25. Karl reviewed Sylvie's speeches (May 21). William-Antoine followed up with Jamie Orchard and received approved speech versions. APA recording at CASACOM moved to June 11. Audience questions section deadline extended to May 29."
+    },
+    {
+     "id": "p1778885900082",
+     "date": "2026-05-22",
+     "title": "CDP published May 19; question period open",
+     "summary": "APA announced and CDP published by William-Antoine Blaney on May 19. Question period opened May 20, closes May 25. Karl to send speeches to Carl Delisle, Jonathan Goldbloom, and Mathieu Paquette by May 25."
+    },
+    {
+     "id": "p8004",
+     "date": "2026-05-15",
+     "title": "Speeches complete; William-Antoine now coordinating",
+     "summary": "Speeches completed by Sylvie. William-Antoine takes over coordination of overall APA/APM file. Press release approved for week of May 18. Période de questions confirmed May 20–25."
+    }
+   ],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "Assemblée publique annuelle (APA) 2025",
+   "health": "unknown",
+   "memory": "APA préenregistrée. Speeches completed by Sylvie. William-Antoine coordinating overall APA file. Sarah remains moderator/host. APA announced and CDP published May 19. Question period May 20–25. Karl sends speeches to Carl Delisle, Jonathan Goldbloom, Mathieu Paquette by May 25 — done. Karl sends revised texts with Q&A answers May 27 — done. William-Antoine edits and finalizes texts June 1 — done. Dry-run June 8 with Mathieu, Carl, Jonathan — Karl and William-Antoine both attending. Recording at CASACOM June 11. Post-production and written answers to July 10. Online July 16 at 16h.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-06-12",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900119",
+     "url": "https://viarailonline.sharepoint.com/sites/PublicAffairsandCommunications/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FPublicAffairsandCommunications%2FShared%20Documents%2F0%2E%20Projects%2F2026%2F14%2E%20Assembl%C3%A9e%20Publique%20Annuelle&viewid=566b7b62%2D4872%2D4004%2Db61d%2D36135db459bb",
+     "type": "folder",
+     "label": "APA — dossier Teams",
+     "createdAt": "2026-05-22"
+    }
+   ],
+   "supportPersonIds": [],
+   "standaloneTaskOrder": [
+    "t026",
+    "t027",
+    "t028",
+    "t029",
+    "t030",
+    "t031",
+    "p8001",
+    "p8009",
+    "p8010",
+    "p8011",
+    "p8012",
+    "p8013",
+    "p8014"
+   ]
+  },
+  {
+   "id": "p11",
+   "log": [
+    {
+     "id": "p1778885900085",
+     "date": "2026-05-22",
+     "title": "FAM trip completed — awaiting media coverage",
+     "summary": "FAM trip to Prince Edward County completed week of May 19. Four journalists attended with business class reservations and vouchers. Now monitoring for media retombées."
+    }
+   ],
+   "lead": "Marie-Élise Jarry",
+   "risks": [],
+   "title": "FAM trip",
+   "health": "unknown",
+   "memory": "FAM trip completed week of May 19 (Prince Edward County). Four journalists attended. Business class reservations and vouchers provided. Monitoring — awaiting media retombées.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-22",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p12",
+   "log": [],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "Casacom — Planification estivale",
+   "health": "unknown",
+   "memory": "Timeline avec Casacom et planification des livrables pour cet été.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p13",
+   "log": [],
+   "lead": "Marie-Élise Jarry",
+   "risks": [],
+   "title": "Calendrier corporatif",
+   "health": "unknown",
+   "memory": "No progress as of May 14. Marie-Élise to escalate directly to Philippe Normand to confirm ownership and push for advancement. Activity decks needed from all BUs for the Narrative. Karl to also raise with Philippe Normand.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-16",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900124",
+     "url": "https://viarailonline.sharepoint.com/:x:/s/PublicAffairsandCommunications/IQARo74NkIXAR7WxVxBtePMdAfdg7CCiznJx1P1WBvmZPkw?e=jMCOka",
+     "type": "other",
+     "label": "2026 Corporate Calendar.xlsx",
+     "createdAt": "2026-05-22"
+    }
+   ],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p14",
+   "log": [],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "Photojournaliste Globe and Mail",
+   "health": "unknown",
+   "memory": "Couverture terrain Sudbury-White River. Assurer suivi de la visibilité.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p15",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Recyclage contenu web et GEO",
+   "health": "unknown",
+   "memory": "Rencontrer Litsa Kalambokis pour intégrer la stratégie de recyclage de contenu web et GEO.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p16",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Winter Schedule",
+   "health": "unknown",
+   "memory": "Préparation du deck de présentation pour l'horaire hiver.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p17",
+   "log": [],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "Formations CASACOM",
+   "health": "unknown",
+   "memory": "Conseil stratégique. Examiner les formations offertes par Casacom pour l'équipe, incluant Marie-Élise.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-16",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p18",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Liste enjeux / KPI / Médias",
+   "health": "unknown",
+   "memory": "One-pager stratégique pour le narratif. Contenu passif, VIA Explained, thought leadership. Pour Phil N.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p19",
+   "log": [
+    {
+     "id": "p1778885900007",
+     "date": "2026-05-20",
+     "title": "VIA Narrative approved at Board",
+     "summary": "VIA Narrative presented to Board May 19 at 10h55 and approved."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "VIA Narrative Structure",
+   "health": "unknown",
+   "memory": "VIA Narrative presented to Board May 19 at 10h55 and approved. Presentation format confirmed.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-06-11",
+   "archivedAt": null,
+   "milestones": [
+    {
+     "id": "p8057",
+     "date": "2026-05-19",
+     "title": "Board presentation — VIA Narrative",
+     "status": "not_started"
+    }
+   ],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [
+    {
+     "id": "p8060",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "What will the presentation format be for the Board?",
+     "ownerName": "Karl"
+    }
+   ],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p20",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Comms Plan ONTC",
+   "health": "unknown",
+   "memory": "Protocole de communications à créer et intégrer dans le contrat légal.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p21",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Strategic Roadmap",
+   "health": "unknown",
+   "memory": "Appliquer le narratif aux 6 piliers stratégiques. Demander le document complet à Jamie.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "lnk01",
+     "url": "https://viarailonline.sharepoint.com/:p:/s/PublicAffairsandCommunications/IQAxX58-M3ZmTaH9f9NOK95lAQI-nN79Y6_G4ybxngDRjJc",
+     "type": "folder",
+     "label": "SharePoint Deck",
+     "createdAt": "2026-05-14"
+    }
+   ],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p22",
+   "log": [
+    {
+     "id": "p1778885900138",
+     "date": "2026-06-03",
+     "title": "New crisis tasks added; Everbridge assignee confirmed",
+     "summary": "June 3 meeting produced two new tasks: Marie-Élise to set up auto out-of-office acknowledgement (business hours, June 10 deadline), and William-Antoine to work with Bruno Riendeau on the Incident Commander media training brief. Everbridge integration task assigned to William-Antoine."
+    },
+    {
+     "id": "p1778885900003",
+     "date": "2026-05-20",
+     "title": "Crisis structure confirmed — Denis Boucher as Cell Lead",
+     "summary": "Crisis cell roles confirmed May 20. Denis Boucher is Cell Lead. William-Antoine Blaney is Scribe. Marie-Élise Jarry manages media inbox. Casacom handles messaging. LAM 3 leads; Karl joins when available. Active work: update plan with recent departures, brief Philippe Normand, integrate all team members on Everbridge."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Mise à jour plan de crise",
+   "health": "unknown",
+   "memory": "Crisis cell structure confirmed. Roles: Denis Boucher (Cell Lead), William-Antoine Blaney (Scribe), Marie-Élise Jarry (Media inbox), Casacom (Messaging), LAM 3 on call. Everbridge integration in progress — William-Antoine adding Sylvie and remaining team members. Marie-Élise creating auto out-of-office acknowledgement (business hours) by June 10. William-Antoine to work with Bruno Riendeau on brief for Incident Commander media training.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-06-03",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p23",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Accès Casacom — Janna",
+   "health": "unknown",
+   "memory": "Confirmer et activer les accès Casacom avec Janna.",
+   "status": "monitoring",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-09",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p24",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Gare du Palais — Pivot médiatique",
+   "health": "unknown",
+   "memory": "Projet sur la glace. Informer Jean-Philippe.",
+   "status": "paused",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-14",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-1",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p25",
+   "log": [
+    {
+     "id": "p1778885900134",
+     "date": "2026-06-03",
+     "title": "NDA verification, Q&A sharing, and web page budget flagged",
+     "summary": "June 3 meeting surfaced three new action items: Karl to verify NDA status with Legal for both LDRR and Alto files; Sylvie to share the LDRR Q&A with the team; and team to seek budget for a dedicated LDRR page on the new VIA Rail website. Existing web page task updated to reflect budget-first sequencing."
+    },
+    {
+     "id": "p1778885900121",
+     "date": "2026-05-27",
+     "title": "File activated; LDRR Engine Contract merged in",
+     "summary": "LDRR file activated May 27. LDRR Engine Contract (p08) archived and merged: Benjamin Pelletier alignment task and LDRR message map task migrated here. Two new tasks added targeting week of June 1: LDRR web page planning and interim messaging for the gap between contract signing and government announcement."
+    },
+    {
+     "id": "p1778885900087",
+     "date": "2026-05-22",
+     "title": "July announcement confirmed; file renamed to LDRR",
+     "summary": "Joint announcement targeted for July 2026. Whether GoC or VIA Rail leads the announcement remains to be determined. Karl and Marie-Élise establishing communications governance with the program team. File renamed from Annonce LDRR to LDRR."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "LDRR",
+   "health": "unknown",
+   "memory": "Joint announcement (GoC or VIA Rail — TBD) targeted July 2026. Communications governance being established with LDRR program team by Karl and Marie-Élise (May). Coordination with LDRR Engine Contract file (p08) and Benjamin Pelletier (Lead PMO). File renamed to LDRR. Karl to verify NDA status with Legal for LDRR and Alto. Sylvie to share LDRR Q&A. Budget being sought for a dedicated page on the new VIA Rail website.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-06-03",
+   "archivedAt": null,
+   "milestones": [
+    {
+     "id": "p1778885900116",
+     "date": "2026-07-01",
+     "title": "Annonce conjointe LDRR",
+     "status": "not_started"
+    }
+   ],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [
+    {
+     "id": "p1778885900117",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "Is the joint LDRR announcement to come from GoC or VIA Rail?",
+     "ownerName": "Karl"
+    }
+   ],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p26",
+   "log": [],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "CAD",
+   "health": "unknown",
+   "memory": "À définir avec William.",
+   "status": "completed",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-09",
+   "updatedAt": "2026-05-14",
+   "archivedAt": null,
+   "milestones": [],
+   "sensitivity": "low",
+   "latestUpdate": "",
+   "leadPersonId": "per-4",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "p8043",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Media on Duty",
+   "health": "unknown",
+   "memory": "Two-part initiative. (1) Train IC commanders to recognize reputation risk and call the comms team — reducing on-call burden for every LAM 2 incident. Bruno Riendeau supporting. (2) Modify the schedule on which the team verifies and reads the media inbox. (3) On-duty officer stream: onboard 3–4 new resources starting June.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-22",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8044",
+   "log": [],
+   "lead": "Sylvie Gosselin",
+   "risks": [],
+   "title": "New Executive Committee",
+   "health": "unknown",
+   "memory": "Two streams. (1) Media training for new executives, planned for September, to be organized with Casacom. (2) Executive photoshoot in June and new exec biographies for the website. Sylvie leads photoshoot and bios. William-Antoine to update website once bios are secured — website update is blocked by the biographies task.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-19",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8045",
+   "log": [
+    {
+     "id": "p1778885900118",
+     "date": "2026-05-27",
+     "title": "Tabletop exercise completed; file renamed to FIFA",
+     "summary": "William-Antoine attended the FIFA tabletop exercise May 21. Denis and Félix received invitations May 20. File renamed to FIFA. Next step: media statement and messages around FIFA Vancouver Station preparations, in coordination with Bruno."
+    }
+   ],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "FIFA",
+   "health": "unknown",
+   "memory": "Tabletop exercise coming up next week. Philippe Normand to be informed. William-Antoine's role to be confirmed.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-27",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8046",
+   "log": [
+    {
+     "id": "p1778885900136",
+     "date": "2026-06-03",
+     "title": "File wrapped up",
+     "summary": "Hidden Disabilities / Tournesol file confirmed wrapped up at June 3 team meeting. All tasks complete. File status set to completed."
+    },
+    {
+     "id": "p1778885900120",
+     "date": "2026-05-27",
+     "title": "Press release validated by Hidden Disabilities and Denis Boucher",
+     "summary": "Marie-Élise obtained final validation of the communiqué de presse from Hidden Disabilities org and Denis Boucher on May 27, and informed Philippe Normand and William-Antoine. Karl to complete final editorial review May 28 before publication June 1."
+    },
+    {
+     "id": "p1778885900084",
+     "date": "2026-05-22",
+     "title": "June 1 official launch confirmed — internal and external streams",
+     "summary": "June 1 confirmed as official Tournesol/Hidden Disabilities launch date. Internal stream (Horizon/Viva Engage) led by Sylvie; external stream (website, digital tours, social) led by Marie-Élise. May 25: back-of-house signage installation and reminder bulletin."
+    },
+    {
+     "id": "p1778885900047",
+     "date": "2026-05-20",
+     "title": "Sylvie's handoff note to Catherine Langlois — Tournesol rollout",
+     "summary": "Sylvie provided a detailed handoff note to Catherine Langlois on May 20 for the Tournesol program rollout. Work over the next two weeks in collaboration with Marie-Élise and Sarah: share manager toolkit and coordinate OTS bulletin with Léa (week of May 25), post TV animation in stations (Sarah, after bulletin), validate digital tower visuals with Hidden Disabilities org (Marie-Élise with Anick), obtain final press release approval from Hidden Disabilities and Denis Boucher, brief ExCo, finalize web section with Litsa and Laura by June 1, and William-Antoine to publish communiqué once advised."
+    },
+    {
+     "id": "p1778885900036",
+     "date": "2026-05-20",
+     "title": "Sylvie's handoff note to Catherine Langlois — Tournesol rollout",
+     "summary": "Sylvie provided a detailed handoff note to Catherine Langlois on May 20 for the Tournesol program rollout. Work over the next two weeks in collaboration with Marie-Élise and Sarah: share manager toolkit and coordinate OTS bulletin with Léa (week of May 25), post TV animation in stations (Sarah, after bulletin), validate digital tower visuals with Hidden Disabilities org (Marie-Élise with Anick), obtain final press release approval from Hidden Disabilities and Denis Boucher, brief ExCo, finalize web section with Litsa and Laura by June 1, and William-Antoine to publish communiqué once advised."
+    }
+   ],
+   "lead": "Sylvie Gosselin",
+   "risks": [],
+   "title": "Hidden Disabilities media push",
+   "health": "unknown",
+   "memory": "File wrapped up. All tasks completed. Tournesol launch executed.",
+   "status": "completed",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-03",
+   "milestones": [
+    {
+     "id": "p1778885900114",
+     "date": "2026-06-01",
+     "title": "Lancement officiel Tournesol / Hidden Disabilities",
+     "status": "not_started"
+    }
+   ],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900047",
+     "url": "https://viarailonline.sharepoint.com/:f:/r/sites/PublicAffairsandCommunications/Shared%20Documents/0.%20Projects/2026/27.%20Accessibilit%C3%A9/01.%20Programme%20Tournesol?csf=1&web=1&e=YuKeA8",
+     "type": "folder",
+     "label": "Dossier Tournesol — 27. Accessibilité",
+     "createdAt": "2026-05-20"
+    },
+    {
+     "id": "p1778885900058",
+     "url": "https://viarailonline.sharepoint.com/:f:/r/sites/PublicAffairsandCommunications/Shared%20Documents/0.%20Projects/2026/27.%20Accessibilit%C3%A9/01.%20Programme%20Tournesol?csf=1&web=1&e=YuKeA8",
+     "type": "folder",
+     "label": "Dossier Tournesol — 27. Accessibilité",
+     "createdAt": "2026-05-20"
+    },
+    {
+     "id": "p1778885900122",
+     "url": "https://viarailonline.sharepoint.com/:f:/r/sites/PublicAffairsandCommunications/Shared%20Documents/0.%20Projects/2026/27.%20Accessibilit%C3%A9/01.%20Programme%20Tournesol?csf=1&web=1&e=YuKeA8",
+     "type": "folder",
+     "label": "Tournesol — 01. Programme Tournesol",
+     "createdAt": "2026-05-22"
+    }
+   ]
+  },
+  {
+   "id": "p8047",
+   "log": [
+    {
+     "id": "p1778885900137",
+     "date": "2026-06-03",
+     "title": "All launch tasks completed",
+     "summary": "Bikes on Board launch fully completed. All remaining tasks — URL and bike size confirmation, CDP publication, reservation system confirmation, new date coordination with Francine, and CASACOM media push — marked done."
+    },
+    {
+     "id": "p1778885900117",
+     "date": "2026-05-27",
+     "title": "Bikes on Board launched — file completed",
+     "summary": "Launch date confirmed with Francine and reservation system verified ready. CDP published May 27. Casacom media push activated. Website and CNW completed. All tasks closed. File completed."
+    },
+    {
+     "id": "p1778885900081",
+     "date": "2026-05-22",
+     "title": "Launch postponed to May 27",
+     "summary": "Bikes on Board launch postponed from May 22. New tentative date: Wednesday May 27. William-Antoine to confirm with Francine on May 25 and verify reservation system readiness on May 26 before publishing CDP."
+    }
+   ],
+   "lead": "William-Antoine Blaney",
+   "risks": [],
+   "title": "Bikes on Board",
+   "health": "unknown",
+   "memory": "Launch completed. All launch activities done — URL and bike size confirmed, CDP published, reservation system confirmed, new date coordination with Francine completed, CASACOM media push executed. File closed.",
+   "status": "completed",
+   "archived": false,
+   "priority": "urgent",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-03",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900118",
+     "url": "https://viarailonline.sharepoint.com/sites/PublicAffairsandCommunications/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FPublicAffairsandCommunications%2FShared%20Documents%2F0%2E%20Projects%2F2026%2F38%2E%20Bikes%20on%20Board&viewid=566b7b62%2D4872%2D4004%2Db61d%2D36135db459bb",
+     "type": "folder",
+     "label": "Vélos à bord — dossier Teams",
+     "createdAt": "2026-05-22"
+    }
+   ],
+   "standaloneTaskOrder": []
+  },
+  {
+   "id": "p8048",
+   "log": [
+    {
+     "id": "p1778885900154",
+     "date": "2026-06-12",
+     "title": "External announcement window open June 12–15; approach, messaging, and internal comms all completed",
+     "summary": "Denis Boucher completed initial approach discussion. External messaging created and submitted for Philippe Normand approval. Internal communication completed June 3 by Sylvie. External announcement window is now active (June 12–15)."
+    },
+    {
+     "id": "p1778885900140",
+     "date": "2026-06-03",
+     "title": "Internal comms done; external window shifted to June 12–15",
+     "summary": "Denis Boucher completed initial approach discussion and external messaging. Sylvie completed internal communication June 3. External announcement window shifted to June 12–15 following Amtrak push. Memory updated accordingly."
+    },
+    {
+     "id": "p1778885900002",
+     "date": "2026-05-20",
+     "title": "Date pushed; clearance started; two comms deliverables confirmed",
+     "summary": "Amtrak pushed the June 1–8 launch window. External announcement now expected June 12–15. TC security clearance process started May 20 for on-site VIA managers (Craig Henderson, Sean Thierry). Some may not pass or clear in time — minimum operational staffing not yet confirmed. Two deliverables confirmed for week of June 1: external comms (messaging, Philippe Normand approval, Amtrak coordination) and internal communication (once external messages approved)."
+    }
+   ],
+   "lead": "Denis Boucher",
+   "risks": [
+    {
+     "id": "p8058",
+     "notes": "",
+     "title": "Managers may not pass security clearance before launch",
+     "status": "open",
+     "severity": "high",
+     "ownerName": "Denis Boucher",
+     "description": "Some VIA managers may not receive TC security clearance before June launch. Minimum operational staffing number not yet confirmed. Some may not pass; others may not clear in time."
+    }
+   ],
+   "title": "Vancouver Preclearance",
+   "health": "unknown",
+   "memory": "External announcement window now likely June 12–15 — Amtrak pushed from original June 1–8 window. Denis Boucher leading. VIA is witness and supporter to Amtrak, not lead. Internal communication completed June 3 (Sylvie). External messaging created and submitted for Philippe Normand approval. Amtrak coordination in progress.",
+   "status": "active",
+   "archived": false,
+   "priority": "urgent",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-12",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8049",
+   "log": [
+    {
+     "id": "p1778885900158",
+     "date": "2026-06-12",
+     "title": "VIA Express content reviewed by Karl",
+     "summary": "Karl's review of VIA Express content completed. Approval by Mathieu and Carl still pending. Publication on hold."
+    },
+    {
+     "id": "p1778885900141",
+     "date": "2026-06-03",
+     "title": "Karl review complete; approval and publication pending",
+     "summary": "Karl completed content review of VIA Express. Approval by Mathieu and Carl still pending. Publication on hold."
+    }
+   ],
+   "lead": "Sylvie Gosselin",
+   "risks": [],
+   "title": "VIA Express",
+   "health": "unknown",
+   "memory": "Internal newsletter. Content shared with Karl and Philippe Normand for review. Karl's review complete. Approval by Mathieu and Carl pending. Publication on hold pending approval. HTML version prepared in Contact Monkey.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-12",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8050",
+   "log": [
+    {
+     "id": "p1778885900157",
+     "date": "2026-06-12",
+     "title": "Behind the Scenes V1 presented; publication on track",
+     "summary": "Behind the Scenes V1 presented to Lise and Karl. Publication target June 5 confirmed."
+    }
+   ],
+   "lead": "Sarah Perron-McLean",
+   "risks": [],
+   "title": "Behind the Scenes",
+   "health": "unknown",
+   "memory": "Video production initiative. Current deliverable: Behind the Scenes at TMC (Maintenance Centre Toronto). Filming week of May 19. Publication June 5. Coffee chat format to be confirmed. Behind the Scenes OCC is complete.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-12",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8051",
+   "log": [],
+   "lead": "Sarah Perron-McLean",
+   "risks": [],
+   "title": "Video Library / FrameIO",
+   "health": "unknown",
+   "memory": "Video library project in FrameIO. Pending Legal and Cybersecurity approvals. Important for 50th anniversary footage.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-15",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8052",
+   "log": [],
+   "lead": "Lise Arsenault",
+   "risks": [],
+   "title": "Social Media",
+   "health": "unknown",
+   "memory": "Social media content production. Current priorities: Discount Tuesday / Canada Strong / Last-minute deals content and VIA Preference 30th Anniversary content, both week of May 18.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-15",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8053",
+   "log": [
+    {
+     "id": "p1778885900156",
+     "date": "2026-06-12",
+     "title": "All merch tasks completed — photoshoot, internal and external launches done",
+     "summary": "Merch photoshoot completed. Internal launch executed May 28, external launch May 29. All tasks marked complete."
+    },
+    {
+     "id": "p1778885900142",
+     "date": "2026-06-03",
+     "title": "Both merch launches completed",
+     "summary": "Internal merch launch completed May 28 and external launch completed May 29."
+    },
+    {
+     "id": "p1778885900123",
+     "date": "2026-05-27",
+     "title": "Photoshoot completed; internal and external launches this week",
+     "summary": "Merch photoshoot executed by Lise, week of May 20. Internal launch set for May 28, external launch May 29."
+    },
+    {
+     "id": "p1778885900005",
+     "date": "2026-05-20",
+     "title": "Merch samples received",
+     "summary": "Merch samples arrived May 20. Photoshoot planned for week of May 20, pending confirmation of new models."
+    }
+   ],
+   "lead": "Lise Arsenault",
+   "risks": [],
+   "title": "Merch",
+   "health": "unknown",
+   "memory": "Internal launch completed May 28. External launch completed May 29. Photoshoot completed.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-12",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8054",
+   "log": [],
+   "lead": "Marie-Élise Jarry",
+   "risks": [],
+   "title": "Wheelchair Basketball Canada",
+   "health": "unknown",
+   "memory": "Partnership with Wheelchair Basketball Canada. Announcement issued May 12. Follow-up call with partner June 1 (Catherine Langlois). June: two athlete interviews — question prep, organize agency shoot, film. Sarah Perron-McLean and Catherine Langlois coordinating video production stream. Tournament September 9–19 in Ottawa. Potential video production pending budget and bandwidth confirmation with Philippe Normand.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-22",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [
+    {
+     "id": "p8061",
+     "notes": "",
+     "answer": "",
+     "status": "open",
+     "question": "Do we have the budget and bandwidth to produce videos? Discuss with Philippe Normand.",
+     "ownerName": "Marie-Élise Jarry"
+    }
+   ],
+   "deliverableIds": [],
+   "sharePointLinks": [
+    {
+     "id": "p1778885900121",
+     "url": "https://viarailonline.sharepoint.com/:f:/r/sites/PublicAffairsandCommunications/Shared%20Documents/0.%20Projects/2026/27.%20Accessibilit%C3%A9/02.%20%20Wheelchair%20Basketball%20Canada?csf=1&web=1&e=1vYjgz",
+     "type": "folder",
+     "label": "Wheelchair Basketball Canada — dossier Teams",
+     "createdAt": "2026-05-22"
+    }
+   ]
+  },
+  {
+   "id": "p8055",
+   "log": [
+    {
+     "id": "p1778885900159",
+     "date": "2026-06-12",
+     "title": "Cossette brief scoped for 50th anniversary",
+     "summary": "New task created for Marie-Élise Jarry to prepare a brief and plan for Cossette with full marketing mix option for the 50th anniversary."
+    }
+   ],
+   "lead": "Marie-Élise Jarry",
+   "risks": [],
+   "title": "VIA Rail 50th Anniversary",
+   "health": "unknown",
+   "memory": "Marie-Élise Jarry leading. Timeline: May–June develop high-level 360 planning timeline; June form 360 working group (leads TBD); Fall 2026 develop full 360 comms plan; 2027 production and deployment; January 2028 anniversary. Discussion with Philippe Normand in June to establish planning structure and priorities.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-06-12",
+   "milestones": [
+    {
+     "id": "p1778885900115",
+     "date": "2028-01-01",
+     "title": "50e anniversaire VIA Rail",
+     "status": "not_started"
+    }
+   ],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8005",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Intérim",
+   "health": "unknown",
+   "memory": "Actions for interim",
+   "status": "active",
+   "archived": false,
+   "priority": "urgent",
+   "createdAt": "2026-05-15",
+   "updatedAt": "2026-05-15",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p8001",
+   "log": [],
+   "lead": "Lise Arsenault",
+   "risks": [],
+   "title": "Marketing Support",
+   "memory": "",
+   "status": "active",
+   "archived": false,
+   "priority": "low",
+   "createdAt": "2026-05-16",
+   "updatedAt": "2026-05-16",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p1778885900001",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Corpo.viarail.ca",
+   "memory": "Corpo.viarail.ca website updated, design, dev and content creation",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-19",
+   "updatedAt": "2026-05-19",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p1778885900030",
+   "log": [],
+   "lead": "Sylvie Gosselin",
+   "risks": [],
+   "title": "Positionnement Mathieu",
+   "health": "unknown",
+   "memory": "Positionnement de Mathieu Paquette et visibilité — volets interne, externe, GR, rencontres avec employés, stakeholders et médias. Streams: GR via Mercure, PR via Casacom (pas pour ROC). Sylvie mène le dossier. Karl et Jean-Michel Nahas présentent le plan à Mathieu le 4 juin. Premier brouillon attendu le 25 mai; plan final en main le 29 mai. Lien possible avec l'annonce LDRR en juin et avec le dossier Dorval. Portes ouvertes et exposition mobile VHA en exploration.",
+   "status": "active",
+   "archived": false,
+   "priority": "urgent",
+   "createdAt": "2026-05-20",
+   "updatedAt": "2026-05-20",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p1778885900031",
+   "log": [
+    {
+     "id": "p1778885900155",
+     "date": "2026-06-12",
+     "title": "Director's Forum file closed — all tasks completed",
+     "summary": "All Director's Forum tasks completed. Mid-June 90-minute session organized and confirmed. File closed as of June 12."
+    },
+    {
+     "id": "p1778885900139",
+     "date": "2026-06-03",
+     "title": "Three Director's Forum tasks completed; lead confirmation pending",
+     "summary": "Karl and Jean-Michel Nahas presented the Director's Forum plan to Mathieu Paquette (June 4 — done). Philippe Normand confirmed with Andréane re: facilitation (June 3 — done). 90-minute format confirmed (June 5 — done). New task added for Karl to confirm who takes the lead going forward with Philippe."
+    }
+   ],
+   "lead": "Karl",
+   "risks": [],
+   "title": "Director's Forum",
+   "health": "unknown",
+   "memory": "Director's Forum completed. Mid-June 90-minute session executed. File closed — no further active work.",
+   "status": "completed",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-20",
+   "updatedAt": "2026-06-12",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p1778885900113",
+   "log": [],
+   "lead": "Marie-Élise Jarry",
+   "risks": [],
+   "title": "Board Documents Trimestriel 2026",
+   "health": "unknown",
+   "memory": "Standing quarterly Board documentation process. Lead: Marie-Élise Jarry, Support: Karl.\n\nBoard 19–20 mai (Montréal): documents submitted to Diligence May 6 ✓ Retrieve submitted documents May 22.\nBoard 18–19 août (Toronto, TBC): prep July; Diligence deadline August 5.\nBoard 7–8 octobre (Montréal): prep September; Diligence deadline September 23.\nBoard 18–19 novembre (Montréal): prep October; Diligence deadline November 4.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-05-22",
+   "updatedAt": "2026-05-22",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p1778885900152",
+   "log": [],
+   "lead": "Marie-Élise Jarry",
+   "risks": [],
+   "title": "Budget",
+   "health": "unknown",
+   "memory": "Costing for narrative projects and initiatives. Marie-Élise leading. First draft due June 8 for meeting with Philippe Normand.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-06-03",
+   "updatedAt": "2026-06-03",
+   "milestones": [],
+   "sensitivity": "low",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  },
+  {
+   "id": "p1778885900164",
+   "log": [],
+   "lead": "Karl",
+   "risks": [],
+   "title": "TMC Modernization",
+   "health": "unknown",
+   "memory": "Ribbon cutting ceremony planned for August 17 at TMC (Toronto Maintenance Centre). Karl leading. Sylvie Gosselin unavailable August 14–23. Date chosen due to Board schedule. ONTC comms plan to be integrated. Employee event lead to be clarified.",
+   "status": "active",
+   "archived": false,
+   "priority": "medium",
+   "createdAt": "2026-06-12",
+   "updatedAt": "2026-06-12",
+   "milestones": [],
+   "sensitivity": "normal",
+   "openQuestions": [],
+   "deliverableIds": [],
+   "sharePointLinks": []
+  }
+ ],
+ "risks": [],
+ "tasks": [
+  {
+   "id": "t001",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Réinjecter les messages du narratif dans le projet",
+   "fileId": "p01",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-15",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p01",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t003",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Refaire les messages clés avec le narratif",
+   "fileId": "p01",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": {
+    "date": null,
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "week",
+    "startDate": null,
+    "confidence": "confirmed",
+    "weekStartDate": "2026-05-25"
+   },
+   "priority": "urgent",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p01",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "deliverableId": "p8003",
+   "supportPersonIds": []
+  },
+  {
+   "id": "t004",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Rédiger le communiqué de presse",
+   "fileId": "p01",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-13",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t003"
+   ],
+   "projectId": "p01",
+   "dependencies": [
+    "t003"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t005",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Envoyer le package à Phil Normand",
+   "fileId": "p01",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-13",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t004"
+   ],
+   "projectId": "p01",
+   "dependencies": [
+    "t004"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t006",
+   "gate": "",
+   "link": null,
+   "notes": "Pour la transition",
+   "title": "Chercher les discours de Vincent Robitaille",
+   "fileId": "p02",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-11",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p02",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t007",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Compléter les messages clés généraux",
+   "fileId": "p02",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": "2026-05-11",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t006"
+   ],
+   "projectId": "p02",
+   "dependencies": [
+    "t006"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t008",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Rédiger le communiqué pour le board",
+   "fileId": "p03",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-12",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p03",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t009",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Aligner avec le rapport au ministre",
+   "fileId": "p03",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-12",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p03",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t010",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Intégrer les messages de leçons apprises",
+   "fileId": "p03",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-12",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t008",
+    "t009"
+   ],
+   "projectId": "p03",
+   "dependencies": [
+    "t008",
+    "t009"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t011",
+   "gate": "",
+   "link": null,
+   "notes": "Deadline mardi 12 mai",
+   "title": "Collecte des tâches d'équipe comm externe",
+   "fileId": "p04",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-12",
+   "priority": "urgent",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p04",
+   "completedAt": "2026-05-22",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t012",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Consolider le calendrier et remettre à Casacom",
+   "fileId": "p04",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t011"
+   ],
+   "projectId": "p04",
+   "dependencies": [
+    "t011"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t013",
+   "gate": "",
+   "link": null,
+   "notes": "MEGA MAX priority",
+   "title": "Obtenir le rapport final du Reputation Score",
+   "fileId": "p05",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-08",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p05",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t014",
+   "gate": "",
+   "link": null,
+   "notes": "waiting on Changemakers to provide a recommendation to add, the sentiment breakdown component",
+   "title": "Discuter de l'ajout de fonctionnalités aux rapports",
+   "fileId": "p05",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-15",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p05",
+   "completedAt": "2026-05-15",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t015",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Finaliser les contrats à venir",
+   "fileId": "p06",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-14",
+   "priority": "medium",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p06",
+   "completedAt": "2026-05-15",
+   "dependencies": [],
+   "leadPersonId": "per-5",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t016",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Intégrer les commentaires sur le plan",
+   "fileId": "p06",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-14",
+   "priority": "medium",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "leadPersonId": "per-5",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t017",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Présentation à Philippe",
+   "fileId": "p06",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-14",
+   "priority": "medium",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t015",
+    "t016"
+   ],
+   "projectId": "p06",
+   "completedAt": "2026-05-15",
+   "dependencies": [
+    "t015",
+    "t016"
+   ],
+   "leadPersonId": "per-5",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t018",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Revoir les déclarations de Mathieu dans les médias",
+   "fileId": "p07",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": "2026-05-15",
+   "priority": "medium",
+   "assignees": [
+    "Karl",
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p07",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "deliverableId": "p8002",
+   "supportPersonIds": []
+  },
+  {
+   "id": "t019",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Ajuster les messages clés en conséquence",
+   "fileId": "p07",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": "2026-05-15",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t018"
+   ],
+   "projectId": "p07",
+   "dependencies": [
+    "t018"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "deliverableId": "p8002",
+   "supportPersonIds": []
+  },
+  {
+   "id": "t020",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Coordonner avec Susan Williams pour les comms internes",
+   "fileId": "p08",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-20",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p08",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t021",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Préparer avant la visite du fournisseur",
+   "fileId": "p08",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-20",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t020"
+   ],
+   "projectId": "p08",
+   "completedAt": "2026-05-27",
+   "dependencies": [
+    "t020"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t022",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Identifier ce qui fonctionne et ce qui doit changer",
+   "fileId": "p09",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-22",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p09",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t023",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Identifier un leader ou ressource anglophone",
+   "fileId": "p09",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-22",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p09",
+   "completedAt": "2026-05-22",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t024",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Réintégrer les GR dans la rotation de garde",
+   "fileId": "p09",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": "2026-05-22",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p09",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t025",
+   "gate": "",
+   "link": null,
+   "notes": "Modèle TC",
+   "title": "Évaluer fermeture boîte média aux heures ouvrables",
+   "fileId": "p09",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": "2026-05-22",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p09",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t026",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Publier le communiqué de presse de l'APA",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-14",
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p10",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t027",
+   "gate": "",
+   "link": null,
+   "notes": "Période ouvre le 20 mai, ferme le 25 mai.",
+   "title": "Période de questions du public",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-05-25",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t026"
+   ],
+   "projectId": "p10",
+   "completedAt": "2026-05-27",
+   "dependencies": [
+    "t026"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t028",
+   "gate": "",
+   "link": null,
+   "notes": "Déjà aux agendas",
+   "title": "Dry run avec Jonathan, Mathieu et Carl",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": "2026-06-08",
+   "assignee": "Karl",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t027"
+   ],
+   "projectId": "p10",
+   "completedAt": "2026-06-12",
+   "dependencies": [
+    "t027"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t029",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Enregistrement de l'APA chez CASACOM",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": "2026-06-11",
+   "assignee": "Karl",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t028"
+   ],
+   "projectId": "p10",
+   "dependencies": [
+    "t028"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t030",
+   "gate": "",
+   "link": null,
+   "notes": "CASACOM + langue des signes",
+   "title": "Postproduction et préparation du Q&R",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": "2026-07-10",
+   "assignee": "Karl",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t029"
+   ],
+   "projectId": "p10",
+   "dependencies": [
+    "t029"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t031",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Mise en ligne de l'APA sur YouTube à 16h",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": "2026-07-16",
+   "assignee": "Karl",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t030"
+   ],
+   "projectId": "p10",
+   "dependencies": [
+    "t030"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t032",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Sécuriser la visibilité VIA en échange de sièges Business",
+   "fileId": "p11",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p11",
+   "dependencies": [],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t033",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Établir la timeline avec Casacom pour l'été",
+   "fileId": "p12",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p12",
+   "dependencies": [],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t034",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Confirmer la planification des livrables",
+   "fileId": "p12",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t033"
+   ],
+   "projectId": "p12",
+   "dependencies": [
+    "t033"
+   ],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t035",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Suivi avec Laurence — confirmer qui tient le calendrier",
+   "fileId": "p13",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p13",
+   "dependencies": [],
+   "leadPersonId": "per-5",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t036",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Renvoyer aux BU pour confirmation",
+   "fileId": "p13",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t035"
+   ],
+   "projectId": "p13",
+   "dependencies": [
+    "t035"
+   ],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t037",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Karl discute du calendrier avec Philippe Normand",
+   "fileId": "p13",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p13",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t038",
+   "gate": "",
+   "link": null,
+   "notes": "Simple booking task. No booking data or trend analysis required.",
+   "title": "Book journalist for Sudbury-White River terrain coverage",
+   "fileId": "p14",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": "2026-05-18",
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p14",
+   "dependencies": [],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t039",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Rencontrer Litsa Kalambokis — stratégie de recyclage",
+   "fileId": "p15",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p15",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t040",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Préparer le deck de présentation",
+   "fileId": "p16",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p16",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t041",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Examiner les formations offertes par Casacom",
+   "fileId": "p17",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p17",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t042",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Vérifier les formations à compléter pour Marie-Élise",
+   "fileId": "p17",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney",
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p17",
+   "dependencies": [],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": [
+    "per-5"
+   ]
+  },
+  {
+   "id": "t043",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Préparer la liste des enjeux en cours",
+   "fileId": "p18",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p18",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t044",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Compiler les rapports KPI",
+   "fileId": "p18",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p18",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t045",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Constituer la liste des médias",
+   "fileId": "p18",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p18",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t046",
+   "gate": "",
+   "link": null,
+   "notes": "Contenu passif, VIA Explained, thought leadership",
+   "title": "Rédiger le one-pager stratégique pour le narratif",
+   "fileId": "p18",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p18",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t047",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Finaliser la structure du narratif",
+   "fileId": "p19",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p19",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t048",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Partager la structure avec l'équipe",
+   "fileId": "p19",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t047"
+   ],
+   "projectId": "p19",
+   "dependencies": [
+    "t047"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t049",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Rédiger le protocole de communications",
+   "fileId": "p20",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p20",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t050",
+   "gate": "Attendre version finale du contrat",
+   "link": null,
+   "notes": "",
+   "title": "Intégrer le protocole dans le contrat légal",
+   "fileId": "p20",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t049"
+   ],
+   "projectId": "p20",
+   "dependencies": [
+    "t049"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t051",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Demander à Jamie le document complet",
+   "fileId": "p21",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p21",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t052",
+   "gate": "",
+   "link": null,
+   "notes": "6 piliers",
+   "title": "Décomposer le narratif par pilier stratégique",
+   "fileId": "p21",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t051"
+   ],
+   "projectId": "p21",
+   "dependencies": [
+    "t051"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t053",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Créer des micro-narratifs cohérents par pilier",
+   "fileId": "p21",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t052"
+   ],
+   "projectId": "p21",
+   "dependencies": [
+    "t052"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t054",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Mettre à jour le plan avec les départs récents",
+   "fileId": "p22",
+   "source": "manual",
+   "status": "in_progress",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p22",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t055",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Briefer Philippe Normand — état et lacunes",
+   "fileId": "p22",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t054"
+   ],
+   "projectId": "p22",
+   "completedAt": "2026-05-22",
+   "dependencies": [
+    "t054"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t056",
+   "gate": "",
+   "link": null,
+   "notes": "Sylvie: Cell Lead | William: Scribe | Marie-Élise: boîte média | Casacom: messages | LAM 3: Lead",
+   "title": "Confirmer les rôles d'équipe en crise",
+   "fileId": "p22",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p22",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t057",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Intégrer tout le monde sur Everbridge",
+   "fileId": "p22",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "assignee": "William-Antoine Blaney",
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [
+    "t056"
+   ],
+   "projectId": "p22",
+   "dependencies": [
+    "t056"
+   ],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t058",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Confirmer et activer les accès Casacom avec Janna",
+   "fileId": "p23",
+   "source": "manual",
+   "status": "not_started",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p23",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t059",
+   "gate": "Projet suspendu",
+   "link": null,
+   "notes": "",
+   "title": "Informer Jean-Philippe que le projet est sur la glace",
+   "fileId": "p24",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p24",
+   "dependencies": [],
+   "leadPersonId": "per-1",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t060",
+   "gate": "Discussion Susan + Arnaud requise",
+   "link": null,
+   "notes": "",
+   "title": "Attendre discussion Susan et Arnaud",
+   "fileId": "p25",
+   "source": "manual",
+   "status": "waiting",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "leadPersonId": "per-5",
+   "approvalChain": [],
+   "supportPersonIds": []
+  },
+  {
+   "id": "t061",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Définir le périmètre du dossier avec William",
+   "fileId": "p26",
+   "source": "manual",
+   "status": "completed",
+   "blocker": false,
+   "dueDate": null,
+   "priority": "medium",
+   "assignees": [
+    "William-Antoine Blaney",
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p26",
+   "dependencies": [],
+   "leadPersonId": "per-4",
+   "approvalChain": [],
+   "supportPersonIds": [
+    "per-1"
+   ]
+  },
+  {
+   "id": "p8002",
+   "gate": "",
+   "link": null,
+   "notes": "Draft core message, supporting messages, proof points, and anticipated opposition.",
+   "title": "Draft key messages",
+   "fileId": "p03",
+   "source": "template",
+   "status": "completed",
+   "dueDate": "2026-05-04",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p03",
+   "templateId": "tpl-message-map",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8001"
+  },
+  {
+   "id": "p8003",
+   "gate": "",
+   "link": null,
+   "notes": "Review with business owner and subject matter experts.",
+   "title": "Validate key messages",
+   "fileId": "p03",
+   "source": "template",
+   "status": "completed",
+   "dueDate": "2026-05-07",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p03",
+   "templateId": "tpl-message-map",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8001"
+  },
+  {
+   "id": "p8004",
+   "gate": "",
+   "link": null,
+   "notes": "Confirm final message map with appropriate leadership.",
+   "title": "Secure approval",
+   "fileId": "p02",
+   "source": "template",
+   "status": "completed",
+   "dueDate": "2026-05-09",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p02",
+   "templateId": "tpl-message-map",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8005",
+   "gate": "",
+   "link": null,
+   "notes": "Store final approved version in SharePoint and link to file.",
+   "title": "Finalize and add to SharePoint",
+   "fileId": "p03",
+   "source": "template",
+   "status": "completed",
+   "dueDate": "2026-05-11",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-14",
+   "dependsOn": [],
+   "projectId": "p03",
+   "templateId": "tpl-message-map",
+   "completedAt": "2026-05-15",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8003"
+  },
+  {
+   "id": "p8005",
+   "gate": "",
+   "link": null,
+   "notes": "Mathieu must decide: proceed, revise, take to Board, or not. Includes deciding who presents to Board if applicable.",
+   "title": "Obtain Mathieu Paquette's direction on overall comm strategy and Casacom plan",
+   "fileId": "p01",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p01",
+   "completedAt": "2026-05-15",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8003"
+  },
+  {
+   "id": "p8006",
+   "gate": "",
+   "link": null,
+   "notes": "Must be done ahead of Board presentation May 19–20.",
+   "title": "Apply Carl Delisle's comments to Q1 report",
+   "fileId": "p03",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-15",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8007",
+   "gate": "",
+   "link": null,
+   "notes": "2027 unlikely to have good news. Build editorial format with positive signal packaging.",
+   "title": "Prepare recommendation to shift to editorial/proof-of-progress report format for 2027",
+   "fileId": "p03",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8008",
+   "gate": "",
+   "link": null,
+   "notes": "Contracts sent May 14.",
+   "title": "Await and confirm Philippe Normand's signature on contracts",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8009",
+   "gate": "",
+   "link": null,
+   "notes": "Already approved. Week of May 18.",
+   "title": "Issue APA press release",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-18",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p10",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8010",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Confirm APA timeline with Philippe Normand and Mathieu Paquette",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-05-20",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8011",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Review Sylvie's speeches",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-21",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8012",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Add audience/public questions section to APA",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8013",
+   "gate": "",
+   "link": null,
+   "notes": "Jamie to send by end of week.",
+   "title": "Follow up with Jamie Orchard for approved version of speeches",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8014",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Coordinate approvals from Mathieu Paquette, Jonathan Goldbloom, and Philippe Normand",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8015",
+   "gate": "",
+   "link": null,
+   "notes": "Lindsey Banack, The Royal hotel.",
+   "title": "Receive and review visibility package from Lindsey Banack",
+   "fileId": "p11",
+   "source": "claude_import",
+   "status": "in_progress",
+   "dueDate": "2026-05-15",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p11",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8016",
+   "gate": "",
+   "link": null,
+   "notes": "No progress as of May 14. Essence of external comms planning depends on this.",
+   "title": "Escalate calendar ownership directly to Philippe Normand",
+   "fileId": "p13",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-18",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p13",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8017",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Request activity decks from all BUs for the Narrative",
+   "fileId": "p13",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p13",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8018",
+   "gate": "",
+   "link": null,
+   "notes": "Presentation May 19 at 10h55.",
+   "title": "Prepare Board presentation for VIA Narrative",
+   "fileId": "p19",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-15",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p19",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8019",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Ask Philippe Normand about Board presentation format",
+   "fileId": "p19",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-15",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p19",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8020",
+   "gate": "",
+   "link": null,
+   "notes": "First step for IC Commander Training deliverable.",
+   "title": "Talk with Bruno Riendeau to plan IC commander training",
+   "fileId": "p09",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p09",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8021",
+   "gate": "",
+   "link": null,
+   "notes": "Depends on plan being finalized with Bruno Riendeau.",
+   "title": "Offer training to IC commanders",
+   "fileId": "p09",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p09",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8022",
+   "gate": "",
+   "link": null,
+   "notes": "Change the cadence and ownership of media inbox verification.",
+   "title": "Modify media inbox monitoring schedule",
+   "fileId": "p09",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p09",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8023",
+   "gate": "",
+   "link": null,
+   "notes": "Training planned for September.",
+   "title": "Discuss media training for new executives with Casacom",
+   "fileId": "p8044",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8044",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8024",
+   "gate": "",
+   "link": null,
+   "notes": "Several new execs to photograph. Rapidly in June.",
+   "title": "Plan executive photoshoot in June",
+   "fileId": "p8044",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8044",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8025",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Secure biographies for new executives for the website",
+   "fileId": "p8044",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8044",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8026",
+   "gate": "",
+   "link": null,
+   "notes": "Blocked by: Secure biographies for new executives for the website.",
+   "title": "Update website with new executive bios",
+   "fileId": "p1778885900001",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p1778885900001",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8027",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Inform Philippe Normand on the tabletop exercise",
+   "source": "claude_import",
+   "status": "in_progress",
+   "dueDate": "2026-05-19",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8028",
+   "gate": "",
+   "link": null,
+   "notes": "Next week.",
+   "title": "Confirm William-Antoine's role on the tabletop",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-18",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "completedAt": "2026-05-20",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8029",
+   "gate": "",
+   "link": null,
+   "notes": "Handed over from Sylvie. Coordinate with Sarah.",
+   "title": "Execute internal communications",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8030",
+   "gate": "",
+   "link": null,
+   "notes": "Coordinate with Marie-Élise.",
+   "title": "Support internal communications execution",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8031",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Reach out to CBC media contact to get journalist's story rolling",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8033",
+   "gate": "",
+   "link": null,
+   "notes": "For tentative May 22 launch.",
+   "title": "Coordinate with Casacom for media push and outreach",
+   "fileId": "p8047",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p8036",
+   "gate": "",
+   "link": null,
+   "notes": "Filming week of May 19. Publication June 5.",
+   "title": "Confirm whether TMC coffee chat format will go forward",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8037",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Obtain Legal approval for FrameIO video library",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8038",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Obtain Cybersecurity approval for FrameIO video library",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8039",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Produce Discount Tuesday / Canada Strong / Last-minute deals content",
+   "fileId": "p8001",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-18",
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8001",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8040",
+   "gate": "",
+   "link": null,
+   "notes": "Work with Gab Caouette. Use visuals developed with Cossette.",
+   "title": "Produce VIA Preference 30th Anniversary content",
+   "fileId": "p8001",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-18",
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8001",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p8041",
+   "gate": "",
+   "link": null,
+   "notes": "Catherine Langlois supporting. Video production pending budget and bandwidth confirmation.",
+   "title": "Discussion with WBC to define deliverables and explore video opportunities",
+   "fileId": "p8054",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8054",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8042",
+   "gate": "",
+   "link": null,
+   "notes": "June discussion to establish planning structure and priorities.",
+   "title": "Schedule discussion with Philippe Normand to activate 50th anniversary stream",
+   "fileId": "p8055",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-06-30",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8055",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885487081",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Obtain Board approval on general strategy",
+   "fileId": "p01",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p01",
+   "completedAt": "2026-05-22",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8003"
+  },
+  {
+   "id": "p1778885760957",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Secure quotes from Vélo Québec and Trajectoire Québec",
+   "fileId": "p8047",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": "2026-05-20",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p1778885794047",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Get Philippe Approval on release",
+   "fileId": "p8047",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": "2026-05-20",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [
+    "p1778885760957"
+   ],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p1778885820632",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Prepare website and CNW and publish",
+   "fileId": "p8047",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": "2026-05-21",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-15",
+   "dependsOn": [
+    "p1778885794047"
+   ],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p8002",
+   "gate": "",
+   "link": null,
+   "notes": "Ask Virginie Leblond and Nader",
+   "title": "Gather all documentation for brief",
+   "fileId": "p02",
+   "source": "manual",
+   "status": "in_progress",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-16",
+   "dependsOn": [],
+   "projectId": "p02",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8001"
+  },
+  {
+   "id": "p8003",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Map out current gov messaging on transition",
+   "fileId": "p02",
+   "source": "manual",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-16",
+   "dependsOn": [],
+   "projectId": "p02",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8001"
+  },
+  {
+   "id": "p8004",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Brief/onboard Changemakers",
+   "fileId": "p02",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-16",
+   "dependsOn": [],
+   "projectId": "p02",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p8001",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Review comments on the current plan",
+   "fileId": "p16",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-16",
+   "dependsOn": [],
+   "projectId": "p16",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p8001",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Top 3 questions recues qui vont dans le speech",
+   "fileId": "p10",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-19",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p8001",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Confirm URL and bike size",
+   "fileId": "p8047",
+   "source": "manual",
+   "status": "completed",
+   "dueDate": "2026-05-20",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-19",
+   "dependsOn": [],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p8006"
+  },
+  {
+   "id": "p1778885900008",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Parler à Denis Boucher de l'approche comms pour la précertification",
+   "fileId": "p8048",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-20",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8048",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900009",
+   "gate": "",
+   "link": null,
+   "notes": "See Jamie's email for details.",
+   "title": "Construire la liste de tâches preclearance à partir du courriel de Jamie",
+   "fileId": "p8048",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8048",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900010",
+   "gate": "",
+   "link": null,
+   "notes": "Week of June 1.",
+   "title": "Create external messaging for Vancouver Preclearance",
+   "fileId": "p8048",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Denis Boucher"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8048",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900011",
+   "gate": "",
+   "link": null,
+   "notes": "Depends on messaging being drafted first.",
+   "title": "Get Philippe Normand approval on external messaging",
+   "fileId": "p8048",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8048",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900012",
+   "gate": "",
+   "link": null,
+   "notes": "Align VIA's public messaging with Amtrak's communication.",
+   "title": "Coordinate with Amtrak on external comms",
+   "fileId": "p8048",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Denis Boucher"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8048",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900013",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Prepare internal communication for Vancouver Preclearance",
+   "fileId": "p8048",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-03",
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8048",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900014",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Demander à Philippe d'envoyer les discours à Mathieu, Jonathan et Carl",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900015",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Attend FIFA tabletop exercise",
+   "fileId": "p8045",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-21",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8045",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900016",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Forward FIFA tabletop invitation to Denis and Félix",
+   "fileId": "p8045",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-20",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8045",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900017",
+   "gate": "",
+   "link": null,
+   "notes": "Week of May 20.",
+   "title": "Plan and execute merch photoshoot — find new models",
+   "fileId": "p8053",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-24",
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8053",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900018",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Post Bikes on Board social media content",
+   "fileId": "p8052",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "Karl",
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8052",
+   "completedAt": "2026-05-27",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900019",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Plan VIA Preference loyalty social media one-off",
+   "fileId": "p8052",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8052",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900020",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Research internal/external initiative for VIA Rail 50th anniversary (2026)",
+   "fileId": "p8052",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8052",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900021",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Present Behind the Scenes V1 to Lise and Karl",
+   "fileId": "p8050",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8050",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900022",
+   "gate": "",
+   "link": null,
+   "notes": "Benjamin Pelletier = Lead PMO de LDRR, reporting to Arnaud.",
+   "title": "Connect with Benjamin Pelletier to align on LDRR comms positioning",
+   "fileId": "p25",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900023",
+   "gate": "",
+   "link": null,
+   "notes": "Change management is the single point of contact for Susan Williams.",
+   "title": "Draft LDRR message map for change management to activate with Susan Williams",
+   "fileId": "p25",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900024",
+   "gate": "",
+   "link": null,
+   "notes": "First step: align approach before drafting begins.",
+   "title": "Rencontre avec Philippe Normand et Denis Boucher — première étape",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900025",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Compléter le premier brouillon du plan de positionnement",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900026",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Finaliser le plan de positionnement",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900027",
+   "gate": "",
+   "link": null,
+   "notes": "Plan final must be in hand by May 29.",
+   "title": "Karl et Jean-Michel Nahas présentent le plan à Mathieu Paquette",
+   "fileId": "p1778885900031",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-04",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p1778885900031",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900028",
+   "gate": "",
+   "link": null,
+   "notes": "Karl to raise with Philippe Normand.",
+   "title": "Philippe Normand confirme avec Andréane qui anime le Director's Forum de mi-juin",
+   "fileId": "p1778885900031",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-03",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p1778885900031",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900029",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Planifier la formule 90 minutes pour le Director's Forum de mi-juin",
+   "fileId": "p1778885900031",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-05",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p1778885900031",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900037",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Publish Q1 report on the website",
+   "fileId": "p03",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": {
+    "date": "2026-05-29",
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "exact",
+    "startDate": null,
+    "confidence": "confirmed",
+    "weekStartDate": null
+   },
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900038",
+   "gate": "",
+   "link": null,
+   "notes": "Peut se faire lundi-mardi (May 25–26). Trousse en PPT. FAQ PDF: FAQ_Tournesol_VIARail_Layout_bilingue.pdf dans SharePoint — garder le même nom si modifié pour ne pas briser le lien. Catherine Langlois coordinating.",
+   "title": "Partager l'information aux gestionnaires (message + trousse) et coordonner avec Léa l'envoi du bulletin OTS avec la fiche pratique",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-26",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900039",
+   "gate": "",
+   "link": null,
+   "notes": "Week of May 25. Bulletin de rappel is in the INTERNE folder in SharePoint.",
+   "title": "Coordonner avec Léa la diffusion du bulletin de rappel (dossier INTERNE)",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900040",
+   "gate": "",
+   "link": null,
+   "notes": "Fichier en PPT, enregistrer en PDF avant envoi. Dans le dossier INTERNE / Mise en page – visuel – TV.",
+   "title": "Partager le fichier Affiche avec les gestionnaires pour impression et affichage",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-26",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900041",
+   "gate": "",
+   "link": null,
+   "notes": "Cibler les gares seulement. Fichier dans INTERNE / Mise en page – visuel – TV. Canva: https://canva.link/aujjadd7x619eqe (exporter en format vidéo).",
+   "title": "Mettre l'animation Tournesol en ligne sur les TV dans les gares",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900042",
+   "gate": "",
+   "link": null,
+   "notes": "Fichiers: Sunflower_1.jpg et Sunflower_2.jpg dans EXTERNE/VISUEL. Diffusion cible: 1er juin pour 1–2 mois (à valider avec Marketing). Si changements: Canva https://canva.link/h9ue07u61tpib1f",
+   "title": "Valider avec Anick que les fichiers JPG Tournesol sont OK pour diffusion sur les tours numériques",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900043",
+   "gate": "",
+   "link": null,
+   "notes": "Texte du communiqué dans le dossier EXTERNE. Si changements au texte, Marie-Élise à gérer. Une fois validé: aviser William-Antoine pour publication et informer Philippe Normand.",
+   "title": "Obtenir la validation finale du communiqué de presse par Hidden Disabilities et Denis Boucher, et informer William-Antoine et Philippe Normand",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900044",
+   "gate": "",
+   "link": null,
+   "notes": "Éviter les surprises au moment de la publication. À coordonner avec Karl si nécessaire.",
+   "title": "S'assurer que l'ExCo connaît le dossier Hidden Disabilities avant publication",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900045",
+   "gate": "",
+   "link": null,
+   "notes": "Texte dans le dossier EXTERNE. Partager le lien vers le site Hidden Disabilities pour les normes graphiques et visuels. Hidden Disabilities devra valider l'information.",
+   "title": "Suivi avec Litsa et Laura pour que la section web soit prête pour le 1er juin",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900046",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Publier le communiqué de presse Hidden Disabilities",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900048",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Publish Q1 report on the website",
+   "fileId": "p03",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900049",
+   "gate": "",
+   "link": null,
+   "notes": "Peut se faire lundi-mardi (May 25–26). Trousse en PPT. FAQ PDF: FAQ_Tournesol_VIARail_Layout_bilingue.pdf dans SharePoint — garder le même nom si modifié pour ne pas briser le lien. Catherine Langlois coordinating.",
+   "title": "Partager l'information aux gestionnaires (message + trousse) et coordonner avec Léa l'envoi du bulletin OTS avec la fiche pratique",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-26",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900050",
+   "gate": "",
+   "link": null,
+   "notes": "Week of May 25. Bulletin de rappel is in the INTERNE folder in SharePoint.",
+   "title": "Coordonner avec Léa la diffusion du bulletin de rappel (dossier INTERNE)",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900051",
+   "gate": "",
+   "link": null,
+   "notes": "Fichier en PPT, enregistrer en PDF avant envoi. Dans le dossier INTERNE / Mise en page – visuel – TV.",
+   "title": "Partager le fichier Affiche avec les gestionnaires pour impression et affichage",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900052",
+   "gate": "",
+   "link": null,
+   "notes": "Cibler les gares seulement. Fichier dans INTERNE / Mise en page – visuel – TV. Canva: https://canva.link/aujjadd7x619eqe (exporter en format vidéo).",
+   "title": "Mettre l'animation Tournesol en ligne sur les TV dans les gares",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900053",
+   "gate": "",
+   "link": null,
+   "notes": "Fichiers: Sunflower_1.jpg et Sunflower_2.jpg dans EXTERNE/VISUEL. Diffusion cible: 1er juin pour 1–2 mois (à valider avec Marketing). Si changements: Canva https://canva.link/h9ue07u61tpib1f",
+   "title": "Valider avec Anick que les fichiers JPG Tournesol sont OK pour diffusion sur les tours numériques",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900054",
+   "gate": "",
+   "link": null,
+   "notes": "Texte du communiqué dans le dossier EXTERNE. Si changements au texte, Marie-Élise à gérer. Une fois validé: aviser William-Antoine pour publication et informer Philippe Normand.",
+   "title": "Obtenir la validation finale du communiqué de presse par Hidden Disabilities et Denis Boucher, et informer William-Antoine et Philippe Normand",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900055",
+   "gate": "",
+   "link": null,
+   "notes": "Éviter les surprises au moment de la publication. À coordonner avec Karl si nécessaire.",
+   "title": "S'assurer que l'ExCo connaît le dossier Hidden Disabilities avant publication",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900056",
+   "gate": "",
+   "link": null,
+   "notes": "Texte dans le dossier EXTERNE. Partager le lien vers le site Hidden Disabilities pour les normes graphiques et visuels. Hidden Disabilities devra valider l'information.",
+   "title": "Suivi avec Litsa et Laura pour que la section web soit prête pour le 1er juin",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900057",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Publier le communiqué de presse Hidden Disabilities",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900060",
+   "gate": "",
+   "link": null,
+   "notes": "Content already shared with Karl and Philippe Normand. Publication May 29.",
+   "title": "Review VIA Express content",
+   "fileId": "p8049",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8049",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900061",
+   "gate": "",
+   "link": null,
+   "notes": "HTML version prepared in Contact Monkey.",
+   "title": "Publish VIA Express",
+   "fileId": "p8049",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Sylvie Gosselin"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p8049",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900064",
+   "gate": "",
+   "link": null,
+   "notes": "Loop in internal stakeholders once discussions progress.",
+   "title": "Reconnect with Eugene Levy production contacts and advance discussions",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900076"
+  },
+  {
+   "id": "p1778885900065",
+   "gate": "",
+   "link": null,
+   "notes": "Scope question open: content-only or expand to commercial integration.",
+   "title": "Restart Indigo discussions as a new partnership",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900077"
+  },
+  {
+   "id": "p1778885900066",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Advise on positioning Indigo as content entry point",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Vanessa Zieman"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900077"
+  },
+  {
+   "id": "p1778885900067",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Explore expansion opportunities with children's hospital network partners",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900078"
+  },
+  {
+   "id": "p1778885900068",
+   "gate": "",
+   "link": null,
+   "notes": "Limited budget requires active prioritization across Eugene Levy, Indigo, hospital, influencer, and sports streams.",
+   "title": "Negotiate across partnership portfolio and prioritize within budget",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "in_progress",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900069",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Define shortlist and final selection process for content creators",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900079"
+  },
+  {
+   "id": "p1778885900070",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Include amplification rights in influencer agreements",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900079"
+  },
+  {
+   "id": "p1778885900071",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Evaluate opportunities to boost influencer content through paid media",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Vanessa Zieman"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900079"
+  },
+  {
+   "id": "p1778885900072",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Advance negotiations with Ontario junior hockey league and Quebec minor league",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "in_progress",
+   "dueDate": null,
+   "assignees": [
+    "Vanessa Zieman"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900080"
+  },
+  {
+   "id": "p1778885900073",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Evaluate renewal of Tennis Canada partnership",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Vanessa Zieman"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900080"
+  },
+  {
+   "id": "p1778885900074",
+   "gate": "",
+   "link": null,
+   "notes": "Coordinate with Vanessa Zieman's visibility calendar.",
+   "title": "Integrate Champions program into shared planning calendar",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900075",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Set up biweekly working group with agency",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-20",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900088",
+   "gate": "",
+   "link": null,
+   "notes": "Confirm May 27 as new CDP publication date.",
+   "title": "Confirm new launch date with Francine",
+   "fileId": "p8047",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900089",
+   "gate": "",
+   "link": null,
+   "notes": "Tuesday May 26 — must confirm before publishing CDP on May 27.",
+   "title": "Confirm reservation system is ready for launch",
+   "fileId": "p8047",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-26",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900090",
+   "gate": "",
+   "link": null,
+   "notes": "Tentative — pending Francine confirmation (May 25) and reservation system readiness (May 26).",
+   "title": "Publish CDP (press release)",
+   "fileId": "p8047",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8047",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900091",
+   "gate": "",
+   "link": null,
+   "notes": "Send to Carl Delisle, Jonathan Goldbloom, Mathieu Paquette.",
+   "title": "Send speeches to Carl, Jonathan, Mathieu for review",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900092",
+   "gate": "",
+   "link": null,
+   "notes": "After question period closes May 25 — incorporate answers and send revised texts.",
+   "title": "Send revised texts with Q&A answers",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-27",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900093",
+   "gate": "",
+   "link": null,
+   "notes": "Week of June 1 — incorporate final changes before dry-run.",
+   "title": "Edit and finalize APA texts",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-01",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900094",
+   "gate": "",
+   "link": null,
+   "notes": "Mathieu Paquette, Carl Delisle, Jonathan Goldbloom.",
+   "title": "Dry-run with Mathieu, Carl, Jonathan",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-06-08",
+   "assignee": "William-Antoine Blaney",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900095",
+   "gate": "",
+   "link": null,
+   "notes": "All texts and approvals must be finalized before this date.",
+   "title": "Record APA at CASACOM",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-06-11",
+   "assignee": "William-Antoine Blaney",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900096",
+   "gate": "",
+   "link": null,
+   "notes": "Post-production window June 10 – July 10.",
+   "title": "Post-production and written answers to shareholder questions",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-07-10",
+   "assignee": "William-Antoine Blaney",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900097",
+   "gate": "",
+   "link": null,
+   "notes": "Publication at 16h on July 16.",
+   "title": "Publish APA online",
+   "fileId": "p10",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-07-16",
+   "assignee": "William-Antoine Blaney",
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p10",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900098",
+   "gate": "",
+   "link": null,
+   "notes": "Crestview begins program design week of May 25.",
+   "title": "Begin full program design (Crestview)",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-25",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900079"
+  },
+  {
+   "id": "p1778885900099",
+   "gate": "",
+   "link": null,
+   "notes": "June–July 2026 deployment window.",
+   "title": "Deploy external champions and content creators",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900079"
+  },
+  {
+   "id": "p1778885900100",
+   "gate": "",
+   "link": null,
+   "notes": "August 2026.",
+   "title": "Deploy internal amplifiers",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": "p1778885900079"
+  },
+  {
+   "id": "p1778885900101",
+   "gate": "",
+   "link": null,
+   "notes": "Two athletes.",
+   "title": "Prepare interview questions for WBC athletes",
+   "fileId": "p8054",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8054",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900102",
+   "gate": "",
+   "link": null,
+   "notes": "Coordinate shoot logistics with agency.",
+   "title": "Organize shoot with agency",
+   "fileId": "p8054",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8054",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900103",
+   "gate": "",
+   "link": null,
+   "notes": "Follows question prep and shoot organization.",
+   "title": "Film athlete interviews",
+   "fileId": "p8054",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Sarah Perron-McLean"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8054",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900104",
+   "gate": "",
+   "link": null,
+   "notes": "May–June. Discuss structure and priorities with Philippe Normand in June.",
+   "title": "Develop high-level 360 planning timeline",
+   "fileId": "p8055",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8055",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900105",
+   "gate": "",
+   "link": null,
+   "notes": "Working group leads TBD.",
+   "title": "Form 360 working group",
+   "fileId": "p8055",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p8055",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900106",
+   "gate": "",
+   "link": null,
+   "notes": "Retrieve submitted documents for our files after May 19–20 Board.",
+   "title": "Retrieve May Board documents from Diligence",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-22",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900107",
+   "gate": "",
+   "link": null,
+   "notes": "Prep in July for August 18–19 Board.",
+   "title": "Prepare Board documents — August Board",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900108",
+   "gate": "",
+   "link": null,
+   "notes": "Diligence deadline for August 18–19 Board.",
+   "title": "Submit August Board documents to Diligence",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-08-05",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900109",
+   "gate": "",
+   "link": null,
+   "notes": "Prep in September for October 7–8 Board.",
+   "title": "Prepare Board documents — October Board",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900110",
+   "gate": "",
+   "link": null,
+   "notes": "Diligence deadline for October 7–8 Board.",
+   "title": "Submit October Board documents to Diligence",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-09-23",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900111",
+   "gate": "",
+   "link": null,
+   "notes": "Prep in October for November 18–19 Board.",
+   "title": "Prepare Board documents — November Board",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900112",
+   "gate": "",
+   "link": null,
+   "notes": "Diligence deadline for November 18–19 Board.",
+   "title": "Submit November Board documents to Diligence",
+   "fileId": "p1778885900113",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-11-04",
+   "assignees": [
+    "Marie-Élise Jarry"
+   ],
+   "createdAt": "2026-05-22",
+   "dependsOn": [],
+   "projectId": "p1778885900113",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900114",
+   "gate": "",
+   "link": null,
+   "notes": "Yearly plan for loyalty programm. 1 post per month",
+   "title": "VIA Pref plan for the year",
+   "fileId": "p8052",
+   "source": "manual",
+   "status": "not_started",
+   "dueDate": "2026-05-28",
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-25",
+   "dependsOn": [],
+   "projectId": "p8052",
+   "dependencies": [],
+   "approvalChain": []
+  },
+  {
+   "id": "p1778885900124",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Prep Changemaker official brief",
+   "fileId": "p02",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": "2026-05-28",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p02",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900125",
+   "gate": "",
+   "link": null,
+   "notes": "Follow up with Bruno on timing.",
+   "title": "Prepare media statement and messages around FIFA Vancouver Station preparations",
+   "fileId": "p8045",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p8045",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900126",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Review Dorval key messages",
+   "fileId": "p01",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p01",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900127",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Circulate Dorval key messages with partners to get quotes",
+   "fileId": "p01",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": {
+    "precision": "week",
+    "confidence": "confirmed",
+    "weekStartDate": "2026-06-01"
+   },
+   "assignees": [
+    "William-Antoine Blaney"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p01",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900128",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Final review of Hidden Disabilities press release",
+   "fileId": "p8046",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-28",
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p8046",
+   "completedAt": "2026-06-03",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900129",
+   "gate": "",
+   "link": null,
+   "notes": "Budget to be secured before page can be scoped and built.",
+   "title": "Chercher du budget et planifier la création d'une page dédiée LDRR sur le nouveau site web",
+   "fileId": "p25",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": {
+    "precision": "week",
+    "confidence": "confirmed",
+    "weekStartDate": "2026-06-01"
+   },
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900130",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Prepare interim messaging for gap between contracts signed and government announcement",
+   "fileId": "p25",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": {
+    "precision": "week",
+    "confidence": "confirmed",
+    "weekStartDate": "2026-06-01"
+   },
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900131",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Internal merch launch",
+   "fileId": "p8053",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-28",
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p8053",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900132",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "External merch launch",
+   "fileId": "p8053",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": "2026-05-29",
+   "assignees": [
+    "Lise Arsenault"
+   ],
+   "createdAt": "2026-05-27",
+   "dependsOn": [],
+   "projectId": "p8053",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900144",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Vérifier avec Legal les NDA pour LDRR et Alto",
+   "fileId": "p25",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900145",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Partager le Q&A LDRR avec l'équipe",
+   "fileId": "p25",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p25",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900146",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Faire une page web pour le projet Dorval",
+   "fileId": "p01",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p01",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900147",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Créer l'envoi automatique out-of-office (accusé de réception, plage horaire de monitoring)",
+   "fileId": "p22",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": {
+    "date": "2026-06-10",
+    "precision": "exact",
+    "confidence": "confirmed"
+   },
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p22",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900148",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Talk with Bruno Riendeau to work on brief for Incident Commander media training",
+   "fileId": "p22",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p22",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900149",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Confirm who takes the lead on Director's Forum with Philippe Normand",
+   "fileId": "p1778885900031",
+   "source": "claude_import",
+   "status": "completed",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p1778885900031",
+   "completedAt": "2026-06-12",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900150",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "Lessons learned — FAM: mettre sur contrat, retour et remise des résultats",
+   "fileId": "p06",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "p06",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900151",
+   "gate": "",
+   "link": null,
+   "notes": "",
+   "title": "First draft of narrative project and initiative costing ready for meeting with Philippe",
+   "fileId": "f_june3_budget",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": {
+    "date": "2026-06-08",
+    "precision": "exact",
+    "confidence": "confirmed"
+   },
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-03",
+   "dependsOn": [],
+   "projectId": "f_june3_budget",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900160",
+   "gate": "",
+   "link": null,
+   "notes": "Plan/brief pour Cossette avec option mix marketing complet — 50th anniversary.",
+   "title": "Prepare brief and plan for Cossette including full marketing mix option",
+   "fileId": "p8055",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-12",
+   "dependsOn": [],
+   "projectId": "p8055",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900161",
+   "gate": "",
+   "link": null,
+   "notes": "Clarifier qui fait l'événement employés pour le ruban inaugural.",
+   "title": "Clarify who leads employee event for ribbon cutting",
+   "fileId": "p1781268200000",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-12",
+   "dependsOn": [],
+   "projectId": "p1781268200000",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900162",
+   "gate": "",
+   "link": null,
+   "notes": "Reconfirmer avec Philippe Normand.",
+   "title": "Reconfirm ribbon cutting date and approach with Philippe Normand",
+   "fileId": "p1781268200000",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-12",
+   "dependsOn": [],
+   "projectId": "p1781268200000",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  },
+  {
+   "id": "p1778885900163",
+   "gate": "",
+   "link": null,
+   "notes": "Organiser le plan de comm avec ONTC.",
+   "title": "Organize comms plan with ONTC for TMC ribbon cutting",
+   "fileId": "p1781268200000",
+   "source": "claude_import",
+   "status": "not_started",
+   "dueDate": null,
+   "assignees": [
+    "Karl"
+   ],
+   "createdAt": "2026-06-12",
+   "dependsOn": [],
+   "projectId": "p1781268200000",
+   "dependencies": [],
+   "approvalChain": [],
+   "deliverableId": null
+  }
+ ],
+ "people": [
+  {
+   "id": "per-1",
+   "name": "Karl",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-2",
+   "name": "Félix",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-3",
+   "name": "Ève-Danièle",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-4",
+   "name": "William-Antoine Blaney",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-5",
+   "name": "Marie-Élise Jarry",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-6",
+   "name": "Sarah Perron-McLean",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-7",
+   "name": "Sylvie Gosselin",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-8",
+   "name": "Lise Arsenault",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "per-9",
+   "name": "Denis Boucher",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "x6001",
+   "name": "Mathieu Paquette",
+   "title": "President and CEO",
+   "active": false
+  },
+  {
+   "id": "p1778885900059",
+   "name": "Catherine Langlois",
+   "title": "",
+   "active": true
+  },
+  {
+   "id": "p1778885900062",
+   "name": "Vanessa Zieman",
+   "title": "",
+   "active": true
+  }
+ ],
+ "uiPrefs": {
+  "density": "compact",
+  "fontScale": 1.3,
+  "accordions": {
+   "p01": {
+    "log": true,
+    "links": false,
+    "issues": false,
+    "memory": true,
+    "milestones": false,
+    "deliverables": true
+   },
+   "p02": {
+    "log": true,
+    "links": true,
+    "issues": false,
+    "memory": true,
+    "milestones": false,
+    "deliverables": true
+   },
+   "p8047": {
+    "log": true,
+    "links": true,
+    "issues": true,
+    "memory": true,
+    "milestones": true,
+    "deliverables": true
+   }
+  },
+  "myWorkMode": "board",
+  "myWorkPanelW": 780,
+  "peopleHidden": [
+   "per-2",
+   "per-3",
+   "per-9",
+   "x6001",
+   "per-6",
+   "p1778885900059",
+   "p1778885900062"
+  ],
+  "projectSplit": 504,
+  "dashColWidths": {
+   "Done": 334,
+   "Urgent": 426,
+   "To Plan": 374,
+   "Waiting": 355,
+   "In Progress": 388
+  },
+  "myTasksColWidths": {
+   "Due": 114,
+   "Task": 359,
+   "Status": 125,
+   "Blocker": 160,
+   "Project": 289
+  },
+  "peopleColumnOrder": [
+   "per-1",
+   "per-4",
+   "per-5",
+   "per-7",
+   "per-8",
+   "per-2",
+   "per-3",
+   "per-6",
+   "per-9",
+   "x6001"
+  ]
+ },
+ "version": "1.0",
+ "linkTypes": [
+  {
+   "id": "lt-folder",
+   "label": "Folder",
+   "value": "folder"
+  },
+  {
+   "id": "lt-draft",
+   "label": "Draft",
+   "value": "draft"
+  },
+  {
+   "id": "lt-approved_document",
+   "label": "Approved Document",
+   "value": "approved_document"
+  },
+  {
+   "id": "lt-background",
+   "label": "Background",
+   "value": "background"
+  },
+  {
+   "id": "lt-briefing_note",
+   "label": "Briefing Note",
+   "value": "briefing_note"
+  },
+  {
+   "id": "lt-qa",
+   "label": "Qa",
+   "value": "qa"
+  },
+  {
+   "id": "lt-press_release",
+   "label": "Press Release",
+   "value": "press_release"
+  },
+  {
+   "id": "lt-media_statement",
+   "label": "Media Statement",
+   "value": "media_statement"
+  },
+  {
+   "id": "lt-approval",
+   "label": "Approval",
+   "value": "approval"
+  },
+  {
+   "id": "lt-transcript",
+   "label": "Transcript",
+   "value": "transcript"
+  },
+  {
+   "id": "lt-meeting_notes",
+   "label": "Meeting Notes",
+   "value": "meeting_notes"
+  },
+  {
+   "id": "lt-other",
+   "label": "Other",
+   "value": "other"
+  }
+ ],
+ "templates": [
+  {
+   "id": "tpl01",
+   "name": "Press Conference",
+   "description": "Standard press conference communications package",
+   "taskTemplates": [
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Draft key messages",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "Requires approved draft",
+     "notes": "",
+     "title": "Approve key messages",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Draft press release",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Media list",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Spokesperson briefing notes",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Logistics coordination",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Run of show",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Media accreditation",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Post-event media monitoring",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "tpl02",
+   "name": "Quarterly Report",
+   "description": "Standard quarterly report communications process",
+   "taskTemplates": [
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Draft communiqué for board",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Align with ministerial report",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Integrate lessons learned",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "Requires full draft",
+     "notes": "",
+     "title": "Legal review",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "Requires legal clearance",
+     "notes": "",
+     "title": "Executive sign-off",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "Requires sign-off",
+     "notes": "",
+     "title": "Board submission",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Public release",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "tpl03",
+   "name": "Media Statement",
+   "description": "Reactive or proactive media statement",
+   "taskTemplates": [
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Draft key messages",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Draft statement",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Legal review",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Executive approval",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Distribute to media",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    },
+    {
+     "gate": "",
+     "notes": "",
+     "title": "Monitor coverage",
+     "status": "To Plan",
+     "assignees": [
+      "Karl"
+     ]
+    }
+   ]
+  }
+ ],
+ "migratedAt": "2026-05-14",
+ "deliverables": [
+  {
+   "id": "p8002",
+   "type": "message_map",
+   "notes": "",
+   "title": "Updated Gaspé messages",
+   "fileId": "p07",
+   "status": "not_started",
+   "dueDate": {
+    "date": "2026-05-15",
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "exact",
+    "startDate": null,
+    "confidence": "tentative",
+    "weekStartDate": null
+   },
+   "taskIds": [
+    "t018",
+    "t019"
+   ],
+   "createdAt": "2026-05-15",
+   "ownerName": "William-Antoine Blaney",
+   "updatedAt": "2026-06-11",
+   "supportNames": [],
+   "approverNames": [],
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p8003",
+   "type": "communication_plan",
+   "notes": "",
+   "title": "Plan de comm pour la première annonce de Dorval",
+   "fileId": "p01",
+   "status": "not_started",
+   "dueDate": null,
+   "taskIds": [
+    "p8005",
+    "p1778885487081",
+    "t003"
+   ],
+   "createdAt": "2026-05-15",
+   "ownerName": "William-Antoine Blaney",
+   "updatedAt": "2026-05-19",
+   "supportNames": [],
+   "approverNames": [],
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p8006",
+   "type": "press_release",
+   "notes": "",
+   "title": "Communiqué de Presse",
+   "fileId": "p8047",
+   "status": "completed",
+   "dueDate": {
+    "date": "2026-05-20",
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "exact",
+    "startDate": null,
+    "confidence": "tentative",
+    "weekStartDate": null
+   },
+   "taskIds": [
+    "p1778885760957",
+    "p8001",
+    "p1778885794047",
+    "p1778885820632",
+    "p8033"
+   ],
+   "createdAt": "2026-05-15",
+   "ownerName": "Karl",
+   "updatedAt": "2026-05-19",
+   "supportNames": [],
+   "approverNames": [],
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": {
+    "date": "2026-05-22",
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "exact",
+    "startDate": null,
+    "confidence": "tentative",
+    "weekStartDate": null
+   }
+  },
+  {
+   "id": "p8010",
+   "type": "press_release",
+   "notes": "Décision prise le 19 mai : communiqué de presse Q1 annulé.",
+   "title": "Go/No go sur la relance du rapport",
+   "fileId": "p03",
+   "status": "completed",
+   "dueDate": {
+    "date": "2026-05-19",
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "exact",
+    "startDate": null,
+    "confidence": "tentative",
+    "weekStartDate": null
+   },
+   "taskIds": [],
+   "createdAt": "2026-05-15",
+   "ownerName": "Karl",
+   "updatedAt": "2026-05-19",
+   "supportNames": [],
+   "approverNames": [],
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p8011",
+   "type": "communication_plan",
+   "notes": "",
+   "title": "Discuss with Denis Boucher the approach",
+   "fileId": "p8048",
+   "status": "not_started",
+   "dueDate": {
+    "date": null,
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "week",
+    "startDate": null,
+    "confidence": "tentative",
+    "weekStartDate": "2026-05-18"
+   },
+   "taskIds": [],
+   "createdAt": "2026-05-15",
+   "ownerName": "Karl",
+   "updatedAt": "2026-05-15",
+   "supportNames": [],
+   "approverNames": [],
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p8001",
+   "type": "communication_plan",
+   "notes": "",
+   "title": "Transition Plan",
+   "fileId": "p02",
+   "status": "in_progress",
+   "dueDate": {
+    "date": "2026-08-03",
+    "year": null,
+    "label": "",
+    "month": null,
+    "endDate": null,
+    "precision": "exact",
+    "startDate": null,
+    "confidence": "tentative",
+    "weekStartDate": null
+   },
+   "taskIds": [
+    "p8002",
+    "p8003",
+    "p8004"
+   ],
+   "createdAt": "2026-05-16",
+   "ownerName": "Karl",
+   "updatedAt": "2026-05-16",
+   "dueDateStr": "2026-08-03",
+   "supportNames": [],
+   "approverNames": [],
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900032",
+   "type": "communication_plan",
+   "notes": "Requires messaging creation, Philippe Normand approval, and Amtrak coordination before publication.",
+   "title": "External Comms — Vancouver Preclearance",
+   "fileId": "p8048",
+   "status": "not_started",
+   "dueDate": {
+    "precision": "week",
+    "confidence": "tentative",
+    "weekStartDate": "2026-06-01"
+   },
+   "taskIds": [],
+   "createdAt": "2026-05-20",
+   "ownerName": "Denis Boucher",
+   "updatedAt": "2026-05-20",
+   "sharePointUrl": "",
+   "approvalStatus": "pending",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900033",
+   "type": "internal_comms",
+   "notes": "Gate: external messaging must be approved before internal communication is prepared.",
+   "title": "Internal Communication — Vancouver Preclearance",
+   "fileId": "p8048",
+   "status": "not_started",
+   "dueDate": {
+    "precision": "week",
+    "confidence": "tentative",
+    "weekStartDate": "2026-06-01"
+   },
+   "taskIds": [],
+   "createdAt": "2026-05-20",
+   "ownerName": "Sylvie Gosselin",
+   "updatedAt": "2026-05-20",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900034",
+   "type": "communication_plan",
+   "notes": "Plan final en main le 29 mai. Présenté à Mathieu Paquette le 4 juin par Karl et Jean-Michel Nahas. Lien avec l'annonce LDRR (juin) et Dorval.",
+   "title": "Plan de positionnement",
+   "fileId": "p1778885900030",
+   "status": "not_started",
+   "dueDate": {
+    "date": "2026-05-29",
+    "precision": "exact",
+    "confidence": "tentative"
+   },
+   "taskIds": [],
+   "createdAt": "2026-05-20",
+   "ownerName": "Sylvie Gosselin",
+   "updatedAt": "2026-05-20",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900035",
+   "type": "video",
+   "notes": "",
+   "title": "Vidéo PDG",
+   "fileId": "p1778885900030",
+   "status": "not_started",
+   "dueDate": {
+    "label": "À définir",
+    "precision": "tbd",
+    "confidence": "unknown"
+   },
+   "taskIds": [],
+   "createdAt": "2026-05-20",
+   "ownerName": "Sylvie Gosselin",
+   "updatedAt": "2026-05-20",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900076",
+   "type": "other",
+   "notes": "Train-based episode tied to production timeline. Internal stakeholders to be looped in once discussions progress.",
+   "title": "Eugene Levy — Train Episode Content Collaboration",
+   "fileId": "p06",
+   "status": "not_started",
+   "dueDate": {
+    "label": "Dependent on Eugene Levy production timeline",
+    "precision": "tbd",
+    "confidence": "unknown"
+   },
+   "taskIds": [
+    "p1778885900064"
+   ],
+   "createdAt": "2026-05-20",
+   "ownerName": "Marie-Élise Jarry",
+   "updatedAt": "2026-05-27",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900077",
+   "type": "other",
+   "notes": "Restarting as a new partnership. Scope question open: content-only or expand to commercial integration. Vanessa Zieman advising on positioning.",
+   "title": "Indigo Partnership",
+   "fileId": "p06",
+   "status": "in_progress",
+   "dueDate": {
+    "label": "TBD — discussions restarting from scratch",
+    "precision": "tbd",
+    "confidence": "unknown"
+   },
+   "taskIds": [
+    "p1778885900065",
+    "p1778885900066"
+   ],
+   "createdAt": "2026-05-20",
+   "ownerName": "Marie-Élise Jarry",
+   "updatedAt": "2026-05-27",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900078",
+   "type": "other",
+   "notes": "Existing momentum with hospital network. Priority over similar proposals due to stronger alignment.",
+   "title": "Children's Hospital & Cause Partnerships",
+   "fileId": "p06",
+   "status": "in_progress",
+   "dueDate": {
+    "label": "TBD — expansion in progress",
+    "precision": "tbd",
+    "confidence": "unknown"
+   },
+   "taskIds": [
+    "p1778885900067"
+   ],
+   "createdAt": "2026-05-20",
+   "ownerName": "Marie-Élise Jarry",
+   "updatedAt": "2026-05-27",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900079",
+   "type": "social_content",
+   "notes": "Awareness-focused. Top-performing content selectively amplified. Amplification rights must be included in agreements. Lise Arsenault leads shortlist. Vanessa Zieman to evaluate paid media boosting.",
+   "title": "Influencer & Content Creator Campaign",
+   "fileId": "p06",
+   "status": "not_started",
+   "dueDate": {
+    "year": 2026,
+    "month": 7,
+    "precision": "month",
+    "confidence": "tentative"
+   },
+   "taskIds": [
+    "p1778885900098",
+    "p1778885900069",
+    "p1778885900070",
+    "p1778885900071",
+    "p1778885900099",
+    "p1778885900100"
+   ],
+   "createdAt": "2026-05-20",
+   "ownerName": "Lise Arsenault",
+   "updatedAt": "2026-05-27",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  },
+  {
+   "id": "p1778885900080",
+   "type": "other",
+   "notes": "Active streams: Ontario junior hockey league, Quebec minor league (advancing), Tennis Canada renewal (under evaluation). Visibility and engagement focus.",
+   "title": "Sports & Events Partnerships",
+   "fileId": "p06",
+   "status": "in_progress",
+   "dueDate": {
+    "label": "TBD — negotiations ongoing",
+    "precision": "tbd",
+    "confidence": "unknown"
+   },
+   "taskIds": [
+    "p1778885900072",
+    "p1778885900073"
+   ],
+   "createdAt": "2026-05-20",
+   "ownerName": "Vanessa Zieman",
+   "updatedAt": "2026-05-27",
+   "sharePointUrl": "",
+   "approvalStatus": "not_required",
+   "publicationDate": null
+  }
+ ],
+ "openQuestions": [],
+ "deliverableTypes": [
+  {
+   "label": "Communication Plan",
+   "value": "communication_plan"
+  },
+  {
+   "label": "Message Map",
+   "value": "message_map"
+  },
+  {
+   "label": "Q&A",
+   "value": "qa"
+  },
+  {
+   "label": "Media Statement",
+   "value": "media_statement"
+  },
+  {
+   "label": "Press Release",
+   "value": "press_release"
+  },
+  {
+   "label": "Briefing Note",
+   "value": "briefing_note"
+  },
+  {
+   "label": "Internal Communication",
+   "value": "internal_comms"
+  },
+  {
+   "label": "Employee Communication",
+   "value": "employee_comms"
+  },
+  {
+   "label": "Passenger Communication",
+   "value": "passenger_comms"
+  },
+  {
+   "label": "Stakeholder Note",
+   "value": "stakeholder_comms"
+  },
+  {
+   "label": "Social Content",
+   "value": "social_content"
+  },
+  {
+   "label": "Speech",
+   "value": "speech"
+  },
+  {
+   "label": "Board Document",
+   "value": "board_document"
+  },
+  {
+   "label": "Website Publication",
+   "value": "website_publication"
+  },
+  {
+   "label": "Newswire Release",
+   "value": "newswire"
+  },
+  {
+   "label": "Video",
+   "value": "video"
+  },
+  {
+   "label": "Report",
+   "value": "report"
+  },
+  {
+   "label": "Other",
+   "value": "other"
+  }
+ ]
+}
