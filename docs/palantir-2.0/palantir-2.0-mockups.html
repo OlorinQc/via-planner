@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Palantír 2.0 - Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080a10; --s1:#0f1219; --s2:#141824; --s3:#1a1f2e;
+    --bd:rgba(255,255,255,.06); --bd2:rgba(255,255,255,.11); --bd3:rgba(255,255,255,.03);
+    --tx:#dde1ec; --tx2:#7e8a9e; --tx3:#3e4a5a;
+    --acc:#5b9cf6; --acc2:#a8b8d0; --g:#3fb68b; --y:#d4922a; --r:#d95f5f;
+    --hdr:#0a0c14;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--tx);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  /* ── App header ── */
+  .hdr{background:var(--hdr);border-bottom:1px solid var(--bd);height:44px;display:flex;align-items:center;padding:0 14px;gap:14px;flex-shrink:0}
+  .wordmark{font-family:'Cinzel',serif;font-size:15px;color:var(--acc2);letter-spacing:.06em}
+  .karlos{background:rgba(91,156,246,.12);border:1px solid rgba(91,156,246,.2);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--acc);cursor:pointer}
+  nav{display:flex;gap:2px}
+  nav button{background:none;border:none;color:var(--tx2);font-size:12px;font-weight:500;padding:12px 13px;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+  nav button.on{color:var(--acc);border-bottom-color:var(--acc)}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .pill{font-size:10px;font-weight:600;border-radius:10px;padding:2px 8px}
+  .pill.r{background:rgba(217,95,95,.15);color:var(--r)}
+  .pill.y{background:rgba(212,146,42,.15);color:var(--y)}
+  .sync{font-size:10px;color:var(--g)}
+
+  /* ── Shared bits ── */
+  .chip{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;white-space:nowrap}
+  .dot{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px}
+  .dot i{width:5px;height:5px;border-radius:50%;display:inline-block}
+  .c-acc{background:rgba(91,156,246,.10);color:var(--acc)} .c-acc i{background:var(--acc)}
+  .c-g{background:rgba(63,182,139,.10);color:var(--g)} .c-g i{background:var(--g)}
+  .c-y{background:rgba(212,146,42,.12);color:var(--y)} .c-y i{background:var(--y)}
+  .c-r{background:rgba(217,95,95,.12);color:var(--r)} .c-r i{background:var(--r)}
+  .c-mut{background:rgba(62,74,90,.18);color:var(--tx2)} .c-mut i{background:var(--tx2)}
+  .lbl{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+  .ref{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--tx3)}
+  .ck{width:18px;height:18px;border:1px solid rgba(63,182,139,.35);border-radius:4px;background:none;color:var(--g);font-size:10px;cursor:pointer;flex-shrink:0;line-height:1}
+  .ck:hover{background:rgba(63,182,139,.12)}
+  .view{flex:1;overflow:hidden;display:none}
+  .view.on{display:flex}
+  ::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:var(--s3);border-radius:4px} ::-webkit-scrollbar-track{background:transparent}
+
+  /* ════ TODAY ════ */
+  #v-today{flex-direction:column}
+  .weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:12px 16px 4px;flex-shrink:0}
+  .wday{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:6px 9px;min-height:58px}
+  .wday.today{border-color:var(--acc);background:rgba(91,156,246,.05)}
+  .wday .d{font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:4px}
+  .wday.today .d{color:var(--acc)}
+  .wday .it{font-size:10px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:1px 3px;border-radius:3px;cursor:grab}
+  .wday .it:hover{background:var(--s3);color:var(--tx)}
+  .wday .it:active{cursor:grabbing}
+  .wday .it.done{color:var(--tx3);cursor:default}
+  .wday .it.done:hover{background:none}
+  .wday .it b{color:var(--y);font-weight:600}
+  .wday .it.drag{opacity:.35}
+  .today-body{flex:1;display:flex;overflow:hidden;justify-content:center}
+  .today-main{flex:1;overflow-y:auto;padding:10px 22px 24px;max-width:860px}
+  .sect{margin-bottom:18px}
+  .sect-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .fgroup{background:var(--s1);border:1px solid var(--bd);border-radius:7px;margin-bottom:7px;overflow:hidden}
+  .fgroup-h{display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--s2);border-bottom:1px solid var(--bd3);cursor:pointer}
+  .fgroup-h .t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx)}
+  .bar{width:14px;height:3px;border-radius:2px;flex-shrink:0}
+  .trow{display:flex;align-items:center;gap:9px;padding:7px 11px;border-bottom:1px solid var(--bd3);cursor:pointer}
+  .trow:last-child{border-bottom:none}
+  .trow:hover{background:var(--s2)}
+  .trow .tt{flex:1;font-size:12px;color:var(--tx);line-height:1.35}
+  .trow .tt .out{color:var(--y);font-size:10px;display:block;margin-bottom:1px}
+  .today-rail{width:300px;flex-shrink:0;border-left:1px solid var(--bd);overflow-y:auto;padding:12px 14px;background:var(--s1)}
+  .rail-card{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:9px 11px;margin-bottom:10px}
+  .rail-card .row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd3);font-size:11px;color:var(--tx2)}
+  .rail-card .row:last-child{border-bottom:none}
+  .rail-card .row b{color:var(--tx);font-weight:500}
+  .act-it{padding:6px 0;border-bottom:1px solid var(--bd3);font-size:11px;color:var(--tx2);line-height:1.45}
+  .act-it:last-child{border-bottom:none}
+  .act-it .who{font-weight:600;color:var(--acc2)}
+  .act-it .when{font-size:10px;color:var(--tx3)}
+
+  /* ════ FILES ════ */
+  #v-files{flex-direction:row}
+  .flist{width:330px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;background:var(--s1)}
+  .flist-top{padding:10px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+  .search{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;color:var(--tx);font-size:12px;padding:6px 10px;outline:none;font-family:inherit;margin-bottom:8px}
+  .fchips{display:flex;gap:4px;flex-wrap:wrap}
+  .fchip{font-size:10px;padding:3px 9px;border-radius:5px;border:1px solid var(--bd);background:none;color:var(--tx2);cursor:pointer;font-family:inherit}
+  .fchip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .flist-body{flex:1;overflow-y:auto;padding:10px}
+  .fcard{background:var(--s1);border:1px solid var(--bd);border-radius:7px;padding:9px 11px;margin-bottom:6px;cursor:pointer}
+  .fcard:hover{border-color:var(--bd2);background:var(--s2)}
+  .fcard.sel{border-color:var(--acc);background:var(--s3)}
+  .fcard .t{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:3px}
+  .fcard .m{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+  .fcard .stale{font-size:10px;font-weight:600;margin-left:auto}
+  .fpage{flex:1;overflow-y:auto}
+  .fpage-h{background:var(--hdr);border-bottom:1px solid var(--bd);padding:13px 18px;position:sticky;top:0;z-index:5}
+  .fpage-h h1{font-size:16px;font-weight:700;margin-bottom:7px}
+  .fsec{border-bottom:1px solid var(--bd)}
+  .fsec-h{display:flex;align-items:center;gap:9px;padding:9px 18px;background:var(--s1);cursor:pointer;position:sticky;z-index:4}
+  .fsec-h .tw{font-size:12px;font-weight:600;color:var(--acc)}
+  .fsec-h .badge{font-size:10px;color:var(--tx3)}
+  .fsec-h .add{margin-left:auto;background:var(--acc);border:none;border-radius:5px;color:#fff;font-size:10px;font-weight:600;padding:3px 10px;cursor:pointer;font-family:inherit}
+  .fsec-h .ghost{background:none;border:1px solid var(--bd2);color:var(--tx2)}
+  .fsec-b{padding:12px 18px}
+  .memory{background:var(--s2);border:1px solid var(--bd2);border-radius:7px;padding:11px 13px;font-size:12.5px;line-height:1.65;color:var(--tx)}
+  .memory ul{padding-left:18px;margin-top:4px}
+  .memory li{margin:2px 0;color:var(--tx2)}
+  .outbox{border:1px solid var(--bd);border-radius:7px;margin-bottom:9px;overflow:hidden;background:var(--s2)}
+  .outbox-h{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bd3);background:rgba(212,146,42,.04);cursor:pointer}
+  .outbox-h .t{font-size:12px;font-weight:600;flex:1}
+  .flag{display:flex;align-items:center;gap:9px;padding:7px 11px;border:1px solid var(--bd);border-radius:6px;margin-bottom:5px;background:var(--s1)}
+  .flag .k{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:4px;flex-shrink:0}
+  .flag .q{flex:1;font-size:12px;color:var(--tx)}
+  .hist{padding:8px 0;border-bottom:1px solid var(--bd3);display:flex;gap:10px}
+  .hist:last-child{border:none}
+  .hist .ic{width:22px;height:22px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+  .hist .bd{flex:1}
+  .hist .ti{font-size:12px;font-weight:600;color:var(--tx)}
+  .hist .su{font-size:11.5px;color:var(--tx2);line-height:1.55;margin-top:2px}
+  .hist .me{font-size:10px;color:var(--tx3);margin-top:2px}
+
+  /* ════ TEAM ════ */
+  #v-team{flex-direction:column}
+  .team-top{padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--s1);flex-shrink:0}
+  .seg{display:flex;border:1px solid var(--bd2);border-radius:6px;overflow:hidden}
+  .seg button{background:none;border:none;color:var(--tx2);font-size:11px;font-weight:600;padding:5px 13px;cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--acc);color:#fff}
+  .pbtn{font-size:11px;padding:4px 11px;border-radius:5px;border:1.5px solid var(--bd);background:none;color:var(--tx2);cursor:pointer;font-family:inherit}
+  .pbtn.on{border-color:var(--acc);background:rgba(91,156,246,.12);color:var(--acc);font-weight:600}
+  .team-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .abtn{font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;border:1px solid var(--bd2);background:var(--s2);color:var(--tx2);cursor:pointer;font-family:inherit}
+  .abtn.p{background:var(--acc);border-color:var(--acc);color:#fff}
+  .team-body{flex:1;overflow-y:auto;padding:14px 18px}
+  .team-body>div{max-width:860px;width:100%;margin-left:auto;margin-right:auto}
+  .mt-file{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd3)}
+  .mt-file-h{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+  .mt-file-h .t{font-size:13px;font-weight:700}
+  .mt-mem{font-size:11px;color:var(--tx3);font-style:italic;margin-bottom:7px;line-height:1.5}
+  .mt-out{padding-left:12px;border-left:2px solid rgba(212,146,42,.25);margin-bottom:7px}
+  .mt-out-h{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;margin-bottom:3px}
+  .mt-out-h .t{font-size:12px;font-weight:600}
+  .mt-out-h .st{font-size:10px;color:var(--tx3)}
+  .mt-task{display:flex;align-items:center;gap:8px;padding:3px 0 3px 12px;font-size:12px;color:var(--tx2)}
+  .mt-task .due{font-size:10px;color:var(--tx3)}
+  .mt-task .pc{font-size:9px;background:rgba(91,156,246,.12);color:var(--acc);border-radius:3px;padding:1px 5px}
+  .mt-task .ref{display:none}
+  body.refs .mt-task .ref,body.refs .mt-out-h .ref,body.refs .mt-file-h .ref{display:inline}
+  .mt-task.done .name{text-decoration:line-through;color:var(--tx3)}
+
+  /* ════ ACTIVITY ════ */
+  #v-activity{flex-direction:row;justify-content:center}
+  .act-main{flex:1;overflow-y:auto;padding:14px 22px;max-width:820px}
+  .pkg{border:1px solid var(--bd);border-radius:7px;background:var(--s1);margin-bottom:10px;overflow:hidden}
+  .pkg-h{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--s2);border-bottom:1px solid var(--bd3)}
+  .pkg-h .t{font-size:12px;font-weight:600;flex:1}
+  .pkg-b{padding:9px 13px;font-size:11.5px;color:var(--tx2);line-height:1.6}
+  .act-rail{width:280px;border-left:1px solid var(--bd);background:var(--s1);overflow-y:auto;padding:12px 14px;flex-shrink:0}
+  .snap{padding:7px 0;border-bottom:1px solid var(--bd3);font-size:11px;color:var(--tx2)}
+  .snap b{display:block;color:var(--tx);font-weight:500;font-size:11.5px}
+
+  .note{position:fixed;bottom:42px;right:14px;background:var(--s3);border:1px solid var(--bd2);border-radius:7px;padding:7px 12px;font-size:10px;color:var(--tx3);z-index:50}
+
+  /* drag-to-reschedule */
+  #v-today .trow{cursor:grab}
+  #v-today .trow:active{cursor:grabbing}
+  .wday.over{border-color:var(--acc);background:rgba(91,156,246,.10);box-shadow:0 0 0 1px var(--acc) inset}
+  .wday.flash{border-color:var(--g);background:rgba(63,182,139,.10)}
+  .qd{display:none;gap:3px;flex-shrink:0}
+  #v-today .trow:hover .qd{display:flex}
+  .qd button{font-size:9px;font-weight:600;border:1px solid var(--bd2);background:var(--s3);color:var(--tx2);border-radius:4px;padding:2px 6px;cursor:pointer;font-family:inherit}
+  .qd button:hover{border-color:var(--acc);color:var(--acc)}
+  #toast{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid rgba(63,182,139,.4);color:var(--g);border-radius:7px;padding:7px 16px;font-size:11px;font-weight:600;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.show{opacity:1}
+
+  /* quick capture */
+  .capture{margin-bottom:14px}
+  .capture input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;color:var(--tx);font-size:13px;padding:10px 13px;outline:none;font-family:inherit}
+  .capture input:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(91,156,246,.15)}
+  .cap-prev{display:flex;gap:5px;margin-top:6px;min-height:20px;flex-wrap:wrap;align-items:center}
+  .cap-prev .hint{font-size:10px;color:var(--tx3)}
+
+  /* multi-select + batch bar */
+  .trow.msel{box-shadow:0 0 0 1px var(--acc) inset;background:rgba(91,156,246,.07)!important}
+  #batchbar{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--acc);border-radius:9px;padding:8px 13px;display:none;gap:7px;align-items:center;z-index:55;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  #batchbar.show{display:flex}
+  #batchbar .cnt{font-size:11px;font-weight:700;color:var(--acc);margin-right:3px}
+  #batchbar button{font-size:11px;font-weight:600;border:1px solid var(--bd2);background:var(--s2);color:var(--tx2);border-radius:5px;padding:4px 11px;cursor:pointer;font-family:inherit}
+  #batchbar button:hover{border-color:var(--acc);color:var(--acc)}
+  #batchbar button.done-b:hover{border-color:var(--g);color:var(--g)}
+
+  /* ghost add rows */
+  .trow.ghost{color:var(--tx3);font-size:11px;cursor:pointer;border-bottom:none}
+  .trow.ghost:hover{color:var(--acc);background:transparent}
+  .trow.ghost input{flex:1;background:var(--s3);border:1px solid var(--acc);border-radius:5px;color:var(--tx);font-size:12px;padding:4px 8px;outline:none;font-family:inherit}
+
+  /* toast action */
+  #toast button{background:none;border:1px solid rgba(63,182,139,.5);color:var(--g);border-radius:4px;font-size:10px;font-weight:700;padding:2px 9px;margin-left:10px;cursor:pointer;font-family:inherit}
+  #toast.act{pointer-events:auto}
+
+  /* chip fan (header pickers) */
+  .fan{display:inline-flex;gap:3px;align-items:center;background:var(--s3);border:1px solid var(--bd2);border-radius:14px;padding:2px 5px;animation:fade .12s}
+  .fan button{background:none;border:none;color:var(--tx2);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;cursor:pointer;font-family:inherit}
+  .fan button:hover{background:var(--s2);color:var(--tx)}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .clickable-chip{cursor:pointer}
+  .clickable-chip:hover{box-shadow:0 0 0 1px var(--bd2)}
+
+  /* promote-to-task floating buttons */
+  #promo{position:fixed;display:none;gap:4px;z-index:70;background:var(--s3);border:1px solid var(--acc);border-radius:7px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  #promo button{background:var(--s2);border:1px solid var(--bd2);color:var(--acc);font-size:10px;font-weight:700;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit}
+  #promo button:hover{border-color:var(--acc)}
+
+  /* mini capture lines (file page sections, meeting groups) */
+  .miniline{display:flex;gap:6px;margin-top:7px}
+  .miniline input{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-size:11.5px;padding:5px 9px;outline:none;font-family:inherit}
+  .miniline input:focus{border-color:var(--acc)}
+
+  /* team board */
+  #team-board{flex:1;overflow-x:auto;overflow-y:hidden;display:none;gap:10px;padding:14px 18px;align-items:flex-start}
+  .pcol{width:250px;flex-shrink:0;display:flex;flex-direction:column;max-height:100%;border:1px solid var(--bd);border-radius:8px;background:var(--s1);overflow:hidden}
+  .pcol.over{border-color:var(--acc);background:rgba(91,156,246,.04)}
+  .pcol-h{padding:9px 12px;background:var(--s2);border-bottom:1px solid var(--bd3)}
+  .pcol-h .nm{font-size:12px;font-weight:700}
+  .pcol-h .ld{font-size:10px;color:var(--tx2);margin-top:2px}
+  .pcol-h .ld .late{color:var(--r);font-weight:700}
+  .pcol-b{flex:1;overflow-y:auto;padding:7px}
+  .pcard{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:7px 9px;margin-bottom:6px;cursor:grab;font-size:11.5px;color:var(--tx);line-height:1.35}
+  .pcard:active{cursor:grabbing}
+  .pcard .fl{font-size:9px;font-weight:700;color:var(--y);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px}
+  .pcard .mx{display:flex;gap:4px;margin-top:4px;align-items:center}
+  .pcard.msel{box-shadow:0 0 0 1px var(--acc) inset;background:rgba(91,156,246,.08)}
+  .pcard.drag{opacity:.35}
+
+  /* command palette */
+  #pal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+  #pal.on{display:flex}
+  .pal-box{width:560px;background:var(--s1);border:1px solid var(--bd2);border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+  .pal-box input{width:100%;background:var(--s2);border:none;border-bottom:1px solid var(--bd);color:var(--tx);font-size:14px;padding:13px 16px;outline:none;font-family:inherit}
+  .pal-res{max-height:330px;overflow-y:auto}
+  .pal-it{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--bd3);cursor:pointer}
+  .pal-it:hover{background:var(--s2)}
+  .pal-it .ty{font-size:9px;font-weight:700;text-transform:uppercase;border-radius:4px;padding:2px 6px;flex-shrink:0}
+  .pal-it .tx{flex:1;font-size:12.5px}
+  .pal-it .tx small{color:var(--tx3);font-size:10px;margin-left:6px}
+  .pal-it .acts{display:flex;gap:4px}
+  .pal-it .acts button{font-size:10px;border:1px solid var(--bd2);background:var(--s3);color:var(--tx2);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit}
+  .pal-it .acts button:hover{border-color:var(--acc);color:var(--acc)}
+  .kbd{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--tx3);border:1px solid var(--bd2);border-radius:4px;padding:1px 5px}
+
+  /* floating hover actions + popovers */
+  .trow,.mt-task,.pcard{position:relative}
+  .hoveract{position:absolute;right:32px;top:50%;transform:translateY(-50%);display:none;gap:3px;background:var(--s3);border:1px solid var(--bd2);border-radius:7px;padding:3px 4px;box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:8}
+  .trow:hover>.hoveract,.mt-task:hover>.hoveract,.pcard:hover>.hoveract{display:flex}
+  .hoveract button{background:none;border:none;color:var(--tx2);font-size:12px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:inherit;line-height:1}
+  .hoveract button:hover{background:var(--s2);color:var(--acc)}
+  .pop{position:fixed;z-index:90;background:var(--s1);border:1px solid var(--bd2);border-radius:9px;box-shadow:0 16px 48px rgba(0,0,0,.6);padding:10px;animation:fade .12s}
+  .pop-cal{width:218px}
+  .pop-cal .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+  .pop-cal .ch b{font-size:11px;color:var(--tx)}
+  .pop-cal .ch button{background:none;border:1px solid var(--bd2);color:var(--tx2);border-radius:4px;font-size:11px;padding:1px 7px;cursor:pointer;font-family:inherit}
+  .pop-cal .qrow{display:flex;gap:4px;margin-bottom:8px}
+  .pop-cal .qrow button{flex:1;font-size:9px;font-weight:700;border:1px solid var(--bd2);background:var(--s2);color:var(--tx2);border-radius:4px;padding:3px 0;cursor:pointer;font-family:inherit}
+  .pop-cal .qrow button:hover{border-color:var(--acc);color:var(--acc)}
+  .pop-cal .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .pop-cal .grid .dh{font-size:8px;font-weight:700;color:var(--tx3);text-align:center;padding:2px 0}
+  .pop-cal .grid button{background:none;border:none;color:var(--tx2);font-size:10px;padding:4px 0;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace}
+  .pop-cal .grid button:hover{background:var(--acc);color:#fff}
+  .pop-cal .grid button.tdy{box-shadow:0 0 0 1px var(--acc) inset;color:var(--acc)}
+  .pop-cal .grid.g8{grid-template-columns:17px repeat(7,1fr)}
+  .pop-cal .grid button.wob{font-size:7px;font-weight:700;color:var(--tx3);padding:4px 0;font-family:'IBM Plex Sans',sans-serif}
+  .pop-cal .grid button.wob:hover{background:rgba(91,156,246,.15);color:var(--acc)}
+  .pop-cal .ch .mob{font-size:8px;font-weight:700;padding:1px 6px;margin-left:5px;color:var(--tx3)}
+  .pop-cal .ch .mob:hover{border-color:var(--acc);color:var(--acc)}
+  .pop-people{display:flex;gap:4px}
+  .pop-people button{width:30px;height:26px;border:1px solid var(--bd2);background:var(--s2);color:var(--tx2);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
+  .pop-people button:hover{border-color:var(--acc);color:var(--acc)}
+  .linebtns{display:flex;gap:3px;flex-shrink:0;align-items:center}
+  .linebtns button{background:var(--s3);border:1px solid var(--bd2);color:var(--tx2);font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:inherit;line-height:1.2}
+  .linebtns button:hover{border-color:var(--acc);color:var(--acc)}
+  .capture{position:relative}
+  .capture .linebtns{position:absolute;right:8px;top:7px}
+
+  /* activity diff */
+  .pkg-diff{margin-top:9px;border-top:1px solid var(--bd3);padding-top:9px;display:none}
+  .pkg-diff .df{margin-bottom:7px}
+  .pkg-diff .df b{font-size:11px;color:var(--tx);display:block;margin-bottom:2px}
+  .pkg-diff .ln{font-size:11px;padding:1px 0 1px 12px;color:var(--tx2)}
+  .pkg-diff .ln.add{color:var(--g)} .pkg-diff .ln.done{color:var(--tx3)} .pkg-diff .ln.chg{color:var(--y)}
+</style>
+</head>
+<body>
+
+<!-- ════════ HEADER ════════ -->
+<div class="hdr">
+  <button class="karlos">KarlOS</button>
+  <span class="wordmark">Palantír</span>
+  <nav>
+    <button id="n-today" class="on" onclick="go('today')">Today</button>
+    <button id="n-files" onclick="go('files')">Files</button>
+    <button id="n-team" onclick="go('team')">Team</button>
+    <button id="n-activity" onclick="go('activity')">Activity</button>
+  </nav>
+  <div class="hdr-right">
+    <span class="pill r">4 urgent</span>
+    <span class="pill y">6 overdue</span>
+    <span class="sync">✓ live</span>
+  </div>
+</div>
+
+<div id="zoomArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+
+<!-- ════════ TODAY ════════ -->
+<div class="view on" id="v-today">
+  <div style="padding:10px 16px 2px;flex-shrink:0">
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+      <span class="lbl">This week</span><span style="font-size:10px;color:var(--tx3)">drag tasks here, or drag items between days</span>
+    </div>
+    <div class="weekstrip" style="padding:0">
+      <div class="wday"><div class="d">MON 8</div><div class="it done">✓ APA dry run</div></div>
+      <div class="wday"><div class="d">TUE 9</div></div>
+      <div class="wday"><div class="d">WED 10</div><div class="it"><b>Crise</b> OOO auto-reply</div></div>
+      <div class="wday today"><div class="d">THU 11</div><div class="it"><b>APA</b> Recording CASACOM</div><div class="it"><b>Alto</b> Changemaker brief</div></div>
+      <div class="wday"><div class="d">FRI 12</div><div class="it"><b>Preclear.</b> window opens</div></div>
+      <div class="wday"><div class="d">SAT 13</div></div>
+      <div class="wday"><div class="d">SUN 14</div></div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin:6px 0 4px">
+      <span class="lbl" style="color:var(--tx3)">Next week</span>
+    </div>
+    <div class="weekstrip" style="padding:0">
+      <div class="wday"><div class="d">MON 15</div></div>
+      <div class="wday"><div class="d">TUE 16</div><div class="it"><b>Dorval</b> Integrate partner quotes</div></div>
+      <div class="wday"><div class="d">WED 17</div></div>
+      <div class="wday"><div class="d">THU 18</div></div>
+      <div class="wday"><div class="d">FRI 19</div><div class="it"><b>Dorval</b> Final approval</div></div>
+      <div class="wday"><div class="d">SAT 20</div></div>
+      <div class="wday"><div class="d">SUN 21</div></div>
+    </div>
+  </div>
+  <div class="today-body">
+    <div class="today-main">
+      <div class="capture">
+        <input id="cap" autocomplete="off" placeholder='Quick add… e.g.  Dorval: call Philippe re partner quotes @wa fri'>
+        <div id="capPrev" class="cap-prev"><span class="hint">file: before the colon · @wa @marie @syl @sarah @lise @denis · today / tmrw / fri / mon / jun 18 / tbd · Enter to add</span></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <h2 style="font-size:16px;font-weight:700">Thursday, June 11</h2>
+        <div style="font-size:11px;color:var(--tx3)">13 open tasks for you · 6 overdue · last update applied 3 days ago · click rows to multi-select</div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-h"><span class="lbl" style="color:var(--r)">Overdue</span><span style="font-size:10px;color:var(--tx3)">(4)</span></div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--r)"></span><span class="t">LDRR</span><span class="dot c-r" style="margin-left:auto"><i></i>Urgent</span></div>
+          <div class="trow"><div class="tt">Vérifier avec Legal les NDA pour LDRR et Alto</div><span class="chip c-r">Jun 9</span><button class="ck">✓</button></div>
+          <div class="trow"><div class="tt">Chercher du budget pour la page LDRR du nouveau site web</div><span class="chip c-r">Jun 10</span><button class="ck">✓</button></div>
+        </div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--y)"></span><span class="t">Director's Forum</span></div>
+          <div class="trow"><div class="tt">Confirm who takes the lead on Director's Forum with Philippe</div><span class="chip c-r">Jun 9</span><button class="ck">✓</button></div>
+        </div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--y)"></span><span class="t">Calendrier institutionnel</span></div>
+          <div class="trow"><div class="tt">Consolider le calendrier et remettre à Casacom</div><span class="chip c-r">Jun 10</span><button class="ck">✓</button></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-h"><span class="lbl" style="color:var(--y)">Today</span><span style="font-size:10px;color:var(--tx3)">(3)</span></div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--r)"></span><span class="t">Assemblée publique annuelle (APA) 2025</span></div>
+          <div class="trow"><div class="tt"><span class="out">↳ Enregistrement APA</span>Record APA at CASACOM, with William-Antoine</div><span class="chip c-y">Today</span><button class="ck">✓</button></div>
+        </div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--r)"></span><span class="t">Alto</span></div>
+          <div class="trow"><div class="tt"><span class="out">↳ Transition Plan</span>Prep Changemaker official brief</div><span class="chip c-y">Today</span><button class="ck">✓</button></div>
+        </div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--y)"></span><span class="t">Budget</span></div>
+          <div class="trow"><div class="tt">Debrief with Marie-Élise on costing draft after Philippe meeting</div><span class="chip c-y">Today</span><button class="ck">✓</button></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-h"><span class="lbl" style="color:var(--acc)">Next 3 days</span><span style="font-size:10px;color:var(--tx3)">(2)</span></div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--r)"></span><span class="t">Vancouver Preclearance</span></div>
+          <div class="trow"><div class="tt"><span class="out">↳ External Comms</span>Final check on Amtrak-aligned messaging before window opens</div><span class="chip c-acc">Fri Jun 12</span><button class="ck">✓</button></div>
+        </div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--y)"></span><span class="t">Mise à jour plan de crise</span></div>
+          <div class="trow"><div class="tt">Review Marie-Élise's out-of-office auto-reply setup</div><span class="chip c-acc">Fri Jun 12</span><button class="ck">✓</button></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-h"><span class="lbl">No date</span><span style="font-size:10px;color:var(--tx3)">(4 shown · 9 more)</span>
+          <button class="fchip" style="margin-left:auto">Triage 9 undated →</button></div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--tx3)"></span><span class="t">Strategic Roadmap</span></div>
+          <div class="trow"><div class="tt">Demander à Jamie le document complet</div><button class="ck">✓</button></div>
+          <div class="trow"><div class="tt">Décomposer le narratif par pilier stratégique</div><button class="ck">✓</button></div>
+        </div>
+        <div class="fgroup">
+          <div class="fgroup-h"><span class="bar" style="background:var(--tx3)"></span><span class="t">Liste enjeux / KPI / Médias</span></div>
+          <div class="trow"><div class="tt">Préparer la liste des enjeux en cours</div><button class="ck">✓</button></div>
+          <div class="trow"><div class="tt">Compiler les rapports KPI</div><button class="ck">✓</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="today-rail">
+      <div class="lbl" style="margin-bottom:7px">Urgent files</div>
+      <div class="rail-card">
+        <div class="row"><b>Vancouver Preclearance</b><span class="chip c-y">Jun 12-15</span></div>
+        <div class="row"><b>Gare de Dorval</b><span style="font-size:10px">quotes in circulation</span></div>
+        <div class="row"><b>Alto</b><span style="font-size:10px">brief due today</span></div>
+        <div class="row"><b>Positionnement Mathieu</b><span class="chip c-r">plan late</span></div>
+      </div>
+
+      <div class="lbl" style="margin-bottom:7px">Open blockers</div>
+      <div class="rail-card">
+        <div class="row"><b>Preclearance</b><span style="font-size:10px;color:var(--r)">clearances at risk</span></div>
+        <div class="row"><b>VIA Express</b><span style="font-size:10px;color:var(--y)">awaiting Mathieu + Carl</span></div>
+      </div>
+
+      <div class="lbl" style="margin-bottom:7px">Attention</div>
+      <div class="rail-card">
+        <div class="row"><span style="color:var(--y)">8 files untouched 14+ days</span><a href="#" style="color:var(--acc);font-size:10px;text-decoration:none">view</a></div>
+        <div class="row"><span>9 of your tasks have no date</span><a href="#" style="color:var(--acc);font-size:10px;text-decoration:none">triage</a></div>
+      </div>
+
+      <div class="lbl" style="margin-bottom:7px">Activity</div>
+      <div class="rail-card">
+        <div class="act-it"><span class="who">Claude</span> applied <b>June 8 update</b>: 46 done, 8 created, Budget file created <div class="when">3 days ago · snapshot #9</div></div>
+        <div class="act-it"><span class="who">Karl</span> completed "Dry run avec Jonathan, Mathieu et Carl" <div class="when">3 days ago</div></div>
+        <div class="act-it"><span class="who">Karl</span> edited memory on <b>VIA Narrative Structure</b> <div class="when">today</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ FILES ════════ -->
+<div class="view" id="v-files">
+  <div class="flist">
+    <div class="flist-top">
+      <input class="search" placeholder="Search files, tasks, memory, flags…">
+      <div class="fchips">
+        <button class="fchip on">Active + Monitoring</button>
+        <button class="fchip">Active</button>
+        <button class="fchip">All</button>
+        <button class="fchip">Mine</button>
+        <button class="fchip">Archived</button>
+      </div>
+    </div>
+    <div class="flist-body">
+      <div class="lbl" style="color:var(--r);margin-bottom:5px">Urgent (4)</div>
+      <div class="fcard sel">
+        <div class="t">Gare de Dorval</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">William-Antoine</span><span class="stale" style="color:var(--g)">Jun 8</span></div>
+      </div>
+      <div class="fcard">
+        <div class="t">Vancouver Preclearance</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Denis</span><span class="stale" style="color:var(--g)">Jun 8</span></div>
+      </div>
+      <div class="fcard">
+        <div class="t">Alto</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--y)">15d stale</span></div>
+      </div>
+      <div class="fcard">
+        <div class="t">Positionnement Mathieu</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Sylvie</span><span class="stale" style="color:var(--r)">22d stale</span></div>
+      </div>
+      <div class="lbl" style="margin:10px 0 5px">High + Medium (29)</div>
+      <div class="fcard">
+        <div class="t">Assemblée publique annuelle (APA) 2025</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">William-Antoine</span><span class="stale" style="color:var(--g)">Jun 8</span></div>
+      </div>
+      <div class="fcard">
+        <div class="t">LDRR</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--g)">Jun 8</span></div>
+      </div>
+      <div class="fcard">
+        <div class="t">Champions</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--g)">Jun 8</span></div>
+      </div>
+      <div class="fcard">
+        <div class="t">Mise à jour plan de crise</div>
+        <div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--g)">Jun 8</span></div>
+      </div>
+      <div class="fcard"><div class="t">Alto, Transition Plan</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--y)">15d stale</span></div></div>
+      <div class="fcard"><div class="t">Budget</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--g)">Jun 8</span></div></div>
+      <div class="fcard"><div class="t">VIA Narrative Structure</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--g)">Jun 11</span></div></div>
+      <div class="fcard"><div class="t">Director's Forum</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--g)">Jun 3</span></div></div>
+      <div class="fcard"><div class="t">FIFA</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">William-Antoine</span><span class="stale" style="color:var(--y)">16d stale</span></div></div>
+      <div class="fcard"><div class="t">Board Documents Trimestriel 2026</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--y)">21d stale</span></div></div>
+      <div class="fcard"><div class="t">VIA Rail 50th Anniversary</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--y)">21d stale</span></div></div>
+      <div class="fcard"><div class="t">Wheelchair Basketball Canada</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--y)">21d stale</span></div></div>
+      <div class="fcard"><div class="t">New Executive Committee</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Sylvie</span><span class="stale" style="color:var(--y)">24d stale</span></div></div>
+      <div class="fcard"><div class="t">Corpo.viarail.ca</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--y)">24d stale</span></div></div>
+      <div class="fcard"><div class="t">Media on Duty</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--y)">21d stale</span></div></div>
+      <div class="fcard"><div class="t">Behind the Scenes</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Sarah</span><span class="stale" style="color:var(--r)">28d stale</span></div></div>
+      <div class="fcard"><div class="t">Video Library / FrameIO</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Sarah</span><span class="stale" style="color:var(--r)">28d stale</span></div></div>
+      <div class="fcard"><div class="t">Social Media</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Lise</span><span class="stale" style="color:var(--r)">28d stale</span></div></div>
+      <div class="fcard"><div class="t">Merch</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Lise</span><span class="stale" style="color:var(--g)">Jun 3</span></div></div>
+      <div class="fcard"><div class="t">Calendrier corporatif</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--r)">27d stale</span></div></div>
+      <div class="fcard"><div class="t">Calendrier institutionnel</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">27d stale</span></div></div>
+      <div class="fcard"><div class="t">Strategic Roadmap</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Révision des pratiques d'équipe</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Reputation Score</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Casacom, Planification estivale</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">William-Antoine</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Photojournaliste Globe and Mail</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">William-Antoine</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Marketing Support</div><div class="m"><span class="dot c-acc"><i></i>Active</span><span style="font-size:11px;color:var(--tx2)">Lise</span><span class="stale" style="color:var(--r)">27d stale</span></div></div>
+      <div class="lbl" style="margin:10px 0 5px;color:var(--y)">Monitoring (9)</div>
+      <div class="fcard"><div class="t">Gaspésie</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">27d stale</span></div></div>
+      <div class="fcard"><div class="t">Rapport trimestriel</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--y)">16d stale</span></div></div>
+      <div class="fcard"><div class="t">FAM trip</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Marie-Élise</span><span class="stale" style="color:var(--y)">21d stale</span></div></div>
+      <div class="fcard"><div class="t">Formations CASACOM</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">William-Antoine</span><span class="stale" style="color:var(--r)">27d stale</span></div></div>
+      <div class="fcard"><div class="t">Comms Plan ONTC</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Winter Schedule</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Liste enjeux / KPI / Médias</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Recyclage contenu web et GEO</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+      <div class="fcard"><div class="t">Accès Casacom, Janna</div><div class="m"><span class="dot c-y"><i></i>Monitoring</span><span style="font-size:11px;color:var(--tx2)">Karl</span><span class="stale" style="color:var(--r)">34d stale</span></div></div>
+    </div>
+  </div>
+
+  <div class="fpage">
+    <div class="fpage-h">
+      <h1>Gare de Dorval</h1>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span id="f-status" class="dot c-acc clickable-chip" title="Click to change"><i></i>Active</span>
+        <span id="f-pri" class="dot c-r clickable-chip" title="Click to cycle"><i></i>Urgent</span>
+        <span id="f-lead" class="chip clickable-chip" style="background:var(--s2);color:var(--tx2);border:1px solid var(--bd)" title="Click to change">Lead · William-Antoine Blaney</span>
+        <span class="chip c-mut">Sensitivity · Medium</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--tx3)">last discussed Jun 3 · updated Jun 8</span>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-h"><span class="tw">Memory</span><button class="add ghost" style="margin-left:auto">Edit</button></div>
+      <div class="fsec-b">
+        <div class="memory">
+          Comms strategy approved May 21 by Mathieu Paquette; Carl Delisle and Michael Acosta approved earlier. William-Antoine leading. Execution early June.
+          <ul>
+            <li>Key messages updated and Q&A completed (June 8)</li>
+            <li>Partner quote circulation underway, week of June 5</li>
+            <li>Web page for the project to be created, date TBD</li>
+            <li>First announcement targeted for late June</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-h"><span class="tw">Work</span><span class="badge">1 output · 4 open tasks</span>
+        <button class="add">+ Task</button><button class="add ghost">+ Output</button><button class="add ghost">Workflow…</button>
+      </div>
+      <div class="fsec-b">
+        <div class="outbox">
+          <div class="outbox-h">
+            <span style="color:var(--y);font-size:11px">▣</span>
+            <span class="t">Plan de comm pour la première annonce de Dorval</span>
+            <span class="chip c-mut">Communication Plan</span>
+            <span class="dot c-acc"><i></i>In Progress</span>
+            <span class="chip c-y">~Week of Jun 22</span>
+          </div>
+          <div class="trow"><div class="tt">Circulate key messages with partners to get quotes</div><span class="chip" style="background:rgba(91,156,246,.12);color:var(--acc)">William-Antoine</span><span class="chip c-y">Week of Jun 5</span><button class="ck">✓</button></div>
+          <div class="trow"><div class="tt">Integrate partner quotes and finalize release draft</div><span class="chip" style="background:rgba(91,156,246,.12);color:var(--acc)">William-Antoine</span><span class="chip c-acc">Jun 16</span><button class="ck">✓</button></div>
+          <div class="trow"><div class="tt">Secure final approval, Mathieu and partners</div><span class="chip" style="background:rgba(91,156,246,.12);color:var(--acc)">Karl</span><span class="chip c-acc">Jun 19</span><button class="ck">✓</button></div>
+        </div>
+        <div class="trow" style="border:1px solid var(--bd);border-radius:6px;background:var(--s1)">
+          <div class="tt">Faire une page web pour le projet Dorval</div>
+          <span class="chip" style="background:rgba(91,156,246,.12);color:var(--acc)">William-Antoine</span><span class="chip c-mut">TBD</span><button class="ck">✓</button>
+        </div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:8px;cursor:pointer">▸ Completed (6)</div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-h"><span class="tw">Flags</span><span class="badge">1 open</span><button class="add ghost" style="margin-left:auto">+ Flag</button></div>
+      <div class="fsec-b">
+        <div class="flag">
+          <span class="k" style="background:rgba(217,95,95,.12);color:var(--r)">Question</span>
+          <span class="q">Who presents to the Board, Philippe or Karl?</span>
+          <span class="chip" style="background:rgba(91,156,246,.12);color:var(--acc)">Karl</span>
+          <button class="ck">✓</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-h"><span class="tw">Links</span><span class="badge">1</span><button class="add ghost" style="margin-left:auto">+ Link</button></div>
+      <div class="fsec-b">
+        <div class="flag"><span class="k" style="background:var(--s3);color:var(--tx2)">Folder</span><a class="q" style="color:var(--acc);text-decoration:none" href="#">Dorval — dossier Teams (SharePoint)</a></div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-h"><span class="tw">History</span><span class="badge">events + log, one stream</span><button class="add ghost" style="margin-left:auto">+ Log entry</button></div>
+      <div class="fsec-b">
+        <div class="hist"><div class="ic">🜁</div><div class="bd">
+          <div class="ti">Key messages updated; partner quote circulation launched; web page scoped</div>
+          <div class="su">William-Antoine completed updated Dorval key messages and Q&A by June 8. Partner quote circulation initiated week of June 5.</div>
+          <div class="me">Jun 8 · log entry · via Claude update (pkg #9)</div>
+        </div></div>
+        <div class="hist"><div class="ic" style="color:var(--g)">✓</div><div class="bd">
+          <div class="ti">2 tasks completed</div>
+          <div class="su">"Review Dorval key messages" and "Circulate with partners for quotes" marked done.</div>
+          <div class="me">Jun 8 · auto · via Claude update (pkg #9)</div>
+        </div></div>
+        <div class="hist"><div class="ic">🜁</div><div class="bd">
+          <div class="ti">Dorval key messages redone with narrative</div>
+          <div class="su">William-Antoine completed revised key messages integrating the VIA narrative, week of May 25. Karl reviewed before end of month.</div>
+          <div class="me">May 27 · log entry · via Claude update (pkg #8)</div>
+        </div></div>
+        <div class="hist"><div class="ic">🜁</div><div class="bd">
+          <div class="ti">Comms strategy approved May 21</div>
+          <div class="su">Approved by Mathieu Paquette; Carl Delisle and Michael Acosta had previously approved.</div>
+          <div class="me">May 22 · log entry · via Claude update (pkg #3)</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TEAM ════════ -->
+<div class="view" id="v-team">
+  <div class="team-top">
+    <div class="seg">
+      <button id="seg-board" onclick="showTeam('board')">Board</button>
+      <button id="seg-meeting" class="on" onclick="showTeam('meeting')">Meeting</button>
+    </div>
+    <span style="width:8px"></span>
+    <button class="pbtn on">Karl</button>
+    <button class="pbtn on">William-Antoine</button>
+    <button class="pbtn on">Marie-Élise</button>
+    <button class="pbtn">Sylvie</button>
+    <button class="pbtn">Sarah</button>
+    <button class="pbtn">Lise</button>
+    <button class="pbtn">Denis</button>
+    <div class="team-actions">
+      <label style="display:flex;gap:5px;align-items:center;font-size:11px;color:var(--tx2);cursor:pointer">
+        <input type="checkbox" id="refsToggle" onchange="document.body.classList.toggle('refs',this.checked)"> Working copy (refs)
+      </label>
+      <button class="abtn p">📋 Copy</button>
+      <button class="abtn">🖨 Print</button>
+    </div>
+  </div>
+
+  <div id="team-board">
+    <div class="pcol" data-p="Karl">
+      <div class="pcol-h"><div class="nm">Karl</div><div class="ld">6 open · <span class="late">3 late</span> · drop here to reassign</div></div>
+      <div class="pcol-b">
+        <div class="pcard"><span class="fl">LDRR</span>Vérifier avec Legal les NDA pour LDRR et Alto<div class="mx"><span class="chip c-r">Jun 9</span></div></div>
+        <div class="pcard"><span class="fl">Calendrier institutionnel</span>Consolider le calendrier et remettre à Casacom<div class="mx"><span class="chip c-r">Jun 10</span></div></div>
+        <div class="pcard"><span class="fl">Alto</span>Prep Changemaker official brief<div class="mx"><span class="chip c-y">Today</span></div></div>
+      </div>
+    </div>
+    <div class="pcol" data-p="William-Antoine">
+      <div class="pcol-h"><div class="nm">William-Antoine</div><div class="ld">8 open · on track</div></div>
+      <div class="pcol-b">
+        <div class="pcard"><span class="fl">APA 2025</span>Record APA at CASACOM<div class="mx"><span class="chip c-y">Today</span></div></div>
+        <div class="pcard"><span class="fl">Gare de Dorval</span>Integrate partner quotes and finalize release draft<div class="mx"><span class="chip c-acc">Jun 16</span></div></div>
+        <div class="pcard"><span class="fl">Gare de Dorval</span>Faire une page web pour le projet Dorval<div class="mx"><span class="chip c-mut">TBD</span></div></div>
+      </div>
+    </div>
+    <div class="pcol" data-p="Marie-Élise">
+      <div class="pcol-h"><div class="nm">Marie-Élise</div><div class="ld">7 open · <span class="late">1 late</span></div></div>
+      <div class="pcol-b">
+        <div class="pcard"><span class="fl">Mise à jour plan de crise</span>Créer l'envoi automatique out-of-office<div class="mx"><span class="chip c-y">Jun 10</span></div></div>
+        <div class="pcard"><span class="fl">Champions</span>Lessons learned FAM: mettre sur contrat<div class="mx"><span class="chip c-mut">TBD</span></div></div>
+        <div class="pcard"><span class="fl">Budget</span>Debrief with Karl on costing draft<div class="mx"><span class="chip c-y">Today</span></div></div>
+      </div>
+    </div>
+    <div class="pcol" data-p="Sylvie">
+      <div class="pcol-h"><div class="nm">Sylvie</div><div class="ld">4 open · on track</div></div>
+      <div class="pcol-b">
+        <div class="pcard"><span class="fl">LDRR</span>Partager le Q&A LDRR avec l'équipe<div class="mx"><span class="chip c-g">done Jun 10</span></div></div>
+        <div class="pcard"><span class="fl">Positionnement Mathieu</span>Plan de positionnement, first draft<div class="mx"><span class="chip c-r">May 29</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="team-body" id="team-meeting">
+    <div style="margin-bottom:14px">
+      <h2 style="font-size:15px;font-weight:700">Meeting · Thursday, June 11, 2026</h2>
+      <div style="font-size:11px;color:var(--tx3)">Filter: Karl, William-Antoine, Marie-Élise · check off live, or copy the working copy and annotate it through the week</div>
+    </div>
+
+    <div class="mt-file">
+      <div class="mt-file-h"><span class="t">Assemblée publique annuelle (APA) 2025</span><span class="ref">[f-p10]</span><span class="dot c-acc"><i></i>Active</span><span class="pc" style="font-size:9px;background:rgba(91,156,246,.12);color:var(--acc);border-radius:3px;padding:1px 5px">William-Antoine · lead</span></div>
+      <div class="mt-mem">Recording today at CASACOM. Post-production to July 10, online July 16 at 16h. Dry run completed June 8 with Mathieu, Carl, Jonathan.</div>
+      <div class="mt-out">
+        <div class="mt-out-h"><span class="t">Enregistrement et mise en ligne APA</span><span class="ref">[o-114]</span><span class="st">[In Progress · Jul 16]</span></div>
+        <div class="mt-task"><button class="ck">✓</button><span class="name">Record APA at CASACOM</span><span class="ref">[t-095]</span><span class="due">(Jun 11)</span><span class="pc">William-Antoine</span><span class="pc">Karl</span></div>
+        <div class="mt-task"><button class="ck">✓</button><span class="name">Post-production and written answers to shareholder questions</span><span class="ref">[t-096]</span><span class="due">(Jul 10)</span><span class="pc">William-Antoine</span></div>
+        <div class="mt-task"><button class="ck">✓</button><span class="name">Publish APA online</span><span class="ref">[t-097]</span><span class="due">(Jul 16)</span><span class="pc">William-Antoine</span></div>
+      </div>
+    </div>
+
+    <div class="mt-file">
+      <div class="mt-file-h"><span class="t">Gare de Dorval</span><span class="ref">[f-p01]</span><span class="dot c-acc"><i></i>Active</span><span class="dot c-r"><i></i>Urgent</span><span class="pc" style="font-size:9px;background:rgba(91,156,246,.12);color:var(--acc);border-radius:3px;padding:1px 5px">William-Antoine · lead</span></div>
+      <div class="mt-mem">Strategy approved. Key messages and Q&A done June 8. Quotes circulating with partners. Web page to be created.</div>
+      <div class="mt-out">
+        <div class="mt-out-h"><span class="t">Plan de comm pour la première annonce</span><span class="ref">[o-077]</span><span class="st">[In Progress · ~Week of Jun 22]</span></div>
+        <div class="mt-task"><button class="ck">✓</button><span class="name">Integrate partner quotes and finalize release draft</span><span class="ref">[t-201]</span><span class="due">(Jun 16)</span><span class="pc">William-Antoine</span></div>
+        <div class="mt-task"><button class="ck">✓</button><span class="name">Secure final approval, Mathieu and partners</span><span class="ref">[t-202]</span><span class="due">(Jun 19)</span><span class="pc">Karl</span></div>
+      </div>
+      <div class="mt-task"><button class="ck">✓</button><span class="name">Faire une page web pour le projet Dorval</span><span class="ref">[t-203]</span><span class="due">(TBD)</span><span class="pc">William-Antoine</span></div>
+    </div>
+
+    <div class="mt-file">
+      <div class="mt-file-h"><span class="t">LDRR</span><span class="ref">[f-p25]</span><span class="dot c-acc"><i></i>Active</span><span class="pc" style="font-size:9px;background:rgba(91,156,246,.12);color:var(--acc);border-radius:3px;padding:1px 5px">Karl · lead</span></div>
+      <div class="mt-mem">Joint announcement targeted July. NDA check with Legal pending. Budget being sought for dedicated web page.</div>
+      <div class="mt-task done"><button class="ck">✓</button><span class="name">Partager le Q&A LDRR avec l'équipe</span><span class="ref">[t-188]</span><span class="pc">Sylvie</span></div>
+      <div class="mt-task"><button class="ck">✓</button><span class="name">Vérifier avec Legal les NDA pour LDRR et Alto</span><span class="ref">[t-187]</span><span class="due" style="color:var(--r)">(Jun 9 · late)</span><span class="pc">Karl</span></div>
+      <div class="mt-task"><button class="ck">✓</button><span class="name">Chercher du budget et planifier la page LDRR</span><span class="ref">[t-129]</span><span class="due" style="color:var(--r)">(Jun 10 · late)</span><span class="pc">Karl</span></div>
+    </div>
+
+    <div class="mt-file">
+      <div class="mt-file-h"><span class="t">Budget</span><span class="ref">[f-budg]</span><span class="dot c-acc"><i></i>Active</span><span class="pc" style="font-size:9px;background:rgba(91,156,246,.12);color:var(--acc);border-radius:3px;padding:1px 5px">Marie-Élise · lead</span></div>
+      <div class="mt-mem">Costing for narrative projects and initiatives. First draft presented to Philippe June 8.</div>
+      <div class="mt-task done"><button class="ck">✓</button><span class="name">First draft of narrative project costing for meeting with Philippe</span><span class="ref">[t-210]</span><span class="due">(Jun 8)</span><span class="pc">Marie-Élise</span></div>
+      <div class="mt-task"><button class="ck">✓</button><span class="name">Debrief with Karl on costing draft after Philippe meeting</span><span class="ref">[t-211]</span><span class="due">(Jun 11)</span><span class="pc">Marie-Élise</span><span class="pc">Karl</span></div>
+    </div>
+
+    <div class="mt-file">
+      <div class="mt-file-h"><span class="t">Champions</span><span class="ref">[f-p06]</span><span class="dot c-acc"><i></i>Active</span><span class="pc" style="font-size:9px;background:rgba(91,156,246,.12);color:var(--acc);border-radius:3px;padding:1px 5px">Marie-Élise · lead</span></div>
+      <div class="mt-mem">Five partnership streams. Crestview program design underway. Awareness campaigns prioritized this summer.</div>
+      <div class="mt-out">
+        <div class="mt-out-h"><span class="t">Indigo Partnership</span><span class="ref">[o-078]</span><span class="st">[In Progress]</span></div>
+        <div class="mt-task"><button class="ck">✓</button><span class="name">Restart Indigo discussions as a new partnership</span><span class="ref">[t-150]</span><span class="pc">Marie-Élise</span></div>
+      </div>
+      <div class="mt-task"><button class="ck">✓</button><span class="name">Lessons learned FAM: mettre sur contrat, retour et remise des résultats</span><span class="ref">[t-212]</span><span class="pc">Marie-Élise</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ACTIVITY ════════ -->
+<div class="view" id="v-activity">
+  <div class="act-main">
+    <div style="margin-bottom:12px">
+      <h2 style="font-size:15px;font-weight:700">Activity</h2>
+      <div style="font-size:11px;color:var(--tx3)">Every write, by anyone, with full package contents and a restore point. Replaces Import + Snapshots.</div>
+    </div>
+    <div style="display:flex;gap:5px;margin-bottom:12px">
+      <button class="fchip on">All</button><button class="fchip">Claude updates</button><button class="fchip">My edits</button><button class="fchip">By file</button>
+    </div>
+
+    <div class="pkg">
+      <div class="pkg-h"><span style="color:var(--acc)">⬇</span><span class="t">June 8 update, from work chat</span><span class="chip c-g">applied</span><span style="font-size:10px;color:var(--tx3)">Jun 8, 13:44 · snapshot #9</span></div>
+      <div class="pkg-b">
+        46 tasks completed · 10 updated · 8 created · 1 file created (Budget) · 9 memories updated · 12 log entries<br>
+        <span style="color:var(--y)">⚠ 1 warning: 2 title-matched items, verify APA assignee pairs</span>
+        <div style="margin-top:7px;display:flex;gap:6px">
+          <button class="abtn" style="font-size:10px" onclick="const d=document.getElementById('pkg9diff');d.style.display=d.style.display==='block'?'none':'block'">View full contents</button>
+          <button class="abtn" style="font-size:10px;color:var(--y);border-color:rgba(212,146,42,.3)" onclick="const d=document.getElementById('pkg9rest');d.style.display=d.style.display==='block'?'none':'block'">⟲ Restore snapshot #9</button>
+        </div>
+        <div class="pkg-diff" id="pkg9diff">
+          <div class="df"><b>Assemblée publique annuelle (APA) 2025</b>
+            <div class="ln done">✓ 6 tasks completed, incl. "Send revised texts with Q&A answers", "Edit and finalize APA texts"</div>
+            <div class="ln add">+ 4 tasks created: dry-run, recording Jun 11, post-production Jul 10, publish Jul 16 (William-Antoine)</div>
+            <div class="ln chg">~ memory updated: recording moved Jun 10 → Jun 11; dry run Jun 8 confirmed</div>
+          </div>
+          <div class="df"><b>Hidden Disabilities / Tournesol</b>
+            <div class="ln done">✓ 21 tasks completed (file wrap-up)</div>
+            <div class="ln chg">~ status: active → completed</div>
+          </div>
+          <div class="df"><b>Gare de Dorval</b>
+            <div class="ln done">✓ 2 tasks completed</div>
+            <div class="ln add">+ "Faire une page web pour le projet Dorval" (William-Antoine, TBD)</div>
+          </div>
+          <div class="df"><b>Budget</b>
+            <div class="ln add">+ file created (lead Marie-Élise) with first costing task, Jun 8</div>
+          </div>
+          <div class="ln" style="padding-left:0;color:var(--tx3)">…and 5 more files. Full package JSON stored with this event.</div>
+        </div>
+        <div class="pkg-diff" id="pkg9rest" style="border-top-color:rgba(212,146,42,.3)">
+          <div style="font-size:11px;color:var(--y);margin-bottom:6px">Restoring snapshot #9 would revert <b>9 files, 56 tasks, 1 file creation</b> to their pre-import state. A safety snapshot of the current state is taken first.</div>
+          <div style="display:flex;gap:6px">
+            <button class="abtn" style="font-size:10px;color:var(--y);border-color:rgba(212,146,42,.4)" onclick="document.getElementById('pkg9rest').style.display='none';toast('Snapshot #9 restored · safety snapshot #15 saved','Undo',()=>toast('Restore undone · back to current state'))">Restore now</button>
+            <button class="abtn" style="font-size:10px" onclick="document.getElementById('pkg9rest').style.display='none'">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pkg">
+      <div class="pkg-h"><span style="color:var(--acc2)">✎</span><span class="t">Karl · manual edits</span><span style="font-size:10px;color:var(--tx3)">Jun 11, 09:12</span></div>
+      <div class="pkg-b">Edited memory on VIA Narrative Structure · completed 1 task</div>
+    </div>
+
+    <div class="pkg">
+      <div class="pkg-h"><span style="color:var(--acc)">⬇</span><span class="t">May 27 meeting prep update</span><span class="chip c-g">applied</span><span style="font-size:10px;color:var(--tx3)">May 27, 18:04 · snapshot #8</span></div>
+      <div class="pkg-b">18 completed · 9 created · APA dates updated · Bikes on Board closed · FIFA renamed · LDRR merged with Engine Contract · 7 Board Document tasks relinked</div>
+    </div>
+  </div>
+
+  <div class="act-rail">
+    <div class="lbl" style="margin-bottom:7px">Snapshots</div>
+    <div class="snap"><b>#9 · Before: June 8 update</b>Jun 8, 13:44 · 46f · 95t · auto</div>
+    <div class="snap"><b>#8 · Before: May 27 update</b>May 27, 18:04 · auto</div>
+    <div class="snap"><b>#7 · Before: team-wide May 22</b>May 22, 22:23 · auto</div>
+    <div class="snap"><b>Manual snapshot…</b><span style="color:var(--acc)">+ Save now</span></div>
+    <div class="lbl" style="margin:14px 0 7px">Export</div>
+    <div class="snap"><b>⬇ Download JSON (v1 format)</b>full state, interchange shape</div>
+  </div>
+</div>
+
+</div><!-- /zoomArea -->
+
+<div style="height:32px;background:var(--hdr);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;user-select:none">
+  <span style="font-family:'Cinzel',serif;font-size:11px;color:var(--tx3);letter-spacing:.04em">Palantír</span>
+  <span style="color:var(--bd2);font-size:12px">·</span>
+  <span style="font-size:10px;color:var(--tx3)">A</span>
+  <input type="range" min="0.8" max="1.6" step="0.05" value="1" style="width:140px;cursor:pointer;accent-color:var(--acc)"
+    oninput="document.getElementById('zoomArea').style.zoom=this.value;document.getElementById('zoomPct').textContent=Math.round(this.value*100)+'%'">
+  <span style="font-size:14px;color:var(--tx3)">A</span>
+  <span id="zoomPct" class="mono" style="font-size:10px;color:var(--tx3);min-width:34px">100%</span>
+</div>
+
+<div class="note">Static mockup · drag a task onto the week strip · hover a task for quick dates · "Working copy (refs)" in Team</div>
+
+<script>
+function go(v){
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('nav button').forEach(e=>e.classList.remove('on'));
+  document.getElementById('v-'+v).classList.add('on');
+  document.getElementById('n-'+v).classList.add('on');
+}
+document.querySelectorAll('.ck').forEach(b=>b.addEventListener('click',e=>{
+  const row=e.target.closest('.trow, .mt-task, .flag');
+  if(row){row.style.opacity=.35;row.style.textDecoration='line-through';}
+}));
+
+/* ── drag-to-reschedule + quick dates (Today view) ── */
+const toastEl=document.createElement('div');toastEl.id='toast';document.body.appendChild(toastEl);
+let toastT=null;
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),2200);}
+
+function setChip(row,label,cls){
+  let chip=row.querySelector('.chip');
+  if(label===null){if(chip)chip.remove();return;}
+  if(!chip){chip=document.createElement('span');chip.className='chip';row.insertBefore(chip,row.querySelector('.qd')||row.querySelector('.ck'));}
+  chip.textContent=label;
+  chip.className='chip '+cls;
+}
+
+function taskTitle(row){
+  const tt=row.querySelector('.tt');
+  return tt?tt.textContent.replace(/^↳[^A-Za-zÀ-ÿ]*/,'').trim().slice(0,28):'task';
+}
+
+let dragRow=null;
+document.querySelectorAll('#v-today .trow').forEach(r=>{
+  r.setAttribute('draggable','true');
+  r.addEventListener('dragstart',()=>{dragRow=r;r.style.opacity=.4;});
+  r.addEventListener('dragend',()=>{dragRow=null;r.style.opacity=1;});
+  /* hover quick-dates */
+  const ck=r.querySelector('.ck');
+  if(ck){
+    const w=document.createElement('span');w.className='qd';
+    [['Tmrw','Fri Jun 12','c-acc'],['Mon','Mon Jun 15','c-acc'],['TBD','TBD','c-mut']].forEach(([l,full,cls])=>{
+      const b=document.createElement('button');b.textContent=l;
+      b.onclick=e=>{e.stopPropagation();setChip(r,full,cls);toast('Rescheduled to '+full+' · saved');};
+      w.appendChild(b);
+    });
+    r.insertBefore(w,ck);
+  }
+});
+
+/* day items are draggable between days */
+let dragItem=null;
+function makeItemDraggable(it){
+  if(it.classList.contains('done'))return;
+  it.setAttribute('draggable','true');
+  it.addEventListener('dragstart',e=>{e.stopPropagation();dragItem=it;it.classList.add('drag');});
+  it.addEventListener('dragend',()=>{dragItem=null;it.classList.remove('drag');});
+}
+document.querySelectorAll('#v-today .wday .it').forEach(makeItemDraggable);
+
+function dayLabel(d){
+  const lbl=d.querySelector('.d').textContent.trim();
+  return lbl.charAt(0)+lbl.slice(1).toLowerCase().replace(' ',' Jun ');
+}
+
+document.querySelectorAll('#v-today .wday').forEach(d=>{
+  d.addEventListener('dragover',e=>{if(dragRow||dragItem){e.preventDefault();d.classList.add('over');}});
+  d.addEventListener('dragleave',()=>d.classList.remove('over'));
+  d.addEventListener('drop',e=>{
+    e.preventDefault();d.classList.remove('over');
+    const nice=dayLabel(d);
+    if(dragItem){
+      if(dragItem.parentElement!==d){d.appendChild(dragItem);}
+      dragItem.classList.remove('drag');
+      d.classList.add('flash');setTimeout(()=>d.classList.remove('flash'),700);
+      toast('Moved to '+nice+' · saved');
+      dragItem=null;
+      return;
+    }
+    if(!dragRow)return;
+    setChip(dragRow,nice,d.classList.contains('today')?'c-y':'c-acc');
+    const it=document.createElement('div');it.className='it';it.innerHTML='<b>+</b> '+taskTitle(dragRow);
+    makeItemDraggable(it);
+    d.appendChild(it);
+    d.classList.add('flash');setTimeout(()=>d.classList.remove('flash'),700);
+    toast('Rescheduled to '+nice+' · saved');
+    dragRow.style.opacity=1;dragRow=null;
+  });
+});
+
+/* ════════ ORGANIC KIT ════════ */
+const SECTS=[...document.querySelectorAll('#v-today .sect')]; /* 0 overdue · 1 today · 2 next · 3 nodate */
+const SECT_DEFAULT=[['Today','c-y'],['Today','c-y'],['Fri Jun 12','c-acc'],[null,null]];
+
+/* ── within-day reorder (live insertion while dragging) ── */
+document.querySelectorAll('#v-today .wday').forEach(d=>{
+  d.addEventListener('dragover',e=>{
+    if(!dragItem)return;
+    const it=e.target.closest('.it');
+    if(it&&it!==dragItem){
+      const r=it.getBoundingClientRect();
+      it.parentElement.insertBefore(dragItem,(e.clientY<r.top+r.height/2)?it:it.nextSibling);
+    }
+  });
+});
+
+/* ── multi-select + batch bar ── */
+const sel=new Set();
+const bar=document.createElement('div');bar.id='batchbar';
+bar.innerHTML='<span class="cnt"></span>';
+[['Today','Today','c-y'],['Tmrw','Fri Jun 12','c-acc'],['Mon 15','Mon Jun 15','c-acc'],['TBD','TBD','c-mut']].forEach(([l,full,cls])=>{
+  const b=document.createElement('button');b.textContent=l;
+  b.onclick=()=>{sel.forEach(r=>setChip(r,full,cls));toast(sel.size+' tasks → '+full+' · saved');clearSel();};
+  bar.appendChild(b);
+});
+const doneB=document.createElement('button');doneB.textContent='✓ Done';doneB.className='done-b';
+doneB.onclick=()=>{sel.forEach(r=>{r.style.opacity=.35;r.style.textDecoration='line-through';});toast(sel.size+' tasks completed · saved');clearSel();};
+bar.appendChild(doneB);
+const clearB=document.createElement('button');clearB.textContent='✕';
+clearB.onclick=clearSel;bar.appendChild(clearB);
+document.body.appendChild(bar);
+function clearSel(){sel.forEach(r=>r.classList.remove('msel'));sel.clear();updateBar();}
+function updateBar(){bar.classList.toggle('show',sel.size>0);bar.querySelector('.cnt').textContent=sel.size+' selected';}
+function wireSelect(r){
+  r.addEventListener('click',e=>{
+    if(e.target.closest('button,a,input'))return;
+    r.classList.toggle('msel');
+    r.classList.contains('msel')?sel.add(r):sel.delete(r);
+    updateBar();
+  });
+}
+document.querySelectorAll('#v-today .trow:not(.ghost)').forEach(wireSelect);
+
+/* batch drag: dragging a selected row carries the whole selection */
+let batch=null,draggedRef=null;
+document.querySelectorAll('#v-today .trow').forEach(r=>{
+  r.addEventListener('dragstart',()=>{
+    draggedRef=r;
+    batch=(sel.has(r)&&sel.size>1)?[...sel]:null;
+    if(batch)batch.forEach(x=>x.style.opacity=.4);
+  });
+  r.addEventListener('dragend',()=>{if(batch)batch.forEach(x=>x.style.opacity=1);});
+});
+document.querySelectorAll('#v-today .wday').forEach(d=>{
+  d.addEventListener('drop',()=>{
+    if(!batch)return;
+    const nice=dayLabel(d);
+    batch.filter(r=>r!==draggedRef).forEach(r=>{
+      setChip(r,nice,d.classList.contains('today')?'c-y':'c-acc');
+      const it=document.createElement('div');it.className='it';it.innerHTML='<b>+</b> '+taskTitle(r);
+      makeItemDraggable(it);d.appendChild(it);
+      r.style.opacity=1;
+    });
+    toast(batch.length+' tasks → '+nice+' · saved');
+    clearSel();batch=null;
+  });
+});
+
+/* ── row factory (capture + ghost adds) ── */
+function initNewRow(r){
+  r.setAttribute('draggable','true');
+  r.addEventListener('dragstart',()=>{dragRow=r;draggedRef=r;batch=(sel.has(r)&&sel.size>1)?[...sel]:null;r.style.opacity=.4;});
+  r.addEventListener('dragend',()=>{dragRow=null;r.style.opacity=1;});
+  const ck=r.querySelector('.ck');
+  if(ck){
+    ck.addEventListener('click',e=>{e.stopPropagation();r.style.opacity=.35;r.style.textDecoration='line-through';});
+    const w=document.createElement('span');w.className='qd';
+    [['Tmrw','Fri Jun 12','c-acc'],['Mon','Mon Jun 15','c-acc'],['TBD','TBD','c-mut']].forEach(([l,full,cls])=>{
+      const b=document.createElement('button');b.textContent=l;
+      b.onclick=e=>{e.stopPropagation();setChip(r,full,cls);toast('Rescheduled to '+full+' · saved');};
+      w.appendChild(b);
+    });
+    r.insertBefore(w,ck);
+  }
+  wireSelect(r);
+}
+function mkRow(title,assignee,dateLabel,dateCls){
+  const r=document.createElement('div');r.className='trow';
+  const tt=document.createElement('div');tt.className='tt';tt.textContent=title;r.appendChild(tt);
+  if(assignee&&assignee!=='Karl'){const a=document.createElement('span');a.className='chip';a.style.cssText='background:rgba(91,156,246,.12);color:var(--acc)';a.textContent=assignee;r.appendChild(a);}
+  if(dateLabel){const c=document.createElement('span');c.className='chip '+dateCls;c.textContent=dateLabel;r.appendChild(c);}
+  const ck=document.createElement('button');ck.className='ck';ck.textContent='✓';r.appendChild(ck);
+  initNewRow(r);
+  return r;
+}
+function findOrMakeGroup(sect,fileName){
+  const groups=[...sect.querySelectorAll('.fgroup')];
+  const hit=groups.find(g=>g.querySelector('.fgroup-h .t').textContent.toLowerCase().includes(fileName.toLowerCase()));
+  if(hit)return hit;
+  const g=document.createElement('div');g.className='fgroup';
+  g.innerHTML='<div class="fgroup-h"><span class="bar" style="background:var(--tx3)"></span><span class="t"></span></div>';
+  g.querySelector('.t').textContent=fileName;
+  sect.appendChild(g);
+  addGhost(g);
+  return g;
+}
+
+/* ── ghost "+ task" rows on every group ── */
+function addGhost(g){
+  const ghost=document.createElement('div');ghost.className='trow ghost';ghost.textContent='+ task';
+  ghost.addEventListener('click',()=>{
+    ghost.innerHTML='';
+    const inp=document.createElement('input');inp.placeholder='Task title… Enter to save';
+    ghost.appendChild(inp);inp.focus();
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&inp.value.trim()){
+        const si=SECTS.findIndex(s=>s.contains(g));
+        const[dl,dc]=SECT_DEFAULT[si<0?3:si];
+        g.insertBefore(mkRow(inp.value.trim(),'Karl',dl,dc),ghost);
+        toast('Task added · Karl · saved');
+        ghost.textContent='+ task';
+      }
+      if(e.key==='Escape')ghost.textContent='+ task';
+    });
+    inp.addEventListener('blur',()=>{if(ghost.contains(inp))ghost.textContent='+ task';});
+  });
+  g.appendChild(ghost);
+}
+document.querySelectorAll('#v-today .fgroup').forEach(addGhost);
+
+/* ── quick capture with live parse ── */
+const FILES=['LDRR','Gare de Dorval','Dorval','APA','Assemblée publique annuelle','Alto','Budget','Champions','Mise à jour plan de crise','Crise','Vancouver Preclearance','Preclearance','VIA Express','Strategic Roadmap','Merch','Gaspésie'];
+const PEOPLE={wa:'William-Antoine',will:'William-Antoine',william:'William-Antoine',marie:'Marie-Élise',me:'Marie-Élise',syl:'Sylvie',sylvie:'Sylvie',sarah:'Sarah',lise:'Lise',denis:'Denis',karl:'Karl'};
+function parseCapture(v){
+  let file=null,title=v,assignee='Karl',dateLabel=null,dateCls='c-mut',bucket=3;
+  const ci=v.indexOf(':');
+  if(ci>0&&ci<40){
+    const fp=v.slice(0,ci).trim();
+    const hit=FILES.find(f=>f.toLowerCase().startsWith(fp.toLowerCase())||fp.toLowerCase().startsWith(f.toLowerCase().slice(0,4)));
+    if(hit){file=hit;title=v.slice(ci+1).trim();}
+  }
+  title=title.replace(/@(\w+)/g,(m,p)=>{if(PEOPLE[p.toLowerCase()]){assignee=PEOPLE[p.toLowerCase()];return'';}return m;});
+  const dpats=[
+    [/\btoday\b/i,'Today','c-y',1],
+    [/\b(tmrw|tomorrow|fri|friday)\b/i,'Fri Jun 12','c-acc',2],
+    [/\b(mon|monday|next week)\b/i,'Mon Jun 15','c-acc',2],
+    [/\b(jun|june)\s?(\d{1,2})\b/i,null,'c-acc',2],
+    [/\btbd\b/i,'TBD','c-mut',3],
+  ];
+  for(const[re,lbl,cls,b]of dpats){
+    const m=title.match(re);
+    if(m){dateLabel=lbl||('Jun '+m[2]);dateCls=cls;bucket=b;title=title.replace(re,'').trim();break;}
+  }
+  title=title.replace(/\s{2,}/g,' ').trim();
+  return{file:file||'Unfiled',title,assignee,dateLabel,dateCls,bucket};
+}
+const cap=document.getElementById('cap'),capPrev=document.getElementById('capPrev');
+const hintHtml=capPrev.innerHTML;
+cap.addEventListener('input',()=>{
+  if(!cap.value.trim()){capPrev.innerHTML=hintHtml;return;}
+  const p=parseCapture(cap.value.trim());
+  capPrev.innerHTML='';
+  const add=(txt,cls,style)=>{const s=document.createElement('span');s.className='chip '+(cls||'');if(style)s.style.cssText=style;s.textContent=txt;capPrev.appendChild(s);};
+  add('File · '+p.file,'',p.file==='Unfiled'?'background:rgba(62,74,90,.18);color:var(--tx3)':'background:rgba(212,146,42,.12);color:var(--y)');
+  add(p.title||'…','','background:var(--s3);color:var(--tx)');
+  add('@ '+p.assignee,'','background:rgba(91,156,246,.12);color:var(--acc)');
+  add(p.dateLabel||'no date',p.dateLabel?p.dateCls:'c-mut');
+});
+cap.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!cap.value.trim())return;
+  const p=parseCapture(cap.value.trim());
+  if(!p.title)return;
+  const sect=SECTS[p.bucket]||SECTS[3];
+  const g=findOrMakeGroup(sect,p.file);
+  const ghost=g.querySelector('.ghost');
+  const row=mkRow(p.title,p.assignee,p.dateLabel,p.dateCls);
+  ghost?g.insertBefore(row,ghost):g.appendChild(row);
+  row.style.background='rgba(63,182,139,.08)';setTimeout(()=>row.style.background='',900);
+  toast('Added to '+p.file+' · '+p.assignee+(p.dateLabel?' · '+p.dateLabel:'')+' · saved');
+  cap.value='';capPrev.innerHTML=hintHtml;
+});
+
+/* ════════ PHASE 1b KIT ════════ */
+
+/* toast, now with an optional Undo-style action (overrides earlier definition by hoisting) */
+function toast(msg,actionLabel,cb){
+  toastEl.innerHTML='';
+  toastEl.appendChild(document.createTextNode(msg));
+  toastEl.classList.toggle('act',!!actionLabel);
+  if(actionLabel){
+    const b=document.createElement('button');b.textContent=actionLabel;
+    b.onclick=()=>{toastEl.classList.remove('show','act');cb&&cb();};
+    toastEl.appendChild(b);
+  }
+  toastEl.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>toastEl.classList.remove('show','act'),actionLabel?8000:2200);
+}
+
+const INITS=[['K','Karl'],['WA','William-Antoine'],['MÉ','Marie-Élise'],['Sy','Sylvie'],['Sa','Sarah'],['L','Lise'],['D','Denis']];
+
+/* shared grammar: prefixes Q:/RISK:/BLOCKED:/DONE + @person + date tokens */
+function parseGrammar(v){
+  let kind='task',title=v.trim(),assignee=null,dateLabel=null,dateCls='c-acc';
+  const pre=[[/^done[:\s]+/i,'done'],[/^q[:\s]+/i,'flag-q'],[/^risk[:\s]+/i,'flag-risk'],[/^blocked[:\s]+/i,'flag-blocked']];
+  for(const[re,k]of pre){if(re.test(title)){kind=k;title=title.replace(re,'').trim();break;}}
+  title=title.replace(/@(\w+)/g,(m,p)=>{const n=PEOPLE[p.toLowerCase()];if(n){assignee=n;return'';}return m;});
+  const dpats=[[/\btoday\b/i,'Today','c-y'],[/\b(tmrw|tomorrow|fri|friday)\b/i,'Fri Jun 12','c-acc'],[/\b(mon|monday|next week)\b/i,'Mon Jun 15','c-acc'],[/\b(jun|june)\s?(\d{1,2})\b/i,null,'c-acc'],[/\btbd\b/i,'TBD','c-mut']];
+  for(const[re,lbl,cls]of dpats){const m=title.match(re);if(m){dateLabel=lbl||('Jun '+m[2]);dateCls=cls;title=title.replace(re,'').trim();break;}}
+  return{kind,title:title.replace(/\s{2,}/g,' ').trim(),assignee,dateLabel,dateCls};
+}
+
+function fan(anchor,opts){
+  document.querySelectorAll('.fan').forEach(f=>f.remove());
+  const f=document.createElement('span');f.className='fan';
+  opts.forEach(([label,cb])=>{const b=document.createElement('button');b.textContent=label;b.onclick=e=>{e.stopPropagation();f.remove();cb();};f.appendChild(b);});
+  anchor.after(f);
+  setTimeout(()=>document.addEventListener('click',()=>f.remove(),{once:true}),0);
+}
+
+/* ── file header chip fans ── */
+const fStatus=document.getElementById('f-status'),fPri=document.getElementById('f-pri'),fLead=document.getElementById('f-lead');
+if(fStatus)fStatus.addEventListener('click',e=>{e.stopPropagation();
+  fan(fStatus,[['Active',()=>setDot('Active','c-acc')],['Monitoring',()=>setDot('Monitoring','c-y')],['On Ice',()=>setDot('On Ice','c-mut')],['Completed',()=>setDot('Completed','c-g')]]);
+  function setDot(l,c){fStatus.className='dot clickable-chip '+c;fStatus.innerHTML='<i></i>'+l;toast('Status → '+l+' · saved');}
+});
+const PRI=[['Urgent','c-r'],['High','c-y'],['Medium','c-acc'],['Low','c-mut']];let priIdx=0;
+if(fPri)fPri.addEventListener('click',()=>{priIdx=(priIdx+1)%PRI.length;const[l,c]=PRI[priIdx];fPri.className='dot clickable-chip '+c;fPri.innerHTML='<i></i>'+l;toast('Priority → '+l+' · saved');});
+if(fLead)fLead.addEventListener('click',e=>{e.stopPropagation();
+  fan(fLead,INITS.map(([i,n])=>[i,()=>{fLead.textContent='Lead · '+n;toast('Lead → '+n+' · saved');}]));
+});
+
+/* ── @ quick-assign + quick-dates on file-page rows ── */
+function addAtBtn(r){
+  const qd=r.querySelector('.qd');if(!qd)return;
+  const b=document.createElement('button');b.textContent='@';
+  b.onclick=e=>{e.stopPropagation();
+    fan(b,INITS.map(([i,n])=>[i,()=>{
+      const a=document.createElement('span');a.className='chip';a.style.cssText='background:rgba(91,156,246,.12);color:var(--acc)';a.textContent=n;
+      r.insertBefore(a,qd);toast(n+' assigned · saved','Undo',()=>a.remove());
+    }]));
+  };
+  qd.appendChild(b);
+}
+function wireFileRow(r){
+  if(r.classList.contains('ghost')||r.querySelector('.qd'))return;
+  const ck=r.querySelector('.ck');if(!ck)return;
+  const w=document.createElement('span');w.className='qd';
+  [['Tmrw','Fri Jun 12','c-acc'],['Mon','Mon Jun 15','c-acc'],['TBD','TBD','c-mut']].forEach(([l,full,cls])=>{
+    const b=document.createElement('button');b.textContent=l;
+    b.onclick=e=>{e.stopPropagation();setChip(r,full,cls);toast('Rescheduled to '+full+' · saved');};
+    w.appendChild(b);
+  });
+  r.insertBefore(w,ck);
+  addAtBtn(r);wireSelect(r);
+}
+document.querySelectorAll('#v-files .fpage .trow').forEach(wireFileRow);
+const fpHover=document.createElement('style');fpHover.textContent='#v-files .trow:hover .qd{display:flex}';document.head.appendChild(fpHover);
+
+/* ── file page ghosts (grammar-aware, Enter-chains) ── */
+const FSECS=[...document.querySelectorAll('#v-files .fsec')]; /* 0 memory 1 work 2 flags 3 links 4 history */
+function grammarGhost(parent,label,onSubmit,before){
+  const g=document.createElement('div');g.className='trow ghost';g.textContent=label;
+  g.addEventListener('click',()=>{
+    if(g.querySelector('input'))return;
+    g.innerHTML='';
+    const inp=document.createElement('input');inp.placeholder='title @person date … Enter to save, Enter again to keep adding';
+    g.appendChild(inp);inp.focus();
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&inp.value.trim()){onSubmit(parseGrammar(inp.value.trim()),g);inp.value='';inp.focus();}
+      if(e.key==='Escape')g.textContent=label;
+    });
+    inp.addEventListener('blur',()=>{setTimeout(()=>{if(g.querySelector('input'))g.textContent=label;},150);});
+  });
+  before?parent.insertBefore(g,before):parent.appendChild(g);
+  return g;
+}
+const workBody=FSECS[1].querySelector('.fsec-b');
+const outbox=workBody.querySelector('.outbox');
+const completedDiv=[...workBody.children].find(d=>d.textContent.trim().startsWith('▸'));
+/* ghost task inside the output */
+grammarGhost(outbox,'+ task in this output',(p,g)=>{
+  const r=mkRow(p.title,p.assignee||'Karl',p.dateLabel,p.dateCls);addAtBtn(r);
+  outbox.insertBefore(r,g);
+  toast('Task added to output · '+(p.assignee||'Karl')+' · saved');
+});
+/* ghost task at file level */
+grammarGhost(workBody,'+ task on this file',(p,g)=>{
+  const r=mkRow(p.title,p.assignee||'Karl',p.dateLabel,p.dateCls);addAtBtn(r);
+  r.style.cssText='border:1px solid var(--bd);border-radius:6px;background:var(--s1)';
+  workBody.insertBefore(r,g);
+  toast('Task added · '+(p.assignee||'Karl')+' · saved');
+},completedDiv);
+/* ghost output: one line, type inferred */
+function guessType(t){t=t.toLowerCase();
+  if(t.includes('press')||t.includes('communiqué'))return'Press Release';
+  if(t.includes('q&a')||t.includes('qa'))return'Q&A';
+  if(t.includes('plan'))return'Communication Plan';
+  if(t.includes('video')||t.includes('vidéo'))return'Video';
+  if(t.includes('board'))return'Board Document';
+  if(t.includes('map')||t.includes('message'))return'Message Map';
+  return'Other';}
+grammarGhost(workBody,'+ output (e.g. "Press release - Jun 20 @wa")',(p,g)=>{
+  const ob=document.createElement('div');ob.className='outbox';
+  ob.innerHTML='<div class="outbox-h"><span style="color:var(--y);font-size:11px">▣</span><span class="t"></span><span class="chip c-mut"></span><span class="dot c-mut"><i></i>Not Started</span></div>';
+  ob.querySelector('.t').textContent=p.title.replace(/\s*-\s*$/,'');
+  ob.querySelector('.chip').textContent=guessType(p.title);
+  const h=ob.querySelector('.outbox-h');
+  if(p.assignee){const a=document.createElement('span');a.className='chip';a.style.cssText='background:rgba(91,156,246,.12);color:var(--acc)';a.textContent=p.assignee;h.appendChild(a);}
+  if(p.dateLabel){const c=document.createElement('span');c.className='chip '+p.dateCls;c.textContent=p.dateLabel;h.appendChild(c);}
+  workBody.insertBefore(ob,g);
+  grammarGhost(ob,'+ task in this output',(p2,g2)=>{const r=mkRow(p2.title,p2.assignee||'Karl',p2.dateLabel,p2.dateCls);addAtBtn(r);ob.insertBefore(r,g2);toast('Task added · saved');});
+  toast('Output created · '+guessType(p.title)+' · saved','Undo',()=>ob.remove());
+},completedDiv);
+
+/* flags composer */
+const FLAG_KINDS={'flag-q':['Question','background:rgba(217,95,95,.12);color:var(--r)'],'flag-risk':['Risk','background:rgba(212,146,42,.12);color:var(--y)'],'flag-blocked':['Blocked','background:rgba(217,95,95,.18);color:var(--r)'],'task':['Question','background:rgba(217,95,95,.12);color:var(--r)']};
+const flagBody=FSECS[2].querySelector('.fsec-b');
+grammarGhost(flagBody,'+ flag  ·  Q: …  ·  RISK: …  ·  BLOCKED: …  @owner',(p,g)=>{
+  const[kl,ks]=FLAG_KINDS[p.kind]||FLAG_KINDS['task'];
+  const f=document.createElement('div');f.className='flag';
+  f.innerHTML='<span class="k" style="'+ks+'"></span><span class="q"></span>';
+  f.querySelector('.k').textContent=kl;f.querySelector('.q').textContent=p.title;
+  if(p.assignee){const a=document.createElement('span');a.className='chip';a.style.cssText='background:rgba(91,156,246,.12);color:var(--acc)';a.textContent=p.assignee;f.appendChild(a);}
+  const ck=document.createElement('button');ck.className='ck';ck.textContent='✓';
+  ck.onclick=()=>{f.style.opacity=.35;toast(kl+' resolved · posted to History · saved','Undo',()=>f.style.opacity=1);};
+  f.appendChild(ck);
+  flagBody.insertBefore(f,g);
+  toast(kl+' flagged · saved');
+});
+
+/* links: paste-first */
+const linkBody=FSECS[3].querySelector('.fsec-b');
+const lml=document.createElement('div');lml.className='miniline';
+lml.innerHTML='<input placeholder="Paste a SharePoint URL to attach it… label optional after a space">';
+const linp=lml.querySelector('input');
+linp.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!linp.value.trim())return;
+  const v=linp.value.trim();const url=v.split(' ')[0];const label=v.slice(url.length).trim();
+  const row=document.createElement('div');row.className='flag';
+  row.innerHTML='<span class="k" style="background:var(--s3);color:var(--tx2)">'+(url.includes('.aspx')||url.includes(':b:')||url.includes(':x:')?'File':'Folder')+'</span><a class="q" style="color:var(--acc);text-decoration:none" href="#"></a>';
+  row.querySelector('a').textContent=label||url.replace(/^https?:\/\//,'').slice(0,64)+'…';
+  linkBody.insertBefore(row,lml);
+  linp.value='';toast('Link attached · saved','Undo',()=>row.remove());
+});
+linkBody.appendChild(lml);
+
+/* history composer */
+const histBody=FSECS[4].querySelector('.fsec-b');
+const hml=document.createElement('div');hml.className='miniline';hml.style.marginTop='0';hml.style.marginBottom='10px';
+hml.innerHTML='<input placeholder="Log what changed… plain prose, Enter to post">';
+const hinp=hml.querySelector('input');
+hinp.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!hinp.value.trim())return;
+  const h=document.createElement('div');h.className='hist';
+  h.innerHTML='<div class="ic">🜁</div><div class="bd"><div class="ti">Update</div><div class="su"></div><div class="me">Jun 12 · log entry · Karl</div></div>';
+  h.querySelector('.su').textContent=hinp.value.trim();
+  histBody.insertBefore(h,hml.nextSibling);
+  hinp.value='';toast('Logged · saved','Undo',()=>h.remove());
+});
+histBody.insertBefore(hml,histBody.firstChild);
+
+/* ── promote-to-task from memory selection ── */
+const promo=document.createElement('div');promo.id='promo';
+promo.innerHTML='<button id="pm-task">→ task</button><button id="pm-flag">→ flag</button>';
+document.body.appendChild(promo);
+let promoText='';
+document.addEventListener('mouseup',e=>{
+  const mem=document.querySelector('#v-files .memory');
+  if(!mem)return;
+  const s=window.getSelection();
+  if(!s.isCollapsed&&mem.contains(s.anchorNode)&&s.toString().trim().length>3){
+    promoText=s.toString().trim().slice(0,90);
+    const r=s.getRangeAt(0).getBoundingClientRect();
+    promo.style.display='flex';promo.style.left=Math.max(8,r.left)+'px';promo.style.top=(r.bottom+6)+'px';
+  }else if(!promo.contains(e.target)){promo.style.display='none';}
+});
+document.getElementById('pm-task').onclick=()=>{
+  const r=mkRow(promoText,'Karl',null,null);addAtBtn(r);
+  r.style.cssText='border:1px solid var(--bd);border-radius:6px;background:var(--s1)';
+  workBody.insertBefore(r,completedDiv);
+  promo.style.display='none';
+  toast('Task created from memory · saved','Undo',()=>r.remove());
+};
+document.getElementById('pm-flag').onclick=()=>{
+  const f=document.createElement('div');f.className='flag';
+  f.innerHTML='<span class="k" style="background:rgba(217,95,95,.12);color:var(--r)">Question</span><span class="q"></span><button class="ck">✓</button>';
+  f.querySelector('.q').textContent=promoText;
+  flagBody.insertBefore(f,flagBody.firstChild);
+  promo.style.display='none';
+  toast('Flag created from memory · saved','Undo',()=>f.remove());
+};
+
+/* ── team: board mode ── */
+function showTeam(m){
+  document.getElementById('team-board').style.display=m==='board'?'flex':'none';
+  document.getElementById('team-meeting').style.display=m==='board'?'none':'block';
+  document.getElementById('seg-board').classList.toggle('on',m==='board');
+  document.getElementById('seg-meeting').classList.toggle('on',m!=='board');
+}
+const pSel=new Set();let pDrag=null,pBatch=null;
+document.querySelectorAll('.pcard').forEach(c=>{
+  c.setAttribute('draggable','true');
+  c.addEventListener('click',()=>{c.classList.toggle('msel');c.classList.contains('msel')?pSel.add(c):pSel.delete(c);});
+  c.addEventListener('dragstart',()=>{pDrag=c;pBatch=(pSel.has(c)&&pSel.size>1)?[...pSel]:null;(pBatch||[c]).forEach(x=>x.classList.add('drag'));});
+  c.addEventListener('dragend',()=>{document.querySelectorAll('.pcard.drag').forEach(x=>x.classList.remove('drag'));pDrag=null;});
+});
+document.querySelectorAll('.pcol').forEach(col=>{
+  col.addEventListener('dragover',e=>{if(pDrag){e.preventDefault();col.classList.add('over');}});
+  col.addEventListener('dragleave',()=>col.classList.remove('over'));
+  col.addEventListener('drop',e=>{
+    e.preventDefault();col.classList.remove('over');
+    if(!pDrag)return;
+    const targets=pBatch||[pDrag];const name=col.dataset.p;const body=col.querySelector('.pcol-b');
+    targets.forEach(c=>{body.appendChild(c);c.classList.remove('msel','drag');});
+    pSel.clear();
+    toast((targets.length>1?targets.length+' tasks → '+name+' added as assignee':name+' added as assignee, kept co-assignees')+' · saved','Replace instead',()=>toast('Reassigned · previous assignees removed · saved'));
+    pDrag=null;pBatch=null;
+  });
+});
+
+/* ── team: scoped meeting capture ── */
+document.querySelectorAll('#team-meeting .mt-file').forEach(g=>{
+  const fileName=g.querySelector('.mt-file-h .t').textContent;
+  const ml=document.createElement('div');ml.className='miniline';
+  ml.innerHTML='<input placeholder="capture in '+fileName.slice(0,24)+'…  DONE <task> · Q: <question> · <task> @person fri">';
+  const inp=ml.querySelector('input');
+  inp.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'||!inp.value.trim())return;
+    const p=parseGrammar(inp.value.trim());
+    if(p.kind==='done'){
+      const hit=[...g.querySelectorAll('.mt-task .name')].find(n=>n.textContent.toLowerCase().includes(p.title.toLowerCase().slice(0,18)));
+      if(hit){const row=hit.closest('.mt-task');row.classList.add('done');toast('Completed "'+hit.textContent.slice(0,40)+'" · saved','Undo',()=>row.classList.remove('done'));}
+      else toast('No matching open task in '+fileName.slice(0,24));
+    }else if(p.kind.startsWith('flag')){
+      const[kl,ks]=FLAG_KINDS[p.kind];
+      const d=document.createElement('div');d.className='mt-task';
+      d.innerHTML='<span class="chip" style="'+ks+';font-size:9px"></span><span class="name"></span>';
+      d.querySelector('.chip').textContent=kl;d.querySelector('.name').textContent=p.title;
+      if(p.assignee){const a=document.createElement('span');a.className='pc';a.textContent=p.assignee;d.appendChild(a);}
+      g.insertBefore(d,ml);toast(kl+' flagged on '+fileName.slice(0,24)+' · saved');
+    }else{
+      const d=document.createElement('div');d.className='mt-task';
+      const ck=document.createElement('button');ck.className='ck';ck.textContent='✓';
+      ck.onclick=()=>{d.classList.add('done');toast('Completed · saved','Undo',()=>d.classList.remove('done'));};
+      d.appendChild(ck);
+      const nm=document.createElement('span');nm.className='name';nm.textContent=p.title;d.appendChild(nm);
+      if(p.dateLabel){const du=document.createElement('span');du.className='due';du.textContent='('+p.dateLabel+')';d.appendChild(du);}
+      const a=document.createElement('span');a.className='pc';a.textContent=p.assignee||'Karl';d.appendChild(a);
+      g.insertBefore(d,ml);
+      toast('Task → '+fileName.slice(0,24)+' · '+(p.assignee||'Karl')+' · saved','Undo',()=>d.remove());
+    }
+    inp.value='';
+  });
+  g.appendChild(ml);
+});
+
+/* ── Ctrl+K palette ── */
+const IDX=[
+  ...['Gare de Dorval','Vancouver Preclearance','LDRR','Assemblée publique annuelle (APA) 2025','Champions','Budget','Alto','Mise à jour plan de crise','VIA Express','Positionnement Mathieu'].map(f=>({t:'file',l:f,x:''})),
+  {t:'task',l:'Vérifier avec Legal les NDA pour LDRR et Alto',x:'LDRR · Jun 9 late'},
+  {t:'task',l:'Record APA at CASACOM',x:'APA 2025 · today'},
+  {t:'task',l:'Faire une page web pour le projet Dorval',x:'Gare de Dorval · TBD'},
+  {t:'task',l:'Créer l\'envoi automatique out-of-office',x:'Plan de crise · Jun 10'},
+  {t:'task',l:'Integrate partner quotes and finalize release draft',x:'Gare de Dorval · Jun 16'},
+  {t:'flag',l:'Q: Who presents to Board, Philippe or Karl?',x:'Gare de Dorval'},
+  {t:'memory',l:'"Budget being sought for a dedicated page on the new website"',x:'LDRR · memory'},
+];
+const TYC={file:'background:rgba(212,146,42,.12);color:var(--y)',task:'background:rgba(91,156,246,.12);color:var(--acc)',flag:'background:rgba(217,95,95,.12);color:var(--r)',memory:'background:rgba(62,74,90,.18);color:var(--tx2)'};
+const pal=document.createElement('div');pal.id='pal';
+pal.innerHTML='<div class="pal-box"><input placeholder="Search files, tasks, flags, memory…  ✓ and dates act right here"><div class="pal-res"></div></div>';
+document.body.appendChild(pal);
+const palIn=pal.querySelector('input'),palRes=pal.querySelector('.pal-res');
+function palRender(q){
+  palRes.innerHTML='';
+  const hits=IDX.filter(i=>!q||i.l.toLowerCase().includes(q)||i.x.toLowerCase().includes(q)).slice(0,9);
+  hits.forEach(i=>{
+    const d=document.createElement('div');d.className='pal-it';
+    d.innerHTML='<span class="ty" style="'+TYC[i.t]+'">'+i.t+'</span><span class="tx"></span><span class="acts"></span>';
+    d.querySelector('.tx').innerHTML=i.l.replace(/</g,'&lt;')+(i.x?'<small>'+i.x+'</small>':'');
+    const acts=d.querySelector('.acts');
+    if(i.t==='task'){
+      const dn=document.createElement('button');dn.textContent='✓';dn.onclick=e=>{e.stopPropagation();toast('Completed "'+i.l.slice(0,32)+'…" · saved','Undo',()=>{});};acts.appendChild(dn);
+      const tm=document.createElement('button');tm.textContent='Tmrw';tm.onclick=e=>{e.stopPropagation();toast('Rescheduled to Fri Jun 12 · saved');};acts.appendChild(tm);
+    }
+    const op=document.createElement('button');op.textContent='Open';op.onclick=e=>{e.stopPropagation();palClose();go('files');toast('Jumped to '+(i.x?i.x.split('·')[0].trim():i.l));};acts.appendChild(op);
+    d.onclick=()=>{palClose();go('files');};
+    palRes.appendChild(d);
+  });
+  if(!hits.length)palRes.innerHTML='<div class="pal-it"><span class="tx" style="color:var(--tx3)">No matches.</span></div>';
+}
+function palOpen(){pal.classList.add('on');palIn.value='';palRender('');palIn.focus();}
+function palClose(){pal.classList.remove('on');}
+palIn.addEventListener('input',()=>palRender(palIn.value.toLowerCase().trim()));
+pal.addEventListener('click',e=>{if(e.target===pal)palClose();});
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();pal.classList.contains('on')?palClose():palOpen();}
+  if(e.key==='Escape'){palClose();promo.style.display='none';clearSel();}
+});
+const kbdHint=document.createElement('span');kbdHint.className='kbd';kbdHint.textContent='Ctrl K';kbdHint.style.cursor='pointer';kbdHint.onclick=palOpen;
+document.querySelector('.hdr-right').insertBefore(kbdHint,document.querySelector('.hdr-right').firstChild);
+
+/* ════════ FLOATING ACTION PATTERN (Karl, Jun 12) ════════
+   One affordance everywhere: 📅 opens a mini calendar, @ opens initials.
+   On rows: floats over the right edge on hover, no content shift.
+   On capture lines: sits at hand next to the input, inserts grammar tokens. */
+
+let popEl=null;
+function popClose(){if(popEl){popEl.remove();popEl=null;document.removeEventListener('mousedown',popOut);}}
+function popOut(e){if(popEl&&!popEl.contains(e.target))popClose();}
+function popShow(anchor,content){
+  popClose();
+  popEl=document.createElement('div');popEl.className='pop';popEl.appendChild(content);
+  popEl.addEventListener('mousedown',e=>e.preventDefault()); /* keep input focus alive */
+  document.body.appendChild(popEl);
+  const r=anchor.getBoundingClientRect();
+  let left=Math.min(r.left,innerWidth-popEl.offsetWidth-12);
+  let top=r.bottom+6;
+  if(top+popEl.offsetHeight>innerHeight-10)top=r.top-popEl.offsetHeight-6;
+  popEl.style.left=Math.max(8,left)+'px';popEl.style.top=Math.max(8,top)+'px';
+  setTimeout(()=>document.addEventListener('mousedown',popOut),0);
+}
+
+function miniCal(onPick){
+  const root=document.createElement('div');root.className='pop-cal';
+  const M=[['June 2026',30,0,'Jun','jun'],['July 2026',31,2,'Jul','jul']];
+  let m=0;
+  function render(){
+    root.innerHTML='';
+    const ch=document.createElement('div');ch.className='ch';
+    const prev=document.createElement('button');prev.textContent='‹';prev.onclick=()=>{m=Math.max(0,m-1);render();};
+    const nxt=document.createElement('button');nxt.textContent='›';nxt.onclick=()=>{m=Math.min(1,m+1);render();};
+    const ttl=document.createElement('b');ttl.textContent=M[m][0];
+    ch.append(prev,ttl,nxt);root.appendChild(ch);
+    const qr=document.createElement('div');qr.className='qrow';
+    [['Today','Today','today','c-y'],['Tmrw','Fri Jun 12','tmrw','c-acc'],['Mon 15','Mon Jun 15','mon','c-acc'],['TBD','TBD','tbd','c-mut']].forEach(([s,label,token,cls])=>{
+      const b=document.createElement('button');b.textContent=s;b.onclick=()=>onPick({label,token,cls});qr.appendChild(b);
+    });
+    root.appendChild(qr);
+    const gr=document.createElement('div');gr.className='grid';
+    ['M','T','W','T','F','S','S'].forEach(d=>{const s=document.createElement('span');s.className='dh';s.textContent=d;gr.appendChild(s);});
+    for(let i=0;i<M[m][2];i++)gr.appendChild(document.createElement('span'));
+    for(let d=1;d<=M[m][1];d++){
+      const b=document.createElement('button');b.textContent=d;
+      if(m===0&&d===11)b.className='tdy';
+      b.onclick=()=>onPick({label:M[m][3]+' '+d,token:M[m][4]+' '+d,cls:(m===0&&d===11)?'c-y':'c-acc'});
+      gr.appendChild(b);
+    }
+    root.appendChild(gr);
+  }
+  render();
+  return root;
+}
+function peoplePick(onPick){
+  const root=document.createElement('div');root.className='pop-people';
+  INITS.forEach(([i,n])=>{const b=document.createElement('button');b.textContent=i;b.title=n;b.onclick=()=>onPick(n);root.appendChild(b);});
+  return root;
+}
+const NAME2TOK={'Karl':'@karl','William-Antoine':'@wa','Marie-Élise':'@marie','Sylvie':'@syl','Sarah':'@sarah','Lise':'@lise','Denis':'@denis'};
+
+/* row-level appliers */
+function rowDateChip(row,p){
+  let chip=[...row.querySelectorAll(':scope>.chip')].find(c=>/c-(y|acc|r|mut|g)/.test(c.className));
+  if(!chip){chip=document.createElement('span');row.insertBefore(chip,row.querySelector('.hoveract')||row.querySelector('.ck'));}
+  chip.className='chip '+p.cls;chip.textContent=p.label;
+}
+function applyDatePick(row,p){
+  if(row.classList.contains('pcard')){
+    const c=row.querySelector('.mx .chip');
+    if(c){c.className='chip '+p.cls;c.textContent=p.label;}
+    toast('Rescheduled to '+p.label+' · saved');return;
+  }
+  if(row.classList.contains('mt-task')){
+    let du=row.querySelector('.due');
+    if(!du){du=document.createElement('span');du.className='due';row.insertBefore(du,row.querySelector('.pc'));}
+    du.textContent='('+p.label+')';du.style.color='';
+    toast('Rescheduled to '+p.label+' · saved');return;
+  }
+  rowDateChip(row,p);toast('Rescheduled to '+p.label+' · saved');
+}
+function applyPerson(row,n){
+  if(row.classList.contains('mt-task')){
+    const a=document.createElement('span');a.className='pc';a.textContent=n;row.appendChild(a);
+    toast(n+' assigned · saved','Undo',()=>a.remove());return;
+  }
+  const a=document.createElement('span');a.className='chip';a.style.cssText='background:rgba(91,156,246,.12);color:var(--acc)';a.textContent=n;
+  row.insertBefore(a,row.querySelector('.hoveract')||row.querySelector('.ck'));
+  toast(n+' assigned · saved','Undo',()=>a.remove());
+}
+
+function attachHover(row,opts={}){
+  if(row.dataset.hov)return;row.dataset.hov='1';
+  const h=document.createElement('span');h.className='hoveract';
+  const cal=document.createElement('button');cal.textContent='📅';cal.title='Set date';
+  cal.addEventListener('mousedown',e=>e.preventDefault());
+  cal.onclick=e=>{e.stopPropagation();popShow(cal,miniCal(p=>{applyDatePick(row,p);popClose();}));};
+  h.appendChild(cal);
+  if(opts.at!==false){
+    const at=document.createElement('button');at.textContent='@';at.title='Assign';
+    at.addEventListener('mousedown',e=>e.preventDefault());
+    at.onclick=e=>{e.stopPropagation();popShow(at,peoplePick(n=>{applyPerson(row,n);popClose();}));};
+    h.appendChild(at);
+  }
+  row.appendChild(h);
+}
+
+/* capture lines: buttons insert grammar tokens, parse stays the single source of truth */
+function insertTok(input,tok){
+  input.value=input.value.replace(/\s+$/,'')+(input.value?' ':'')+tok+' ';
+  input.focus();input.dispatchEvent(new Event('input'));
+}
+function lineButtons(container,input){
+  if(container.querySelector('.linebtns'))return;
+  const lb=document.createElement('span');lb.className='linebtns';
+  const cal=document.createElement('button');cal.textContent='📅';cal.title='Pick a date';
+  cal.addEventListener('mousedown',e=>e.preventDefault());
+  cal.onclick=e=>{e.stopPropagation();popShow(cal,miniCal(p=>{insertTok(input,p.token);popClose();}));};
+  const at=document.createElement('button');at.textContent='@';at.title='Assign';
+  at.addEventListener('mousedown',e=>e.preventDefault());
+  at.onclick=e=>{e.stopPropagation();popShow(at,peoplePick(n=>{insertTok(input,NAME2TOK[n]||'@karl');popClose();}));};
+  lb.append(cal,at);container.appendChild(lb);
+}
+
+/* ── redefinitions (hoisting: these versions win everywhere) ── */
+function initNewRow(r){
+  r.setAttribute('draggable','true');
+  r.addEventListener('dragstart',()=>{dragRow=r;draggedRef=r;batch=(sel.has(r)&&sel.size>1)?[...sel]:null;r.style.opacity=.4;});
+  r.addEventListener('dragend',()=>{dragRow=null;r.style.opacity=1;});
+  const ck=r.querySelector('.ck');
+  if(ck)ck.addEventListener('click',e=>{e.stopPropagation();r.style.opacity=.35;r.style.textDecoration='line-through';toast('Completed · saved','Undo',()=>{r.style.opacity=1;r.style.textDecoration='none';});});
+  wireSelect(r);attachHover(r);
+}
+function wireFileRow(r){
+  if(r.classList.contains('ghost')||r.dataset.hov)return;
+  if(!r.querySelector('.ck'))return;
+  wireSelect(r);attachHover(r);
+}
+function grammarGhost(parent,label,onSubmit,before){
+  const g=document.createElement('div');g.className='trow ghost';g.textContent=label;
+  g.addEventListener('click',()=>{
+    if(g.querySelector('input'))return;
+    g.innerHTML='';
+    const inp=document.createElement('input');inp.placeholder='title @person date … Enter to save, Enter again to keep adding';
+    g.appendChild(inp);lineButtons(g,inp);inp.focus();
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&inp.value.trim()){onSubmit(parseGrammar(inp.value.trim()),g);inp.value='';inp.focus();}
+      if(e.key==='Escape')g.textContent=label;
+    });
+    inp.addEventListener('blur',()=>{setTimeout(()=>{if(!popEl&&g.querySelector('input'))g.textContent=label;},150);});
+  });
+  before?parent.insertBefore(g,before):parent.appendChild(g);
+  return g;
+}
+function parseGrammar(v){
+  let kind='task',title=v.trim(),assignee=null,dateLabel=null,dateCls='c-acc';
+  const pre=[[/^done[:\s]+/i,'done'],[/^q[:\s]+/i,'flag-q'],[/^risk[:\s]+/i,'flag-risk'],[/^blocked[:\s]+/i,'flag-blocked']];
+  for(const[re,k]of pre){if(re.test(title)){kind=k;title=title.replace(re,'').trim();break;}}
+  title=title.replace(/@(\w+)/g,(m,p)=>{const n=PEOPLE[p.toLowerCase()];if(n){assignee=n;return'';}return m;});
+  const dpats=[[/\btoday\b/i,'Today','c-y'],[/\b(tmrw|tomorrow|fri|friday)\b/i,'Fri Jun 12','c-acc'],[/\b(mon|monday|next week)\b/i,'Mon Jun 15','c-acc'],[/\b(jun|june)\s?(\d{1,2})\b/i,null,'c-acc'],[/\b(jul|july)\s?(\d{1,2})\b/i,null,'c-acc'],[/\btbd\b/i,'TBD','c-mut']];
+  for(const[re,lbl,cls]of dpats){const m=title.match(re);if(m){dateLabel=lbl||((m[1]&&m[1].toLowerCase().startsWith('jul')?'Jul ':'Jun ')+m[2]);dateCls=cls;title=title.replace(re,'').trim();break;}}
+  return{kind,title:title.replace(/\s{2,}/g,' ').trim(),assignee,dateLabel,dateCls};
+}
+function parseCapture(v){
+  let file=null,title=v,assignee='Karl',dateLabel=null,dateCls='c-mut',bucket=3;
+  const ci=v.indexOf(':');
+  if(ci>0&&ci<40){
+    const fp=v.slice(0,ci).trim();
+    const hit=FILES.find(f=>f.toLowerCase().startsWith(fp.toLowerCase())||fp.toLowerCase().startsWith(f.toLowerCase().slice(0,4)));
+    if(hit){file=hit;title=v.slice(ci+1).trim();}
+  }
+  title=title.replace(/@(\w+)/g,(m,p)=>{if(PEOPLE[p.toLowerCase()]){assignee=PEOPLE[p.toLowerCase()];return'';}return m;});
+  const dpats=[
+    [/\btoday\b/i,'Today','c-y',1],
+    [/\b(tmrw|tomorrow|fri|friday)\b/i,'Fri Jun 12','c-acc',2],
+    [/\b(mon|monday|next week)\b/i,'Mon Jun 15','c-acc',2],
+    [/\b(jun|june)\s?(\d{1,2})\b/i,null,'c-acc',2],
+    [/\b(jul|july)\s?(\d{1,2})\b/i,null,'c-acc',2],
+    [/\btbd\b/i,'TBD','c-mut',3],
+  ];
+  for(const[re,lbl,cls,b]of dpats){
+    const m=title.match(re);
+    if(m){dateLabel=lbl||((m[1]&&m[1].toLowerCase().startsWith('jul')?'Jul ':'Jun ')+m[2]);dateCls=cls;bucket=b;title=title.replace(re,'').trim();break;}
+  }
+  title=title.replace(/\s{2,}/g,' ').trim();
+  return{file:file||'Unfiled',title,assignee,dateLabel,dateCls,bucket};
+}
+
+/* ── retrofit: strip old inline buttons, attach the floating pattern ── */
+document.querySelectorAll('.qd').forEach(q=>q.remove());
+document.querySelectorAll('#v-today .trow,#v-files .fpage .trow').forEach(r=>{if(!r.classList.contains('ghost'))attachHover(r);});
+document.querySelectorAll('#team-meeting .mt-task').forEach(r=>{if(!r.classList.contains('done'))attachHover(r);});
+document.querySelectorAll('.pcard').forEach(c=>attachHover(c,{at:false}));
+
+/* capture bar + every miniline gets the token buttons */
+lineButtons(document.querySelector('.capture'),cap);
+document.querySelectorAll('.miniline').forEach(ml=>{const i=ml.querySelector('input');if(i)lineButtons(ml,i);});
+
+/* batch bar gets the calendar too */
+const bbCal=document.createElement('button');bbCal.textContent='📅';
+bbCal.addEventListener('mousedown',e=>e.preventDefault());
+bbCal.onclick=()=>popShow(bbCal,miniCal(p=>{const n=sel.size;sel.forEach(r=>rowDateChip(r,p));toast(n+' tasks → '+p.label+' · saved');clearSel();popClose();}));
+bar.insertBefore(bbCal,doneB);
+
+/* ════════ FLEXDATES IN THE CALENDAR + OUTPUT TARGETING (Karl, Jun 12) ════════ */
+
+/* miniCal v2: w/o button per week row, m/o next to the month (FlexDate precisions) */
+function miniCal(onPick){
+  const root=document.createElement('div');root.className='pop-cal';
+  const M=[['June 2026',30,0,'Jun','jun'],['July 2026',31,2,'Jul','jul']];
+  let m=0;
+  function render(){
+    root.innerHTML='';
+    const ch=document.createElement('div');ch.className='ch';
+    const prev=document.createElement('button');prev.textContent='‹';prev.onclick=()=>{m=Math.max(0,m-1);render();};
+    const mid=document.createElement('span');
+    const ttl=document.createElement('b');ttl.textContent=M[m][0];mid.appendChild(ttl);
+    const mob=document.createElement('button');mob.className='mob';mob.textContent='m/o';mob.title='Month of '+M[m][0];
+    mob.onclick=()=>onPick({label:M[m][0].split(' ')[0],token:'m/o '+M[m][4],cls:'c-acc'});
+    mid.appendChild(mob);
+    const nxt=document.createElement('button');nxt.textContent='›';nxt.onclick=()=>{m=Math.min(1,m+1);render();};
+    ch.append(prev,mid,nxt);root.appendChild(ch);
+    const qr=document.createElement('div');qr.className='qrow';
+    [['Today','Today','today','c-y'],['Tmrw','Fri Jun 12','tmrw','c-acc'],['Mon 15','Mon Jun 15','mon','c-acc'],['TBD','TBD','tbd','c-mut']].forEach(([s,label,token,cls])=>{
+      const b=document.createElement('button');b.textContent=s;b.onclick=()=>onPick({label,token,cls});qr.appendChild(b);
+    });
+    root.appendChild(qr);
+    const gr=document.createElement('div');gr.className='grid g8';
+    const hd=document.createElement('span');hd.className='dh';gr.appendChild(hd);
+    ['M','T','W','T','F','S','S'].forEach(d=>{const s=document.createElement('span');s.className='dh';s.textContent=d;gr.appendChild(s);});
+    const rows=Math.ceil((M[m][2]+M[m][1])/7);
+    for(let r=0;r<rows;r++){
+      let monDay=r*7+1-M[m][2],monMonth=m;
+      if(monDay<1&&m===1){monDay=30+monDay;monMonth=0;}
+      const wob=document.createElement('button');wob.className='wob';wob.textContent='w/o';
+      wob.title='Week of '+M[monMonth][3]+' '+monDay;
+      wob.onclick=()=>onPick({label:'Week of '+M[monMonth][3]+' '+monDay,token:'w/o '+M[monMonth][4]+' '+monDay,cls:'c-acc'});
+      gr.appendChild(wob);
+      for(let c=0;c<7;c++){
+        const d=r*7+c+1-M[m][2];
+        if(d<1||d>M[m][1]){gr.appendChild(document.createElement('span'));continue;}
+        const b=document.createElement('button');b.textContent=d;
+        if(m===0&&d===11)b.className='tdy';
+        b.onclick=()=>onPick({label:M[m][3]+' '+d,token:M[m][4]+' '+d,cls:(m===0&&d===11)?'c-y':'c-acc'});
+        gr.appendChild(b);
+      }
+    }
+    root.appendChild(gr);
+  }
+  render();
+  return root;
+}
+
+/* grammar v3: w/o + m/o + "file > output:" targeting */
+function flexDateScan(title){
+  let dateLabel=null,dateCls='c-acc',rest=title;
+  const wm=rest.match(/\bw\/o\s+(jun|june|jul|july)\s?(\d{1,2})\b/i);
+  if(wm){dateLabel='Week of '+(wm[1].toLowerCase().startsWith('jul')?'Jul ':'Jun ')+wm[2];rest=rest.replace(wm[0],'').trim();return{dateLabel,dateCls,rest};}
+  const mm=rest.match(/\bm\/o\s+(jun|june|jul|july)\b/i);
+  if(mm){dateLabel=(mm[1].toLowerCase().startsWith('jul')?'July':'June');rest=rest.replace(mm[0],'').trim();return{dateLabel,dateCls,rest};}
+  const dpats=[[/\btoday\b/i,'Today','c-y'],[/\b(tmrw|tomorrow|fri|friday)\b/i,'Fri Jun 12','c-acc'],[/\b(mon|monday|next week)\b/i,'Mon Jun 15','c-acc'],[/\b(jun|june)\s?(\d{1,2})\b/i,null,'c-acc'],[/\b(jul|july)\s?(\d{1,2})\b/i,null,'c-acc'],[/\btbd\b/i,'TBD','c-mut']];
+  for(const[re,lbl,cls]of dpats){
+    const x=rest.match(re);
+    if(x){dateLabel=lbl||((x[1]&&x[1].toLowerCase().startsWith('jul')?'Jul ':'Jun ')+x[2]);dateCls=cls;rest=rest.replace(re,'').trim();break;}
+  }
+  return{dateLabel,dateCls:dateLabel?dateCls:'c-mut',rest};
+}
+function parseGrammar(v){
+  let kind='task',title=v.trim(),assignee=null;
+  const pre=[[/^done[:\s]+/i,'done'],[/^q[:\s]+/i,'flag-q'],[/^risk[:\s]+/i,'flag-risk'],[/^blocked[:\s]+/i,'flag-blocked']];
+  for(const[re,k]of pre){if(re.test(title)){kind=k;title=title.replace(re,'').trim();break;}}
+  title=title.replace(/@(\w+)/g,(m,p)=>{const n=PEOPLE[p.toLowerCase()];if(n){assignee=n;return'';}return m;});
+  const fd=flexDateScan(title);
+  return{kind,title:fd.rest.replace(/\s{2,}/g,' ').trim(),assignee,dateLabel:fd.dateLabel,dateCls:fd.dateLabel?fd.dateCls:'c-acc'};
+}
+function parseCapture(v){
+  let file=null,output=null,title=v,assignee='Karl',bucket=3;
+  const ci=v.indexOf(':');
+  const gt=v.indexOf('>');
+  if(gt>0&&ci>gt){ /* file > output: title */
+    const fp=v.slice(0,gt).trim();
+    const hit=FILES.find(f=>f.toLowerCase().startsWith(fp.toLowerCase())||fp.toLowerCase().startsWith(f.toLowerCase().slice(0,4)));
+    if(hit){file=hit;output=v.slice(gt+1,ci).trim();title=v.slice(ci+1).trim();}
+  }else if(ci>0&&ci<40){
+    const fp=v.slice(0,ci).trim();
+    const hit=FILES.find(f=>f.toLowerCase().startsWith(fp.toLowerCase())||fp.toLowerCase().startsWith(f.toLowerCase().slice(0,4)));
+    if(hit){file=hit;title=v.slice(ci+1).trim();}
+  }
+  title=title.replace(/@(\w+)/g,(m,p)=>{if(PEOPLE[p.toLowerCase()]){assignee=PEOPLE[p.toLowerCase()];return'';}return m;});
+  const fd=flexDateScan(title);
+  if(fd.dateLabel==='Today')bucket=1;else if(fd.dateLabel&&fd.dateLabel!=='TBD')bucket=2;
+  return{file:file||'Unfiled',output,title:fd.rest.replace(/\s{2,}/g,' ').trim(),assignee,dateLabel:fd.dateLabel,dateCls:fd.dateLabel?fd.dateCls:'c-mut',bucket};
+}
+
+/* rewire the Today capture bar (clone strips old listeners) */
+(function(){
+  const capDiv=document.querySelector('.capture');
+  const oldCap=document.getElementById('cap');
+  const nc=oldCap.cloneNode(false);
+  oldCap.replaceWith(nc);
+  const oldLb=capDiv.querySelector('.linebtns');if(oldLb)oldLb.remove();
+  lineButtons(capDiv,nc);
+  nc.placeholder='Quick add… Dorval: title @wa fri   ·   Dorval > Plan de comm: title (task under an output)';
+  nc.addEventListener('input',()=>{
+    if(!nc.value.trim()){capPrev.innerHTML=hintHtml;return;}
+    const p=parseCapture(nc.value.trim());
+    capPrev.innerHTML='';
+    const add=(txt,style)=>{const s=document.createElement('span');s.className='chip';s.style.cssText=style;s.textContent=txt;capPrev.appendChild(s);};
+    add('File · '+p.file,p.file==='Unfiled'?'background:rgba(62,74,90,.18);color:var(--tx3)':'background:rgba(212,146,42,.12);color:var(--y)');
+    if(p.output)add('↳ '+p.output,'background:rgba(212,146,42,.08);color:var(--y)');
+    add(p.title||'…','background:var(--s3);color:var(--tx)');
+    add('@ '+p.assignee,'background:rgba(91,156,246,.12);color:var(--acc)');
+    const dc={'c-y':'background:rgba(212,146,42,.14);color:var(--y)','c-acc':'background:rgba(91,156,246,.10);color:var(--acc)','c-mut':'background:rgba(62,74,90,.18);color:var(--tx2)'};
+    add(p.dateLabel||'no date',dc[p.dateLabel?p.dateCls:'c-mut']);
+  });
+  nc.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'||!nc.value.trim())return;
+    const p=parseCapture(nc.value.trim());
+    if(!p.title)return;
+    const sect=SECTS[p.bucket]||SECTS[3];
+    const g=findOrMakeGroup(sect,p.file);
+    const ghost=g.querySelector('.ghost');
+    const row=mkRow(p.title,p.assignee,p.dateLabel,p.dateCls);
+    if(p.output){const o=document.createElement('span');o.className='out';o.textContent='↳ '+p.output;row.querySelector('.tt').prepend(o);}
+    ghost?g.insertBefore(row,ghost):g.appendChild(row);
+    row.style.background='rgba(63,182,139,.08)';setTimeout(()=>row.style.background='',900);
+    toast('Added to '+p.file+(p.output?' ↳ '+p.output:'')+' · '+p.assignee+(p.dateLabel?' · '+p.dateLabel:'')+' · saved');
+    nc.value='';capPrev.innerHTML=hintHtml;
+  });
+})();
+
+/* rewire meeting capture lines with "> output:" targeting */
+document.querySelectorAll('#team-meeting .miniline').forEach(ml=>{
+  const old=ml.querySelector('input');if(!old)return;
+  const g=ml.closest('.mt-file');if(!g)return;
+  const fileName=g.querySelector('.mt-file-h .t').textContent;
+  const inp=old.cloneNode(false);old.replaceWith(inp);
+  const oldLb=ml.querySelector('.linebtns');if(oldLb)oldLb.remove();
+  lineButtons(ml,inp);
+  inp.placeholder='capture in '+fileName.slice(0,22)+'…  DONE <task> · Q: … · > <output>: task @person w/o jun 15';
+  inp.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'||!inp.value.trim())return;
+    let v=inp.value.trim(),outEl=null,outName=null;
+    const om=v.match(/^>\s*([^:]+):\s*/);
+    if(om){
+      const nm=om[1].trim().toLowerCase();v=v.slice(om[0].length);
+      outEl=[...g.querySelectorAll('.mt-out')].find(o=>o.querySelector('.mt-out-h .t').textContent.toLowerCase().includes(nm))||null;
+      if(!outEl){toast('No output matching "'+om[1].trim()+'" in '+fileName.slice(0,22));return;}
+      outName=outEl.querySelector('.mt-out-h .t').textContent;
+    }
+    const p=parseGrammar(v);
+    const scope=outEl||g;
+    if(p.kind==='done'){
+      const hit=[...scope.querySelectorAll('.mt-task .name')].find(n=>n.textContent.toLowerCase().includes(p.title.toLowerCase().slice(0,18)));
+      if(hit){const row=hit.closest('.mt-task');row.classList.add('done');toast('Completed "'+hit.textContent.slice(0,40)+'" · saved','Undo',()=>row.classList.remove('done'));}
+      else toast('No matching open task'+(outName?' in '+outName.slice(0,24):' in '+fileName.slice(0,22)));
+    }else if(p.kind.startsWith('flag')){
+      const[kl,ks]=FLAG_KINDS[p.kind];
+      const d=document.createElement('div');d.className='mt-task';
+      d.innerHTML='<span class="chip" style="'+ks+';font-size:9px"></span><span class="name"></span>';
+      d.querySelector('.chip').textContent=kl;d.querySelector('.name').textContent=p.title;
+      if(p.assignee){const a=document.createElement('span');a.className='pc';a.textContent=p.assignee;d.appendChild(a);}
+      outEl?outEl.appendChild(d):g.insertBefore(d,ml);
+      toast(kl+' flagged on '+fileName.slice(0,22)+' · saved');
+    }else{
+      const d=document.createElement('div');d.className='mt-task';
+      const ck=document.createElement('button');ck.className='ck';ck.textContent='✓';
+      ck.onclick=()=>{d.classList.add('done');toast('Completed · saved','Undo',()=>d.classList.remove('done'));};
+      d.appendChild(ck);
+      const nm=document.createElement('span');nm.className='name';nm.textContent=p.title;d.appendChild(nm);
+      if(p.dateLabel){const du=document.createElement('span');du.className='due';du.textContent='('+p.dateLabel+')';d.appendChild(du);}
+      const a=document.createElement('span');a.className='pc';a.textContent=p.assignee||'Karl';d.appendChild(a);
+      outEl?outEl.appendChild(d):g.insertBefore(d,ml);
+      attachHover(d);
+      toast('Task → '+fileName.slice(0,22)+(outName?' ↳ '+outName.slice(0,24):'')+' · '+(p.assignee||'Karl')+' · saved','Undo',()=>d.remove());
+    }
+    inp.value='';
+  });
+});
+</script>
+</body>
+</html>
