@@ -1,24 +1,22 @@
 ---
 name: palantir
 description: |
-  Palantír is Karl's private corporate communications file-control and deliverable-management app at VIA Rail Canada. Load this skill immediately and without being asked when: Karl mentions Palantír by name, Karl pastes meeting notes or team status updates (especially notes with Lead/Supporting/Next steps structure), Karl asks to process notes or updates into Palantír, Karl asks for an import package or update, Karl mentions files/deliverables/tasks in the context of his communications work, or Karl mentions any of his team members (William-Antoine, Marie-Élise, Sylvie, Sarah, Lise, Denis) in the context of work updates. Also load when Karl pastes structured notes with headers like "DONE", "BLOCKED:", or "Q:". This skill tells you how to read the current live state from the pal_ tables, how to parse Karl's notes, and how to apply updates through the pal_apply_update RPC.
+  Palantír is Karl's private corporate communications file-control and deliverable-management app at VIA Rail Canada. Load this skill immediately and without being asked when: Karl mentions Palantír by name, Karl pastes meeting notes or team status updates (especially notes with Lead/Supporting/Next steps structure), Karl asks to process notes or updates into Palantír, Karl asks for an import package or update, Karl mentions files/deliverables/tasks in the context of his communications work, or Karl mentions any of his team members (William-Antoine, Marie-Élise, Sylvie, Sarah, Lise, Denis) in the context of work updates. Also load when Karl pastes structured notes with headers like "DONE", "BLOCKED:", or "Q:". This skill tells you how to read the current live state from palantir_state, how to parse Karl's notes, and how to apply updates through the pal_apply_to_v1 bridge RPC (which writes back into palantir_state, the row the app reads).
 ---
 
-> ## STATUS: NOT LIVE. DO NOT INSTALL YET.  (draft, 2026-06-17)
-> The live Palantír app reads and writes the **v1 `palantir_state` JSON row** and has **no
-> connection** to the `pal_` tables or `pal_apply_update`. Verified 2026-06-17: `palantir_state`
-> is saved by the app daily and has already drifted from the `pal_` tables (215 vs 212 tasks),
-> with no sync trigger between them.
+> ## STATUS: LIVE via the bridge (Session 3 applied + verified 2026-06-18).
+> The write path is the **`pal_apply_to_v1` bridge**, applied and verified on 2026-06-18
+> (see `palantir-2.0-session3-report.md`). `palantir_state` stays the **canonical row the app
+> reads**; on every call the bridge rebuilds the `pal_` tables from it, applies the package through
+> the hardened `pal_apply_update` engine, and writes the result back into `palantir_state`, so the
+> app reflects every change. The old field-name mismatch is gone: you no longer use the app's Import
+> screen, you call the bridge, which uses the RPC's field names internally and re-exports the v1 shape.
 >
-> Consequences if used now: packages built for `pal_apply_update` use different field names
-> than the app's Import screen (`due`/`outputId` here vs `dueDate`/`deliverableId` in the app),
-> and RPC writes land in tables the app never reads, so they would be invisible and the app's
-> autosave would overwrite around them.
->
-> **Until Session 3 wires the bridge** (sync `palantir_state` <-> `pal_`, or cut the app over to
-> read `pal_`, plus field-name alignment), keep using the v1 skill: read `palantir_state`,
-> produce a v1 import package, Karl imports it in the app. The field names, vocab, and FlexDate
-> shapes below are corrected to match the real app so this is a sound foundation for that cutover.
+> **Run daily updates with the Palantír app closed.** The bridge takes an optimistic-concurrency
+> token (`palantir_state.updated_at`); if the app saves between your read and your write you get a
+> `conflict` (nothing written), so you re-read and retry. The first real bridge write also
+> permanently normalizes `palantir_state` (drops deprecated v1 fields, archived into `pal_events`;
+> resolves 6 duplicate task ids). That is expected and app-compatible.
 
 # Palantír Skill (v2 draft)
 
@@ -26,37 +24,44 @@ You are helping Karl manage Palantír — a private file-control and deliverable
 his corporate communications work at VIA Rail Canada. Karl is interim director of corporate
 communications.
 
-Palantír 2.0 **will** store data in normalized `pal_` tables and be written through the
-`pal_apply_update` RPC. That path is built and hardened but **not yet wired to the app** (see
-status above). See `schema.md` for the data model and `update-package.md` for the write verbs.
+Palantír 2.0 stores data in normalized `pal_` tables and is written through the `pal_apply_to_v1`
+bridge, which keeps the v1 `palantir_state` row (what the app reads) as the source of truth. See
+`schema.md` for the data model and `update-package.md` for the write verbs.
 
 ---
 
-## STEP 0 — ALWAYS READ LIVE STATE FIRST
+## STEP 0 — READ LIVE STATE + CAPTURE THE CONCURRENCY TOKEN
 
-Once the app is cut over to `pal_` (Session 3), read current state from Supabase. Two modes:
+`palantir_state` (id=1) is the source of truth and what the app reads. The `pal_` tables are the
+bridge's internal engine (rebuilt from `palantir_state` on every write), so never read them as the
+live picture. Always start by reading the state **and** its `updated_at`; you pass that `updated_at`
+to the bridge as the concurrency token.
 
-**Daily delta (preferred, cheap)** — query only the files in Karl's notes:
+**Daily delta (cheap)** - the token plus only the files named in Karl's notes and their tasks:
 ```sql
-SELECT id, title, status, priority, memory FROM pal_files
-WHERE lower(title) = ANY (ARRAY['bikes on board','board documents']);
+WITH s AS (SELECT updated_at, state FROM palantir_state WHERE id = 1),
+     fids AS (SELECT f->>'id' AS id FROM s, jsonb_array_elements(s.state->'files') f
+              WHERE lower(f->>'title') = ANY (ARRAY['bikes on board','board documents']))
+SELECT (SELECT updated_at FROM s) AS token,
+       (SELECT jsonb_agg(f) FROM s, jsonb_array_elements(s.state->'files') f
+        WHERE f->>'id' IN (SELECT id FROM fids)) AS files,
+       (SELECT jsonb_agg(t) FROM s, jsonb_array_elements(s.state->'tasks') t
+        WHERE coalesce(t->>'fileId', t->>'projectId') IN (SELECT id FROM fids)) AS tasks;
 ```
-Then pull their tasks / outputs / flags as needed:
+Each file object embeds its milestones, risks, openQuestions, log, and sharePointLinks; its tasks
+are in `state->'tasks'` keyed by `fileId`/`projectId`.
+
+**Weekly full review** - the whole v1-shaped picture plus the token:
 ```sql
-SELECT id, title, status, due, output_id FROM pal_tasks WHERE file_id = '<id>' AND status <> 'completed';
-SELECT id, title, status, due FROM pal_outputs WHERE file_id = '<id>';
-SELECT id, kind, text, status FROM pal_flags WHERE file_id = '<id>' AND status = 'open';
+SELECT updated_at, state FROM palantir_state WHERE id = 1;
 ```
 
-**Weekly full review** — one call returns the whole v1-shaped picture: `SELECT pal_export_state();`
+**Optional SQL convenience** - to query the normalized tables instead of JSON, resync them first
+with `SELECT pal_migrate_from_v1();` then read `pal_files` / `pal_tasks` / `pal_outputs` / `pal_flags`.
+The bridge re-migrates on write, so this is read-only convenience; it does not change the source of truth.
 
 **Do NOT ask Karl to paste or export state. Read it directly every time.**
-**Never write the tables directly and never touch `palantir_state`.**
-
-> **Pre-cutover note:** today the source of truth is `palantir_state` (read
-> `SELECT state FROM palantir_state WHERE id = 1;`), and the `pal_` tables are a stale migration
-> snapshot. `SELECT pal_migrate_from_v1();` resyncs `pal_` from `palantir_state` if you need the
-> tables current for testing.
+**Never `UPDATE`/`INSERT` the tables or `palantir_state` directly. Every write goes through `pal_apply_to_v1`.**
 
 ---
 
@@ -176,28 +181,34 @@ When you need confirmation, ask **numbered** questions (max ~2 per file) so Karl
 
 ---
 
-## THE WRITE PATH (RPC protocol — post-cutover)
-
-> Field names below are the RPC's, and differ from the app's current Import screen
-> (`due` vs `dueDate`, `outputId` vs `deliverableId`). Do not use this path until the app reads
-> `pal_` (Session 3).
+## THE WRITE PATH (the `pal_apply_to_v1` bridge)
 
 After Karl confirms each file:
 
 1. Build one package (see `update-package.md`) with a **stable, unique** `packageId`
    (e.g. `2026-06-17-bikes-board`). Re-running the same id is a safe noop.
-2. Apply it: `SELECT pal_apply_update('<package json>'::jsonb);`
-3. **Read back and verify.** Inspect the returned `{ status, results, warnings }`:
-   `status: applied` does **not** mean every item succeeded — scan `results` for any `skipped: …`
-   and every `warn`. Then re-query the affected rows (or `pal_export_state()`) to confirm.
+2. Apply it through the bridge, passing the token from STEP 0:
+   ```sql
+   SELECT pal_apply_to_v1('<package json>'::jsonb, '<token from STEP 0>'::timestamptz);
+   ```
+   The bridge snapshots `palantir_state`, rebuilds `pal_` from it, runs `pal_apply_update`, writes
+   the result back into `palantir_state` (what the app reads), and logs the `packageId`.
+3. **Handle the returned status:**
+   - `applied` - it landed in `palantir_state`; the app will show it. `applied` does **not** mean
+     every item succeeded: scan `results` for any `skipped:` and every `warn`, and surface them.
+     Then read back (the STEP 0 query, or `SELECT state FROM palantir_state WHERE id = 1`) to confirm.
+   - `noop` - this `packageId` was already applied via the bridge; nothing to do.
+   - `conflict` - `palantir_state` changed since STEP 0 (Karl edited in the app, or another update
+     ran). Re-read STEP 0 for a fresh token and re-apply the **same** `packageId`.
+   - `error` - atomic, nothing applied (a snapshot exists). Fix and re-run the same `packageId`.
 4. Report back to Karl: a one-paragraph plain-language summary, plus any skipped/warned items.
 
-If `status: error` (e.g. missing `packageId`) or anything looks wrong, the package was atomic —
-nothing applied — and a pre-apply snapshot exists. Fix and re-run with the same `packageId`.
+**Run daily updates with the Palantír app closed** so the concurrency guard does not bounce you
+with conflicts. Always pass the token; omit it (`NULL`) only for a deliberate force-write.
 
 ---
 
 ## TOKEN EFFICIENCY
-- Daily update: query only the files mentioned with `WHERE` filters, not full state.
-- Weekly review: one `pal_export_state()` at the start.
+- Daily update: use the STEP 0 delta query to pull only the named files + their tasks, not full state.
+- Weekly review: one `SELECT updated_at, state FROM palantir_state WHERE id = 1;` at the start.
 - Don't pull all files into context for a small update.

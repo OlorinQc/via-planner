@@ -4,17 +4,20 @@ The single `palantir_state` JSONB row is replaced by normalized `pal_` tables.
 The v1 row is kept frozen as a fallback and `pal_export_state()` still rebuilds the
 exact v1 JSON shape (version `1.0`), so the old restore path keeps working until cutover.
 
-**Read** current state with either:
-- `SELECT pal_export_state();` — full v1-shaped JSON (use for a weekly full review), or
-- direct `pal_` queries scoped to the files in Karl's notes (use for daily deltas, cheaper).
+**Read** current state from the canonical `palantir_state` row (id=1), which is what the app reads:
+- `SELECT updated_at, state FROM palantir_state WHERE id = 1;` - the v1-shaped JSON plus the bridge
+  concurrency token (use `state` for the picture; capture `updated_at` for the write).
+- For SQL convenience over the normalized tables, resync them first with `SELECT pal_migrate_from_v1();`
+  then query `pal_*`. The `pal_` tables are the bridge's engine, rebuilt on every write.
 
-**Write** only through `SELECT pal_apply_update('<package>'::jsonb);` — never `UPDATE`/`INSERT`
-the tables directly, and never touch `palantir_state`. See `update-package.md`.
+**Write** only through the bridge: `SELECT pal_apply_to_v1('<package>'::jsonb, '<updated_at>'::timestamptz);`
+which runs `pal_apply_update` internally and writes the v1 export back into `palantir_state`. Never
+`UPDATE`/`INSERT` the tables or `palantir_state` directly. See `update-package.md`.
 
-> **Status (2026-06-17): not live yet.** The app still reads and writes `palantir_state` (v1 JSON)
-> and has drifted from these tables (215 vs 212 tasks; no sync trigger between them). `pal_apply_update`
-> writes are invisible to the app until Session 3 bridges the two stores. `SELECT pal_migrate_from_v1();`
-> resyncs `pal_` from `palantir_state` when you need the tables current for testing.
+> **Status: live via the bridge (Session 3 applied + verified 2026-06-18).** `palantir_state` stays
+> canonical; the bridge keeps it in sync. Run daily updates with the app closed; a `conflict` result
+> means re-read and retry. `SELECT pal_migrate_from_v1();` resyncs `pal_` from `palantir_state` for
+> read convenience (the bridge does this itself on every write).
 
 ---
 
@@ -92,6 +95,8 @@ the tables directly, and never touch `palantir_state`. See `update-package.md`.
 | notes | text default `''` | |
 | gate | text default `''` | |
 | source | text default `manual` | `manual` \| `claude_import` \| `template` \| `milestone` \| `capture` |
+| priority | text | v1 task priority, round-tripped since Session 3: `urgent` \| `high` \| `medium` \| `low`, or null |
+| template_id | text | v1 `templateId`, round-tripped since Session 3; null for most tasks |
 | sort_order | double precision default 0 | |
 | completed_at | date | set automatically when status → completed |
 | created_at / updated_at | timestamptz | |
@@ -173,6 +178,9 @@ tbd   : { "precision":"tbd", "confidence":"tentative" }
 - Every row a package writes carries that `package_id`, so a package is fully traceable in `pal_events`.
 - `pal_apply_update` snapshots **before** applying (trigger `pre_import`) via `pal_snapshot`,
   which writes to `palantir_snapshots` (visible in the app).
+- The **bridge** adds its own idempotency: `pal_bridge_log(package_id)` records each applied package,
+  and it snapshots `palantir_state` (trigger `pre_bridge`) before each write. Re-applying a
+  `packageId` through the bridge is a safe noop.
 
 ---
 
@@ -184,3 +192,6 @@ tbd   : { "precision":"tbd", "confidence":"tentative" }
   policy (USING/CHECK true) permits.
 - `anon` has **no** EXECUTE on `pal_apply_update` / `pal_snapshot` / `pal_export_state`;
   `pal_migrate_from_v1` is `service_role` only.
+- `pal_apply_to_v1` (the bridge) is SECURITY INVOKER, granted to `authenticated`/`service_role` and
+  revoked from `anon`/`PUBLIC`. It calls `pal_migrate_from_v1` internally, so it must run as a role
+  allowed to do that (the work-chat connector runs as `postgres`).

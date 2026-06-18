@@ -1,19 +1,20 @@
 # Palantír 2.0 — Update Package Reference (pal_apply_update)
 
-The write path is a single RPC:
+The package is applied **through the bridge** (live since 2026-06-18):
 
 ```sql
-SELECT pal_apply_update('<package json>'::jsonb);
+SELECT pal_apply_to_v1('<package json>'::jsonb, '<palantir_state.updated_at>'::timestamptz);
 ```
 
-One package = one transaction = one snapshot + one `import` event. Field names below are
-**exact** (they come straight from the deployed function). Unknown keys are reported as
-warnings, never silently dropped.
+The bridge runs `pal_apply_update` internally (so the package format and field names below are
+unchanged) and writes the v1 export back into `palantir_state`, which the app reads. One package =
+one transaction = one snapshot + one `import` event. Field names below are **exact** (straight from
+the deployed function). Unknown keys are reported as warnings, never silently dropped.
 
-> **Status (2026-06-17): not live.** This RPC path is not wired to the app yet. These field names
-> are the RPC's and differ from the app's current Import screen, which uses v1 names like `dueDate`
-> (not `due`) and `deliverableId` (not `outputId`). Do not use this path for daily updates until
-> Session 3 bridges `palantir_state` and the `pal_` tables. See `SKILL.md` status.
+> **Status: live via the bridge (Session 3, 2026-06-18).** Pass `palantir_state.updated_at` (read
+> at state-read time) as the second arg for optimistic concurrency: `conflict` means re-read and
+> retry the same `packageId`; `noop` means already applied. The app's old Import screen is no longer
+> used. See `SKILL.md` for the full protocol and `palantir-2.0-session3-report.md` for the rollout.
 
 ---
 
