@@ -1,8 +1,28 @@
 # Palantír 2.0 — Session 2 Report (write-path hardening)
 
 Date: 2026-06-17. Run interactively (the original overnight run was cancelled with Fable 5;
-nothing was lost). **No writes were made to Supabase.** All write-path testing was rehearsed
-locally in PGlite against the real v1 backup.
+nothing was lost). All write-path testing was rehearsed locally in PGlite against the real v1 backup.
+
+## Update — 2026-06-17 (after apply + compatibility audit)
+
+This supersedes the "awaiting approval" and "no writes" notes further below.
+
+- **Fixes applied.** `palantir-2.0-session2-fixes.sql` was applied to `ngdbtgsbtyfghdyqbazj` as
+  migration `pal_2_0_session2_hardening` (snapshot #17 taken first). Verified: search_path pinned
+  14/14, the 12 `function_search_path_mutable` warnings cleared, `anon` off the write surface,
+  `pal_migrate_from_v1` is `service_role`-only, `pal_apply_update` still SECURITY INVOKER, and
+  `pal_safe_bool`/`pal_safe_float` are live.
+- **Compatibility audit (the important finding).** The live app reads and writes `palantir_state`
+  (v1 JSON) and has **no** connection to the `pal_` tables or `pal_apply_update`. `palantir_state`
+  was saved today and has already drifted from the migrated tables (215 vs 212 tasks); there is no
+  sync trigger. The app's Import screen also uses different field names (`dueDate`, `deliverableId`)
+  than the RPC (`due`, `outputId`).
+- **So the v2 skill must not be installed yet.** It would write to tables the app never reads and
+  produce packages the app's import would mishandle. The `skill-v2/` drafts have been corrected
+  (real FlexDate shapes, live vocab, full people roster) and clearly gated as post-cutover.
+- **Real Session 3 scope** is the bridge: decide how `palantir_state` and the `pal_` tables reconcile
+  (e.g. the RPC also writes `pal_export_state()` back into `palantir_state`, or the app cuts over to
+  read `pal_`), plus field-name alignment. That is the blocker before v2 can go live.
 
 ---
 

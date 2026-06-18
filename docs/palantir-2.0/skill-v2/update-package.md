@@ -10,6 +10,11 @@ One package = one transaction = one snapshot + one `import` event. Field names b
 **exact** (they come straight from the deployed function). Unknown keys are reported as
 warnings, never silently dropped.
 
+> **Status (2026-06-17): not live.** This RPC path is not wired to the app yet. These field names
+> are the RPC's and differ from the app's current Import screen, which uses v1 names like `dueDate`
+> (not `due`) and `deliverableId` (not `outputId`). Do not use this path for daily updates until
+> Session 3 bridges `palantir_state` and the `pal_` tables. See `SKILL.md` status.
+
 ---
 
 ## Envelope
@@ -41,6 +46,16 @@ with a warning (`ambiguous title (N matches), skipped`). Prefer ids when the wor
 give you one (the deterministic fast lane).
 
 ---
+
+## Dates and enum values
+
+- **Dates** are FlexDate objects; emit the app's real shape per precision (`exact` uses `date`,
+  `week` uses `weekStartDate`, `month` uses `month`+`year`, `range` uses `startDate`+`endDate`,
+  `tbd` has no date). See `schema.md` -> FlexDate. A plain `"YYYY-MM-DD"` is accepted and wrapped to
+  an exact, confirmed date; JSON `null` clears a date.
+- **Enum values** (file/output/task status, output type, sensitivity, flag kind) must match the live
+  vocabulary in `schema.md`; the function does not validate most of them, so a typo becomes bad data.
+  Resolve people against the live `pal_people` table.
 
 ## Verbs (apply order)
 

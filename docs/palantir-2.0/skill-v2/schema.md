@@ -11,6 +11,11 @@ exact v1 JSON shape (version `1.0`), so the old restore path keeps working until
 **Write** only through `SELECT pal_apply_update('<package>'::jsonb);` — never `UPDATE`/`INSERT`
 the tables directly, and never touch `palantir_state`. See `update-package.md`.
 
+> **Status (2026-06-17): not live yet.** The app still reads and writes `palantir_state` (v1 JSON)
+> and has drifted from these tables (215 vs 212 tasks; no sync trigger between them). `pal_apply_update`
+> writes are invisible to the app until Session 3 bridges the two stores. `SELECT pal_migrate_from_v1();`
+> resyncs `pal_` from `palantir_state` when you need the tables current for testing.
+
 ---
 
 ## v1 → v2 mapping
@@ -48,7 +53,7 @@ the tables directly, and never touch `palantir_state`. See `update-package.md`.
 | title | text NOT NULL | |
 | status | text NOT NULL default `active` | `active` \| `monitoring` \| `paused` \| `completed` |
 | priority | text NOT NULL default `medium` | `urgent` \| `high` \| `medium` \| `low` |
-| sensitivity | text default `low` | `low` \| `medium` \| `high` |
+| sensitivity | text default `low` | `low` \| `normal` \| `medium` \| `high` (v1 data uses `normal`) |
 | lead_id | text → pal_people(id) | |
 | campaign_id | text → pal_campaigns(id) | schema present, UI later |
 | memory | text default `''` | HTML, carried as-is from v1. Nullable in DB; do not blank it accidentally |
@@ -62,12 +67,12 @@ the tables directly, and never touch `palantir_state`. See `update-package.md`.
 | id | text PK | |
 | file_id | text NOT NULL → pal_files(id) | |
 | title | text NOT NULL | |
-| type | text default `other` | |
-| status | text default `not_started` | |
+| type | text default `other` | live values: `press_release` \| `message_map` \| `communication_plan` \| `internal_comms` \| `social_content` \| `video` \| `other` (also see `deliverableTypes` pref) |
+| status | text default `not_started` | `not_started` \| `in_progress` \| `completed` |
 | owner_id | text → pal_people(id) | |
 | due | jsonb | **FlexDate** |
 | publication | jsonb | **FlexDate** |
-| approval_status | text default `not_required` | |
+| approval_status | text default `not_required` | `not_required` \| `pending` \| `approved` |
 | sharepoint_url | text default `''` | |
 | notes | text default `''` | |
 | sort_order | double precision default 0 | |
@@ -80,7 +85,7 @@ the tables directly, and never touch `palantir_state`. See `update-package.md`.
 | file_id | text → pal_files(id) | |
 | output_id | text → pal_outputs(id) | set when the task belongs to an output |
 | title | text NOT NULL | |
-| status | text NOT NULL default `not_started` | e.g. `not_started` \| `in_progress` \| `completed` |
+| status | text NOT NULL default `not_started` | `not_started` \| `in_progress` \| `waiting` \| `completed` |
 | due | jsonb | **FlexDate** |
 | assignee_ids | text[] default `{}` | resolved from names by the RPC |
 | depends_on | text[] default `{}` | |
@@ -141,16 +146,23 @@ id / title / status (default `active`) / notes / timestamps. Schema only for now
 
 ## FlexDate (jsonb)
 
-`due` and `publication` are FlexDate objects, not plain dates:
+`due` and `publication` are the app's FlexDate objects, not plain dates. The app builds them with
+`mkFlexDate(precision, vals)`; emit the matching fields per precision so the app renders them:
 
-```json
-{ "precision": "exact", "date": "2026-07-01", "confidence": "confirmed" }
+```
+exact : { "precision":"exact", "date":"2026-07-01", "confidence":"confirmed" }
+week  : { "precision":"week",  "weekStartDate":"2026-06-01", "confidence":"confirmed" }
+month : { "precision":"month", "year":2026, "month":7, "confidence":"tentative" }
+range : { "precision":"range", "startDate":"2026-06-01", "endDate":"2026-06-15", "confidence":"tentative" }
+tbd   : { "precision":"tbd", "confidence":"tentative" }
 ```
 
-- `precision`: `exact` | `week` | `month` | `tbd`
-- The RPC's `pal_norm_flexdate()` accepts either a FlexDate object (passed through) **or**
-  a plain `"YYYY-MM-DD"` string (auto-wrapped to `precision: exact, confidence: confirmed`).
-  Invalid strings normalize to `NULL` rather than erroring.
+- Optional on any variant: `label` (free text). `confidence` is `confirmed` or `tentative`
+  (app default `tentative`).
+- `pal_norm_flexdate()` passes a FlexDate **object through unchanged**, so the skill must use the
+  correct fields per precision. A plain `"YYYY-MM-DD"` string is auto-wrapped to
+  `{precision:exact, date, confidence:confirmed}`; an invalid string becomes `NULL`. Pass JSON
+  `null` to clear a date; `precision:"tbd"` is how the app represents a date that is not yet set.
 
 ---
 

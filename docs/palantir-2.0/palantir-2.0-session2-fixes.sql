@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Palantir 2.0 - Session 2 fixes (write-path hardening)
--- Generated from palantir-2.0-session1-final.sql. NOT YET APPLIED to Supabase.
+-- Generated from palantir-2.0-session1-final.sql. APPLIED 2026-06-17 (migration pal_2_0_session2_hardening).
 -- Apply order: helpers, then patched pal_apply_update, then hardening DDL.
 --
 -- Fixes:
