@@ -1,0 +1,256 @@
+{
+  "phases": {
+    "stateKeys": [
+      "files",
+      "risks",
+      "tasks",
+      "people",
+      "uiPrefs",
+      "version",
+      "linkTypes",
+      "templates",
+      "migratedAt",
+      "deliverables",
+      "openQuestions",
+      "deliverableTypes"
+    ],
+    "strippedLines": [
+      "ALTER PUBLICATION supabase_realtime ADD TABLE pal_files, pal_outputs, pal_tasks, pal_flags, pal_links, pal_events;"
+    ],
+    "schema": "ok",
+    "migrate": {
+      "files": 47,
+      "links": 10,
+      "prefs": 4,
+      "tasks": 212,
+      "people": 12,
+      "outputs": 15,
+      "flags_risk": 2,
+      "log_events": 47,
+      "orphan_tasks": 4,
+      "archive_events": 76,
+      "flags_question": 7,
+      "remapped_dup_ids": 6,
+      "milestones_as_tasks": 5
+    },
+    "counts": {
+      "files": 47,
+      "tasks": 217,
+      "outputs": 15,
+      "people": 12,
+      "flags": 9,
+      "links": 10,
+      "events": 123
+    },
+    "memory_nullable": "YES"
+  },
+  "tests": [
+    {
+      "name": "migrate populated (files >= 40)",
+      "pass": true,
+      "detail": "files=47 tasks=217 outputs=15",
+      "extra": null
+    },
+    {
+      "name": "T0 missing packageId -> status error",
+      "pass": true,
+      "detail": "packageId is required",
+      "extra": null
+    },
+    {
+      "name": "T1a first apply -> applied + person ok",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T1b same packageId -> noop",
+      "pass": true,
+      "detail": "package already applied",
+      "extra": null
+    },
+    {
+      "name": "T1c new pkg same name -> skipped already exists",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T2 unknown top-level key -> warning",
+      "pass": true,
+      "detail": "[\"unknown key ignored: bogusKey\"]",
+      "extra": null
+    },
+    {
+      "name": "T3a file create ok",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T3b dup title -> skipped",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T3c lead-not-found -> ok + warn",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T4a output create ok",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T4b output due stored",
+      "pass": true,
+      "detail": "{\"date\":\"2026-07-01\",\"precision\":\"exact\",\"confidence\":\"confirmed\"}",
+      "extra": null
+    },
+    {
+      "name": "T4c explicit-null due clears the date",
+      "pass": true,
+      "detail": "due now=null",
+      "extra": null
+    },
+    {
+      "name": "T5a three tasks created ok",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T5b dup gets similar-open-task warn",
+      "pass": true,
+      "detail": "matched file by title; similar open task exists: 97898c7f-2bf2-4b0f-bc2f-fe32df1e3caf",
+      "extra": null
+    },
+    {
+      "name": "T5c missing assignee warned",
+      "pass": true,
+      "detail": "matched file by title; assignees not found: Ghost",
+      "extra": null
+    },
+    {
+      "name": "T6a ambiguous title complete -> skipped",
+      "pass": true,
+      "detail": "ambiguous title (2 matches), skipped",
+      "extra": null
+    },
+    {
+      "name": "T6b complete unique -> ok",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T6c re-complete -> already completed",
+      "pass": true,
+      "detail": "matched task by title; already completed",
+      "extra": null
+    },
+    {
+      "name": "T7 bad outputId -> warn, link unchanged, notes still applied",
+      "pass": true,
+      "detail": "outputId not found, link unchanged: does-not-exist",
+      "extra": null
+    },
+    {
+      "name": "T8a unknown kind -> defaulted to question + warn",
+      "pass": true,
+      "detail": "matched file by title; unknown kind \"weird\", defaulted to question",
+      "extra": null
+    },
+    {
+      "name": "T8b flag stored as question",
+      "pass": true,
+      "detail": "kind=question",
+      "extra": null
+    },
+    {
+      "name": "T8c resolve by text -> resolved",
+      "pass": true,
+      "detail": "{\"status\":\"resolved\",\"resolution\":\"done\"}",
+      "extra": null
+    },
+    {
+      "name": "T9a merge ok with moved counts",
+      "pass": true,
+      "detail": "{\"flags\":1,\"links\":1,\"tasks\":1,\"outputs\":1}",
+      "extra": null
+    },
+    {
+      "name": "T9b source archived",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "T9c target now owns moved rows",
+      "pass": true,
+      "detail": "{\"t\":1,\"o\":1,\"f\":1,\"l\":1}",
+      "extra": null
+    },
+    {
+      "name": "T10 empty arrays -> applied cleanly",
+      "pass": true,
+      "detail": "",
+      "extra": null
+    },
+    {
+      "name": "R1 malformed archived bool",
+      "pass": false,
+      "detail": "THREW / aborted txn: invalid input syntax for type boolean: \"definitely-not-a-bool\"",
+      "extra": "invalid input syntax for type boolean: \"definitely-not-a-bool\""
+    },
+    {
+      "name": "R2 malformed sortOrder float",
+      "pass": false,
+      "detail": "THREW / aborted txn: invalid input syntax for type double precision: \"not-a-number\"",
+      "extra": "invalid input syntax for type double precision: \"not-a-number\""
+    },
+    {
+      "name": "R3 one bad cast poisons whole package (canary rolled back)",
+      "pass": null,
+      "detail": "apply threw; canary rows=0 (rolled back)",
+      "extra": {
+        "applyOk": false,
+        "canary": 0
+      }
+    },
+    {
+      "name": "R4 memoryUpdate missing newMemory",
+      "pass": null,
+      "detail": "handled, op result=ok",
+      "extra": {
+        "status": "applied",
+        "results": [
+          {
+            "id": "cd235fd2-9e97-4570-adba-85dd01e31559",
+            "op": "memory",
+            "warn": "matched file by title",
+            "result": "ok"
+          }
+        ],
+        "warnings": [],
+        "packageId": "r-mem-null"
+      }
+    },
+    {
+      "name": "export_state returns v1 shape",
+      "pass": true,
+      "detail": "version=1.0 files=51",
+      "extra": null
+    }
+  ],
+  "summary": {
+    "pass": 27,
+    "fail": 2,
+    "obs": 2,
+    "total": 31
+  }
+}
