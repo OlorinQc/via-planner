@@ -1,42 +1,64 @@
-// The single file -> output -> task renderer (blueprint 4.3: no other component renders this tree).
-// Read-only this session. Each row reserves a right-edge slot for the Session 5 hover pill.
+// The single file -> output -> task renderer (blueprint 4.3). 5a: rows editable, one renderer.
 import React,{useState} from "react";
-import { T, sc, wrap2, OUTPUT_STATUS, TASK_STATUS, outputTypeLabel } from "../theme";
+import { T, sc, wrap2, OUTPUT_STATUS, TASK_STATUS, outputTypeLabel, isTaskDone } from "../theme";
 import { Chip, Dot, FlexChip, PersonChip, Empty } from "./primitives";
 import { personFirst } from "../data/derive";
-import { isTaskDone } from "../theme";
+import { useStore } from "../data/store";
+import HoverPill from "./HoverPill";
+import MiniCalendar from "./MiniCalendar";
+import PersonPicker from "./PersonPicker";
 
 const MID_STATUS=['in_progress','waiting','blocked'];
 
 function TaskRow({m,task,inset}){
+  const {actions,selected,toggleSelect}=useStore();
+  const [hov,setHov]=useState(false);
   const done=isTaskDone(task);
+  const isSel=selected.has(task.id);
   const names=(task.assignee_ids||[]).map(id=>personFirst(m,id)).filter(Boolean);
+  const pills=[
+    {key:'date',icon:'📅',title:'Set date',render:(close)=><MiniCalendar onPick={f=>{actions.setDue('tasks',task.id,f);close();}}/>},
+    {key:'person',icon:'@',title:'Assign',render:()=>(
+      <PersonPicker people={m.people} selectedIds={task.assignee_ids||[]} onToggle={pid=>{
+        const cur=task.assignee_ids||[]; const next=cur.includes(pid)?cur.filter(x=>x!==pid):[...cur,pid];
+        actions.setAssignees(task.id,next);
+      }}/>)},
+  ];
   return(
-    <div style={{display:'flex',alignItems:'center',gap:7,padding:'5px 9px',position:'relative',
-      borderTop:`1px solid ${T.bd}`,paddingLeft:inset?20:9}}>
-      <span style={{fontSize:sc(11),color:done?T.g:T.tx3,flexShrink:0,width:11,textAlign:'center'}}>{done?'✓':'○'}</span>
-      <div style={{flex:1,...wrap2,fontSize:sc(12),lineHeight:1.35,
-        color:done?T.tx3:T.tx,textDecoration:done?'line-through':'none'}}>{task.title}</div>
+    <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} onClick={()=>toggleSelect(task.id)}
+      style={{display:'flex',alignItems:'center',gap:7,padding:'5px 9px',position:'relative',cursor:'pointer',
+        borderTop:`1px solid ${T.bd}`,paddingLeft:inset?20:9,background:isSel?'rgba(91,156,246,0.10)':'transparent',
+        boxShadow:isSel?`inset 2px 0 0 ${T.acc}`:'none'}}>
+      <button onClick={e=>{e.stopPropagation();actions.toggleDone(task);}} onMouseDown={e=>e.preventDefault()} title={done?'Reopen':'Complete'}
+        style={{cursor:'pointer',border:'none',background:'transparent',color:done?T.g:T.tx3,fontSize:sc(11),width:13,textAlign:'center',flexShrink:0,fontFamily:T.font}}>{done?'✓':'○'}</button>
+      <div style={{flex:1,...wrap2,fontSize:sc(12),lineHeight:1.35,color:done?T.tx3:T.tx,textDecoration:done?'line-through':'none'}}>{task.title}</div>
       {MID_STATUS.includes(task.status)&&<Dot map={TASK_STATUS} val={task.status} small/>}
       {names.map((n,i)=><PersonChip key={i} name={n}/>)}
       <FlexChip fd={task.due}/>
-      {/* Session 5: hover pill (date / person / output) mounts here, zero content shift */}
+      <HoverPill pills={pills} forceShow={hov}/>
     </div>
   );
 }
 
 function OutputBox({m,block}){
+  const {actions}=useStore();
+  const [hov,setHov]=useState(false);
   const o=block.output;
   const owner=personFirst(m,o.owner_id);
+  const pills=[
+    {key:'date',icon:'📅',title:'Set due',render:(close)=><MiniCalendar onPick={f=>{actions.setDue('outputs',o.id,f);close();}}/>},
+    {key:'owner',icon:'@',title:'Owner',render:(close)=><PersonPicker people={m.people} selectedIds={o.owner_id?[o.owner_id]:[]} onPick={pid=>{actions.saveOutput(o.id,{owner_id:pid},{toast:'Owner set · saved'});close();}}/>},
+  ];
   return(
     <div style={{border:`1px solid ${T.bd2}`,borderRadius:6,marginBottom:8,overflow:'hidden',background:T.s2}}>
-      <div style={{display:'flex',alignItems:'center',gap:7,padding:'6px 9px',background:'rgba(255,255,255,0.015)'}}>
+      <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{display:'flex',alignItems:'center',gap:7,padding:'6px 9px',position:'relative',background:'rgba(255,255,255,0.015)'}}>
         <span style={{fontSize:sc(11),color:T.y,flexShrink:0}}>▣</span>
         <span style={{flex:1,...wrap2,fontSize:sc(12),fontWeight:600,color:T.tx}}>{o.title}</span>
         <Chip text={outputTypeLabel(o.type)} bg={T.s3} tx={T.tx2} small/>
         <Dot map={OUTPUT_STATUS} val={o.status} small/>
         {owner&&<PersonChip name={owner}/>}
         <FlexChip fd={o.due}/>
+        <HoverPill pills={pills} forceShow={hov}/>
       </div>
       {block.open.length>0
         ? block.open.map(t=><TaskRow key={t.id} m={m} task={t} inset/>)
