@@ -1,9 +1,12 @@
-// Files surface: portfolio list (left) + dossier or portfolio digest (right). Read-only.
+// Files surface: portfolio list (left) + dossier or portfolio digest (right).
+// 5b: one DnD provider spans both panes so a task can be dragged from the open dossier onto
+// a file card here to re-file it (one row write: file_id set, output_id cleared).
 import React,{useState} from "react";
 import { useStore } from "../data/store";
 import { T, sc, ss, wrap2, FILE_STATUS, FILE_PRI } from "../theme";
 import { Dot, PriBar, Empty } from "../components/primitives";
 import { filterFiles, groupByPriority, staleness, portfolio, personFirst } from "../data/derive";
+import { DnDProvider, useDnd } from "../components/dnd";
 import FilePage from "./FilePage";
 
 const FILTERS=[
@@ -14,12 +17,26 @@ const FILTERS=[
 ];
 
 function FileCard({m,file,selected,onClick}){
+  const {actions}=useStore();
+  const {drag,over,setOver,end}=useDnd();
   const st=staleness(file);
   const lead=personFirst(m,file.lead_id);
+  const isOver=over===('card:'+file.id);
+  const canDrop=()=>drag.current?.type==='task'&&drag.current.fileId!==file.id;
+  const onDragOver=(e)=>{ if(canDrop()){e.preventDefault();if(!isOver)setOver('card:'+file.id);} };
+  const onDragLeave=()=>{ if(isOver)setOver(null); };
+  const onDrop=(e)=>{
+    if(drag.current?.type!=='task')return;
+    e.preventDefault();
+    const d=drag.current;
+    if(d.fileId!==file.id) actions.moveTask(d.id,{file_id:file.id,output_id:null},'Refiled to '+String(file.title||'file').slice(0,30)+' · saved');
+    setOver(null); end();
+  };
   return(
-    <div onClick={onClick} style={{display:'flex',gap:8,alignItems:'stretch',padding:'7px 9px',borderRadius:6,cursor:'pointer',
-      background:selected?'rgba(91,156,246,0.08)':T.s1,
-      border:`1px solid ${selected?'rgba(91,156,246,0.4)':T.bd}`,transition:'background .1s'}}>
+    <div onClick={onClick} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+      style={{display:'flex',gap:8,alignItems:'stretch',padding:'7px 9px',borderRadius:6,cursor:'pointer',
+      background:isOver?'rgba(91,156,246,0.16)':selected?'rgba(91,156,246,0.08)':T.s1,
+      border:`1px solid ${isOver?T.acc:(selected?'rgba(91,156,246,0.4)':T.bd)}`,transition:'background .1s'}}>
       <PriBar pri={file.priority||'medium'}/>
       <div style={{flex:1,minWidth:0}}>
         <div title={file.title} style={{fontSize:sc(13),fontWeight:600,color:T.tx,...wrap2}}>{file.title}</div>
@@ -88,6 +105,7 @@ export default function Files(){
   const selFile=sel&&model.fileById[sel]?sel:null;
 
   return(
+    <DnDProvider>
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
       {/* List pane */}
       <div style={{width:440,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderRight:`1px solid ${T.bd}`}}>
@@ -122,5 +140,6 @@ export default function Files(){
         ? <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}><FilePage m={model} fileId={selFile}/></div>
         : <PortfolioDigest m={model}/>}
     </div>
+    </DnDProvider>
   );
 }

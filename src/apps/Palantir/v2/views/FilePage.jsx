@@ -1,11 +1,12 @@
-// File dossier. 5a: header chips and Memory are editable; Work tree edits via HierarchyList.
-// Flags / Links / History stay read-only this slice (their editing is 5b+).
+// File dossier. 5a: header chips and Memory editable; Work tree edits via HierarchyList.
+// 5b: Flags resolve + flag composer, paste-first Links add, one-line History log composer.
 import React,{useState,useRef,useEffect} from "react";
-import { T, sc, wrap2, FILE_STATUS, FILE_PRI, SENS, FLAG_KIND } from "../theme";
+import { T, sc, ss, wrap2, FILE_STATUS, FILE_PRI, SENS, FLAG_KIND } from "../theme";
 import { Chip, Dot, FlexChip, PersonChip, Section, Empty } from "../components/primitives";
 import { AnchoredPopover } from "../components/overlay";
 import PersonPicker from "../components/PersonPicker";
 import HierarchyList from "../components/HierarchyList";
+import Composer from "../components/Composer";
 import { useStore } from "../data/store";
 import { fileTree, fileFlags, fileLinks, fileEvents, personName, personFirst } from "../data/derive";
 
@@ -36,6 +37,25 @@ function OptionList({options,current,onPick}){
         </button>
       ))}
     </div>
+  );
+}
+
+// Ghost line that expands to a single free-text input (no grammar tokens). For paste-first
+// Links and the History prose log, both intentionally token-free.
+function InlineAdd({label,placeholder,onSubmit}){
+  const [open,setOpen]=useState(false);
+  const [v,setV]=useState('');
+  const ref=useRef(null);
+  const start=()=>{setOpen(true);setTimeout(()=>ref.current&&ref.current.focus(),0);};
+  const submit=()=>{const t=v.trim();if(!t)return;onSubmit(t);setV('');setTimeout(()=>ref.current&&ref.current.focus(),0);};
+  if(!open)return(
+    <div onClick={start} onMouseEnter={e=>e.currentTarget.style.color=T.acc} onMouseLeave={e=>e.currentTarget.style.color=T.tx3}
+      style={{fontSize:sc(11),color:T.tx3,cursor:'pointer',padding:'4px 2px',userSelect:'none'}}>{label}</div>
+  );
+  return(
+    <input ref={ref} value={v} onChange={e=>setV(e.target.value)} placeholder={placeholder}
+      onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();submit();}else if(e.key==='Escape'){setOpen(false);setV('');}}}
+      onBlur={()=>{if(!v.trim())setOpen(false);}} style={{...ss.inp,marginTop:2}}/>
   );
 }
 
@@ -77,9 +97,10 @@ function EditableMemory({fileId,html}){
 }
 
 function Flags({m,fileId}){
+  const {actions}=useStore();
   const flags=fileFlags(m,fileId);
-  if(flags.length===0)return <Empty>No open flags.</Empty>;
   return(<div style={{display:'flex',flexDirection:'column',gap:6}}>
+    {flags.length===0&&<Empty>No flags yet.</Empty>}
     {flags.map(f=>{
       const k=FLAG_KIND[f.kind]||FLAG_KIND.question; const owner=personFirst(m,f.owner_id);
       const resolved=f.status==='resolved'||f.status==='dropped';
@@ -87,29 +108,44 @@ function Flags({m,fileId}){
         <Chip text={k.label} bg={k.bg} tx={k.tx}/>
         <span style={{flex:1,...wrap2,fontSize:sc(12),color:resolved?T.tx3:T.tx,textDecoration:resolved?'line-through':'none'}}>{f.text}</span>
         {owner&&<PersonChip name={owner}/>}
-        {resolved&&<span style={{fontSize:sc(11),color:T.g}}>✓</span>}
+        <button onClick={()=>actions.resolveFlag(f)} onMouseDown={e=>e.preventDefault()} title={resolved?'Reopen':'Resolve'}
+          style={{cursor:'pointer',border:'none',background:'transparent',color:resolved?T.g:T.tx3,fontSize:sc(13),width:16,textAlign:'center',flexShrink:0,fontFamily:T.font}}>{resolved?'✓':'○'}</button>
       </div>);
     })}
+    <Composer mode="flag" m={m} fileId={fileId} label="+ flag"/>
   </div>);
 }
 
+function inferLinkType(url){
+  const u=String(url||'').toLowerCase();
+  return (/(:b:|:x:|:w:|:p:|\.aspx|\.pdf|\.docx?|\.pptx?|\.xlsx?)/.test(u))?'file':'folder';
+}
 function Links({m,fileId}){
+  const {actions,showToast}=useStore();
   const links=fileLinks(m,fileId);
-  if(links.length===0)return <Empty>No links.</Empty>;
+  const addLink=(raw)=>{
+    const url=raw.split(/\s+/)[0]; const label=raw.slice(url.length).trim();
+    if(!/^https?:\/\//i.test(url)){showToast('Paste a full URL (https://…)');return;}
+    actions.addLink({file_id:fileId,url,label,type:inferLinkType(url)});
+  };
   return(<div style={{display:'flex',flexDirection:'column',gap:6}}>
+    {links.length===0&&<Empty>No links.</Empty>}
     {links.map(l=>(
       <div key={l.id} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 2px'}}>
         <Chip text={(l.type||'link').replace(/_/g,' ')} bg={T.s3} tx={T.tx2} small/>
         <a href={l.url} target="_blank" rel="noreferrer" style={{flex:1,...wrap2,fontSize:sc(12),color:T.acc,textDecoration:'none'}}>{l.label||l.url}</a>
       </div>
     ))}
+    <InlineAdd label="+ link" placeholder="Paste a SharePoint URL to attach it… label optional after a space" onSubmit={addLink}/>
   </div>);
 }
 
 function History({m,fileId}){
+  const {actions}=useStore();
   const events=fileEvents(m,fileId);
-  if(events.length===0)return <Empty>No history yet.</Empty>;
   return(<div style={{display:'flex',flexDirection:'column',gap:9}}>
+    <InlineAdd label="+ log entry" placeholder="Log what changed… plain prose, Enter to post" onSubmit={(t)=>actions.addLog(fileId,t)}/>
+    {events.length===0&&<Empty>No history yet.</Empty>}
     {events.map(e=>{
       const icon=EVENT_ICON[e.kind]||'•';
       const day=fmtDay(e.event_date)||fmtDay(e.created_at);
@@ -136,7 +172,7 @@ export default function FilePage({m,fileId}){
     <div style={{flex:1,overflowY:'auto',padding:'14px 16px'}}>
       <Header m={m} file={file}/>
       <Section title="Memory"><EditableMemory fileId={fileId} html={file.memory}/></Section>
-      <Section title="Work" badge={workBadge}><HierarchyList m={m} tree={tree}/></Section>
+      <Section title="Work" badge={workBadge}><HierarchyList m={m} tree={tree} fileId={fileId}/></Section>
       <Section title="Flags"><Flags m={m} fileId={fileId}/></Section>
       <Section title="Links"><Links m={m} fileId={fileId}/></Section>
       <Section title="History" badge="events + log"><History m={m} fileId={fileId}/></Section>

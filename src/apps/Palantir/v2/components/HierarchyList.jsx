@@ -1,21 +1,44 @@
-// The single file -> output -> task renderer (blueprint 4.3). 5a: rows editable, one renderer.
-import React,{useState} from "react";
+// The single file -> output -> task renderer (blueprint 4.3). One renderer, all edits.
+// 5a: rows editable. 5b: ghost-row composers, the pill's relink button, and the drag engine
+// (task reorder, task to/from an output, output-header reorder; refile lives on the Files
+// cards). Every drop is a single row write through the store.
+import React,{useState,useRef} from "react";
 import { T, sc, wrap2, OUTPUT_STATUS, TASK_STATUS, outputTypeLabel, isTaskDone } from "../theme";
-import { Chip, Dot, FlexChip, PersonChip, Empty } from "./primitives";
+import { Chip, Dot, FlexChip, PersonChip } from "./primitives";
 import { personFirst } from "../data/derive";
 import { useStore } from "../data/store";
 import HoverPill from "./HoverPill";
 import MiniCalendar from "./MiniCalendar";
 import PersonPicker from "./PersonPicker";
+import Composer from "./Composer";
+import { useDnd, midOrder, insertionIndex } from "./dnd";
 
 const MID_STATUS=['in_progress','waiting','blocked'];
+const DropLine=()=> <div style={{height:2,background:T.acc,borderRadius:2,margin:'1px 9px'}}/>;
+
+function OutputLinkMenu({task,outputs,close}){
+  const {actions}=useStore();
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:2,minWidth:170}}>
+      {outputs.map(o=>(
+        <button key={o.id} onMouseDown={e=>e.preventDefault()} onClick={()=>{actions.moveTask(task.id,{output_id:o.id},'Linked to output · saved');close();}}
+          onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background=o.id===task.output_id?T.s2:'transparent'}
+          style={{display:'flex',gap:6,fontSize:sc(11),color:T.tx,textAlign:'left',background:o.id===task.output_id?T.s2:'transparent',border:'none',borderRadius:5,padding:'5px 8px',cursor:'pointer',fontFamily:T.font}}>↳ {o.title}</button>
+      ))}
+      {task.output_id&&<button onMouseDown={e=>e.preventDefault()} onClick={()=>{actions.moveTask(task.id,{output_id:null},'Removed from output · saved');close();}}
+        style={{fontSize:sc(11),color:T.tx3,textAlign:'left',background:'transparent',border:'none',borderRadius:5,padding:'5px 8px',cursor:'pointer',fontFamily:T.font}}>Remove from output</button>}
+    </div>
+  );
+}
 
 function TaskRow({m,task,inset}){
   const {actions,selected,toggleSelect}=useStore();
+  const {start,end}=useDnd();
   const [hov,setHov]=useState(false);
   const done=isTaskDone(task);
   const isSel=selected.has(task.id);
   const names=(task.assignee_ids||[]).map(id=>personFirst(m,id)).filter(Boolean);
+  const fileOutputs=m.outputsByFile[task.file_id]||[];
   const pills=[
     {key:'date',icon:'📅',title:'Set date',render:(close)=><MiniCalendar onPick={f=>{actions.setDue('tasks',task.id,f);close();}}/>},
     {key:'person',icon:'@',title:'Assign',render:()=>(
@@ -24,8 +47,12 @@ function TaskRow({m,task,inset}){
         actions.setAssignees(task.id,next);
       }}/>)},
   ];
+  if(fileOutputs.length>0) pills.push({key:'output',icon:'↳',title:'Link to output',render:(close)=><OutputLinkMenu task={task} outputs={fileOutputs} close={close}/>});
   return(
-    <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} onClick={()=>toggleSelect(task.id)}
+    <div data-row draggable
+      onDragStart={e=>{e.stopPropagation();start({type:'task',id:task.id,fromOutputId:task.output_id||null,fileId:task.file_id});}}
+      onDragEnd={()=>end()}
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} onClick={()=>toggleSelect(task.id)}
       style={{display:'flex',alignItems:'center',gap:7,padding:'5px 9px',position:'relative',cursor:'pointer',
         borderTop:`1px solid ${T.bd}`,paddingLeft:inset?20:9,background:isSel?'rgba(91,156,246,0.10)':'transparent',
         boxShadow:isSel?`inset 2px 0 0 ${T.acc}`:'none'}}>
@@ -40,8 +67,38 @@ function TaskRow({m,task,inset}){
   );
 }
 
+// Droppable group of tasks: reorder within, or move a task in from another group (output_id
+// flips). One row write per drop via midOrder.
+function TaskDropList({m,tasks,outputId,fileId,inset}){
+  const {actions}=useStore();
+  const {drag,end}=useDnd();
+  const ref=useRef(null);
+  const [idx,setIdx]=useState(-1);
+  const onDragOver=(e)=>{ if(drag.current?.type!=='task')return; e.preventDefault(); setIdx(insertionIndex(ref.current,e.clientY)); };
+  const onDragLeave=(e)=>{ if(ref.current&&!ref.current.contains(e.relatedTarget))setIdx(-1); };
+  const onDrop=(e)=>{
+    if(drag.current?.type!=='task')return;
+    e.preventDefault(); e.stopPropagation();
+    const d=drag.current;
+    const list=tasks.filter(t=>t.id!==d.id);
+    const at=idx<0?list.length:Math.min(idx,list.length);
+    const so=midOrder(list,at);
+    const moved=(d.fromOutputId||null)!==(outputId||null);
+    const patch=moved?{output_id:outputId||null,sort_order:so}:{sort_order:so};
+    actions.moveTask(d.id,patch,moved?(outputId?'Moved into output · saved':'Moved out of output · saved'):'Reordered · saved');
+    setIdx(-1); end();
+  };
+  return(
+    <div ref={ref} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} style={{minHeight:tasks.length?undefined:8}}>
+      {tasks.map((t,i)=><React.Fragment key={t.id}>{idx===i&&<DropLine/>}<TaskRow m={m} task={t} inset={inset}/></React.Fragment>)}
+      {idx>=tasks.length&&<DropLine/>}
+    </div>
+  );
+}
+
 function OutputBox({m,block}){
   const {actions}=useStore();
+  const {start,end}=useDnd();
   const [hov,setHov]=useState(false);
   const o=block.output;
   const owner=personFirst(m,o.owner_id);
@@ -50,8 +107,10 @@ function OutputBox({m,block}){
     {key:'owner',icon:'@',title:'Owner',render:(close)=><PersonPicker people={m.people} selectedIds={o.owner_id?[o.owner_id]:[]} onPick={pid=>{actions.saveOutput(o.id,{owner_id:pid},{toast:'Owner set · saved'});close();}}/>},
   ];
   return(
-    <div style={{border:`1px solid ${T.bd2}`,borderRadius:6,marginBottom:8,overflow:'hidden',background:T.s2}}>
-      <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{display:'flex',alignItems:'center',gap:7,padding:'6px 9px',position:'relative',background:'rgba(255,255,255,0.015)'}}>
+    <div data-row style={{border:`1px solid ${T.bd2}`,borderRadius:6,marginBottom:8,overflow:'hidden',background:T.s2}}>
+      <div draggable onDragStart={e=>{e.stopPropagation();start({type:'output',id:o.id,fileId:o.file_id});}} onDragEnd={()=>end()}
+        onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+        style={{display:'flex',alignItems:'center',gap:7,padding:'6px 9px',position:'relative',background:'rgba(255,255,255,0.015)',cursor:'grab'}}>
         <span style={{fontSize:sc(11),color:T.y,flexShrink:0}}>▣</span>
         <span style={{flex:1,...wrap2,fontSize:sc(12),fontWeight:600,color:T.tx}}>{o.title}</span>
         <Chip text={outputTypeLabel(o.type)} bg={T.s3} tx={T.tx2} small/>
@@ -60,9 +119,34 @@ function OutputBox({m,block}){
         <FlexChip fd={o.due}/>
         <HoverPill pills={pills} forceShow={hov}/>
       </div>
-      {block.open.length>0
-        ? block.open.map(t=><TaskRow key={t.id} m={m} task={t} inset/>)
-        : <div style={{padding:'5px 9px',borderTop:`1px solid ${T.bd}`}}><Empty>No open tasks.</Empty></div>}
+      <TaskDropList m={m} tasks={block.open} outputId={o.id} fileId={o.file_id} inset/>
+      <Composer mode="task" m={m} fileId={o.file_id} fixedOutputId={o.id} label="+ task in this output" inset/>
+    </div>
+  );
+}
+
+// Droppable list of outputs: header drag reorders them (one row write).
+function OutputDropList({m,blocks}){
+  const {actions}=useStore();
+  const {drag,end}=useDnd();
+  const ref=useRef(null);
+  const [idx,setIdx]=useState(-1);
+  const outputs=blocks.map(b=>b.output);
+  const onDragOver=(e)=>{ if(drag.current?.type!=='output')return; e.preventDefault(); setIdx(insertionIndex(ref.current,e.clientY)); };
+  const onDragLeave=(e)=>{ if(ref.current&&!ref.current.contains(e.relatedTarget))setIdx(-1); };
+  const onDrop=(e)=>{
+    if(drag.current?.type!=='output')return;
+    e.preventDefault();
+    const d=drag.current;
+    const list=outputs.filter(o=>o.id!==d.id);
+    const at=idx<0?list.length:Math.min(idx,list.length);
+    actions.saveOutput(d.id,{sort_order:midOrder(list,at)},{toast:'Output reordered · saved'});
+    setIdx(-1); end();
+  };
+  return(
+    <div ref={ref} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
+      {blocks.map((b,i)=><React.Fragment key={b.output.id}>{idx===i&&<DropLine/>}<OutputBox m={m} block={b}/></React.Fragment>)}
+      {idx>=blocks.length&&blocks.length>0&&<DropLine/>}
     </div>
   );
 }
@@ -82,17 +166,19 @@ function DoneCollapsible({m,tasks}){
   );
 }
 
-export default function HierarchyList({m,tree}){
+export default function HierarchyList({m,tree,fileId}){
+  const fileOutputs=tree.outBlocks.map(b=>b.output);
   const allDone=[...tree.outBlocks.flatMap(b=>b.done),...tree.fileDone];
-  const nothing=tree.outBlocks.length===0&&tree.fileOpen.length===0&&allDone.length===0;
-  if(nothing)return <Empty>No outputs or tasks yet.</Empty>;
   return(
     <div>
-      {tree.outBlocks.map(b=><OutputBox key={b.output.id} m={m} block={b}/>)}
-      {tree.fileOpen.length>0&&
-        <div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',background:T.s1}}>
-          {tree.fileOpen.map(t=><TaskRow key={t.id} m={m} task={t}/>)}
-        </div>}
+      {tree.outBlocks.length>0&&<OutputDropList m={m} blocks={tree.outBlocks}/>}
+      <div style={{border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',background:T.s1,marginTop:tree.outBlocks.length?8:0}}>
+        <TaskDropList m={m} tasks={tree.fileOpen} outputId={null} fileId={fileId}/>
+        <Composer mode="task" m={m} fileId={fileId} outputs={fileOutputs} label="+ task on this file"/>
+      </div>
+      <div style={{marginTop:8,border:`1px solid ${T.bd}`,borderRadius:6,overflow:'hidden',background:T.s1}}>
+        <Composer mode="output" m={m} fileId={fileId} label="+ output"/>
+      </div>
       <DoneCollapsible m={m} tasks={allDone}/>
     </div>
   );

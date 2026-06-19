@@ -1,17 +1,19 @@
 // Store: loads pal_ tables, builds the derive model, subscribes to Realtime, and (5a) owns
 // the write path, undo toasts, and selection. Optimistic row writes to pal_ + debounced
 // re-derive into palantir_state keep v1 and the chat bridge consistent until cutover.
+// 5b adds inserts (capture), delete-on-undo, and task moves (reorder / output / refile).
 import React,{createContext,useContext,useEffect,useState,useRef,useCallback,useMemo} from "react";
 import { fetchAll, subscribeAll } from "./client";
-import { updateRow, getV1UpdatedAt, exportV1, writeV1 } from "./mutations";
+import { updateRow, insertRow, deleteRow, getV1UpdatedAt, exportV1, writeV1 } from "./mutations";
 import { buildModel } from "./derive";
 
 const Ctx=createContext(null);
 export const useStore=()=>useContext(Ctx);
 
-const TABLE={tasks:'pal_tasks',files:'pal_files',outputs:'pal_outputs',flags:'pal_flags',links:'pal_links'};
+const TABLE={tasks:'pal_tasks',files:'pal_files',outputs:'pal_outputs',flags:'pal_flags',links:'pal_links',events:'pal_events'};
 const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 const pick=(obj,keys)=>{const o={};for(const k of keys)o[k]=obj?obj[k]:null;return o;};
+const endOrder=(rows)=>rows.length?Math.max(...rows.map(r=>r.sort_order||0))+1:0;
 let _tid=0;
 
 export function StoreProvider({children}){
@@ -96,6 +98,26 @@ export function StoreProvider({children}){
     }
   },[patchLocal,scheduleSync,showToast]);
 
+  // inserts (5b): write the row, append the returned record, undo deletes by real id.
+  const addRow=useCallback(async(key,row,opts={})=>{
+    const table=TABLE[key]; if(!table)return null;
+    selfWriteUntil.current=Date.now()+1800;
+    const {data,error:e}=await insertRow(table,row);
+    if(e||!data){ showToast('Add failed: '+(e?.message||'no row returned')); return null; }
+    setRaw(prev=>prev?{...prev,[key]:[...(prev[key]||[]),data]}:prev);
+    selfWriteUntil.current=Date.now()+1800;
+    scheduleSync();
+    if(opts.toast){
+      const undo=opts.undo===false?null:async()=>{
+        selfWriteUntil.current=Date.now()+1800;
+        setRaw(prev=>prev?{...prev,[key]:(prev[key]||[]).filter(r=>r.id!==data.id)}:prev);
+        await deleteRow(table,data.id); scheduleSync();
+      };
+      showToast(opts.toast,undo);
+    }
+    return data;
+  },[scheduleSync,showToast]);
+
   const saveTask=useCallback((id,patch,opts)=>editRow('tasks',id,patch,opts),[editRow]);
   const saveFile=useCallback((id,patch,opts)=>editRow('files',id,patch,opts),[editRow]);
   const saveOutput=useCallback((id,patch,opts)=>editRow('outputs',id,patch,opts),[editRow]);
@@ -108,6 +130,27 @@ export function StoreProvider({children}){
   const setAssignees=useCallback((id,ids)=>saveTask(id,{assignee_ids:ids},{toast:'Assignees updated · saved'}),[saveTask]);
   const saveMemory=useCallback((fileId,html)=>editRow('files',fileId,{memory:html}),[editRow]);
 
+  // 5b capture actions.
+  const addTask=useCallback((fields,opts={})=>{
+    const tasks=rawRef.current?.tasks||[];
+    const sibs=tasks.filter(t=>fields.output_id?t.output_id===fields.output_id:(t.file_id===fields.file_id&&!t.output_id));
+    return addRow('tasks',{title:'',status:'not_started',assignee_ids:[],due:null,notes:'',source:'capture',output_id:null,sort_order:endOrder(sibs),...fields},{toast:opts.toast??'Task added · saved'});
+  },[addRow]);
+  const addOutput=useCallback((fields,opts={})=>{
+    const sibs=(rawRef.current?.outputs||[]).filter(o=>o.file_id===fields.file_id);
+    return addRow('outputs',{title:'',type:'other',status:'not_started',sort_order:endOrder(sibs),...fields},{toast:opts.toast??'Output added · saved'});
+  },[addRow]);
+  const addFlag=useCallback((fields)=>addRow('flags',{kind:'question',text:'',status:'open',detail:'',resolution:'',...fields},{toast:'Flag added · saved'}),[addRow]);
+  const resolveFlag=useCallback((flag)=>{
+    const done=flag.status==='resolved'||flag.status==='dropped';
+    if(done) editRow('flags',flag.id,{status:'open',resolved_at:null},{toast:'Flag reopened · saved'});
+    else editRow('flags',flag.id,{status:'resolved',resolved_at:todayStr()},{toast:'Flag resolved · saved'});
+  },[editRow]);
+  const addLink=useCallback((fields)=>addRow('links',{label:'',type:'folder',...fields},{toast:'Link attached · saved'}),[addRow]);
+  const addLog=useCallback((fileId,summary)=>addRow('events',{file_id:fileId,entity:'file',entity_id:fileId,kind:'log',summary,actor:'karl',event_date:todayStr()},{toast:'Logged · saved'}),[addRow]);
+  // One write covers reorder ({sort_order}), task to/from output ({output_id} or both), and refile ({file_id,output_id:null}).
+  const moveTask=useCallback((taskId,patch,toast)=>editRow('tasks',taskId,patch,toast?{toast}:{}),[editRow]);
+
   const clearSel=useCallback(()=>setSelected(s=>s.size?new Set():s),[]);
   const toggleSelect=useCallback((id)=>setSelected(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;}),[]);
   const batchDone=useCallback((ids)=>{ ids.forEach(id=>saveTask(id,{status:'completed',completed_at:todayStr()})); showToast(ids.length+' completed · saved'); clearSel(); },[saveTask,showToast,clearSel]);
@@ -118,8 +161,9 @@ export function StoreProvider({children}){
   },[saveTask,showToast,clearSel]);
 
   const model=useMemo(()=>raw?buildModel(raw):null,[raw]);
-  const actions=useMemo(()=>({saveTask,saveFile,saveOutput,toggleDone,setDue,setAssignees,saveMemory,batchDone,batchDue,batchAssign}),
-    [saveTask,saveFile,saveOutput,toggleDone,setDue,setAssignees,saveMemory,batchDone,batchDue,batchAssign]);
+  const actions=useMemo(()=>({saveTask,saveFile,saveOutput,toggleDone,setDue,setAssignees,saveMemory,batchDone,batchDue,batchAssign,
+    addTask,addOutput,addFlag,resolveFlag,addLink,addLog,moveTask}),
+    [saveTask,saveFile,saveOutput,toggleDone,setDue,setAssignees,saveMemory,batchDone,batchDue,batchAssign,addTask,addOutput,addFlag,resolveFlag,addLink,addLog,moveTask]);
   const value=useMemo(()=>({model,loading,error,live,lastSync,saving,reload:load,toasts,showToast,dismiss,selected,toggleSelect,clearSel,actions}),
     [model,loading,error,live,lastSync,saving,load,toasts,showToast,dismiss,selected,toggleSelect,clearSel,actions]);
 
