@@ -2,8 +2,9 @@
 // the write path, undo toasts, and selection. Optimistic row writes to pal_ + debounced
 // re-derive into palantir_state keep v1 and the chat bridge consistent until cutover.
 // 5b adds inserts (capture), delete-on-undo, and task moves (reorder / output / refile).
+// Session 6 also loads snapshot metadata for the Activity surface.
 import React,{createContext,useContext,useEffect,useState,useRef,useCallback,useMemo} from "react";
-import { fetchAll, subscribeAll } from "./client";
+import { fetchAll, subscribeAll, fetchSnapshots } from "./client";
 import { updateRow, insertRow, deleteRow, getV1UpdatedAt, exportV1, writeV1 } from "./mutations";
 import { buildModel } from "./derive";
 
@@ -18,6 +19,7 @@ let _tid=0;
 
 export function StoreProvider({children}){
   const [raw,setRaw]=useState(null);
+  const [snapshots,setSnapshots]=useState([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState(null);
   const [live,setLive]=useState(false);
@@ -34,8 +36,8 @@ export function StoreProvider({children}){
 
   const load=useCallback(async()=>{
     try{
-      const [data,v1]=await Promise.all([fetchAll(),getV1UpdatedAt()]);
-      setRaw(data); v1Meta.current=v1; setError(null); setLastSync(new Date());
+      const [data,v1,snaps]=await Promise.all([fetchAll(),getV1UpdatedAt(),fetchSnapshots()]);
+      setRaw(data); v1Meta.current=v1; setSnapshots(snaps); setError(null); setLastSync(new Date());
     }catch(e){setError(e?.message||String(e));}
     finally{setLoading(false);}
   },[]);
@@ -164,8 +166,8 @@ export function StoreProvider({children}){
   const actions=useMemo(()=>({saveTask,saveFile,saveOutput,toggleDone,setDue,setAssignees,saveMemory,batchDone,batchDue,batchAssign,
     addTask,addOutput,addFlag,resolveFlag,addLink,addLog,moveTask}),
     [saveTask,saveFile,saveOutput,toggleDone,setDue,setAssignees,saveMemory,batchDone,batchDue,batchAssign,addTask,addOutput,addFlag,resolveFlag,addLink,addLog,moveTask]);
-  const value=useMemo(()=>({model,loading,error,live,lastSync,saving,reload:load,toasts,showToast,dismiss,selected,toggleSelect,clearSel,actions}),
-    [model,loading,error,live,lastSync,saving,load,toasts,showToast,dismiss,selected,toggleSelect,clearSel,actions]);
+  const value=useMemo(()=>({model,loading,error,live,lastSync,saving,reload:load,snapshots,toasts,showToast,dismiss,selected,toggleSelect,clearSel,actions}),
+    [model,loading,error,live,lastSync,saving,load,snapshots,toasts,showToast,dismiss,selected,toggleSelect,clearSel,actions]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

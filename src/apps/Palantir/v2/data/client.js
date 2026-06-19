@@ -1,4 +1,5 @@
-// Supabase read layer for Palantír 2.0 (read-only this session). One concern: pal_ tables.
+// Supabase read layer for Palantír 2.0. pal_ tables (+ people, campaigns) for the live model,
+// plus snapshot metadata for the Activity surface (the heavy state blob is loaded on demand).
 import { supabase } from "../../../../supabase";
 
 export const ENTITIES=[
@@ -20,6 +21,20 @@ export async function fetchAll(){
     else out[key]=data||[];
   }));
   return out;
+}
+
+// Snapshot list for Activity: metadata only (no state blob), newest first.
+export async function fetchSnapshots(){
+  const {data,error}=await supabase.from('palantir_snapshots').select('id,label,trigger,created_at').order('created_at',{ascending:false}).limit(100);
+  if(error){console.error('[palantir2] read snapshots',error.message);return [];}
+  return data||[];
+}
+
+// One snapshot with its full v1-shape state, loaded only when viewed.
+export async function fetchSnapshot(id){
+  const {data,error}=await supabase.from('palantir_snapshots').select('id,label,trigger,created_at,state').eq('id',id).maybeSingle();
+  if(error){console.error('[palantir2] read snapshot '+id,error.message);return null;}
+  return data||null;
 }
 
 // Subscribe to Realtime on every pal_ table. onChange(table,payload) fires per row event;

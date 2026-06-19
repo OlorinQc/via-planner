@@ -1,10 +1,11 @@
 // Chip composer (blueprint 4.2b). Every capture line: picked or typed values render as
 // removable chips, only the title is free text, grammar tokens are the keyboard fast lane
-// only (never required, everything reachable by the 📅/@/↳ buttons). Backspace on an empty
+// only (never required, everything reachable by the 📁/📅/@/↳ buttons). Backspace on an empty
 // title deletes the last chip; Enter saves and keeps the line open to chain. modes: task,
-// output, flag. The History prose composer is intentionally token-free and lives elsewhere.
+// output, flag. pickFile (Today) adds a file chip + picker since no single file is in context.
+// The History prose composer is intentionally token-free and lives elsewhere.
 import React,{useState,useRef} from "react";
-import { T, sc, FLAG_KIND } from "../theme";
+import { T, sc, FLAG_KIND, ss } from "../theme";
 import { AnchoredPopover, HoverBtn } from "./overlay";
 import MiniCalendar from "./MiniCalendar";
 import PersonPicker from "./PersonPicker";
@@ -26,7 +27,28 @@ function RmChip({children,bg,tx,onRemove}){
   );
 }
 
-export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=null,label,inset=false}){
+// File picker popover for the Today capture line: searchable active files.
+function FilePicker({m,onPick}){
+  const [q,setQ]=useState('');
+  const files=(m?.files||[]).filter(f=>!f.archived&&(f.status==='active'||f.status==='monitoring'));
+  const ql=q.trim().toLowerCase();
+  const list=files.filter(f=>!ql||(f.title||'').toLowerCase().includes(ql)).sort((a,b)=>(a.title||'').localeCompare(b.title||'')).slice(0,40);
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:4,width:230}}>
+      <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search files…" style={{...ss.inp,fontSize:sc(11),padding:'4px 7px'}}/>
+      <div style={{display:'flex',flexDirection:'column',gap:1,maxHeight:240,overflowY:'auto'}}>
+        {list.length===0&&<div style={{fontSize:sc(11),color:T.tx3,fontStyle:'italic',padding:'4px 6px'}}>No files.</div>}
+        {list.map(f=>(
+          <button key={f.id} onMouseDown={e=>e.preventDefault()} onClick={()=>onPick(f.id)}
+            onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+            style={{textAlign:'left',fontSize:sc(11),color:T.tx,background:'transparent',border:'none',borderRadius:5,padding:'5px 8px',cursor:'pointer',fontFamily:T.font}}>{f.title}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=null,label,inset=false,pickFile=false}){
   const {actions}=useStore();
   const people=m?.people||[];
   const [open,setOpen]=useState(false);
@@ -35,19 +57,25 @@ export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=
   const [due,setDue]=useState(null);
   const [outId,setOutId]=useState(null);
   const [flagKind,setFlagKind]=useState(null);
+  const [fileSel,setFileSel]=useState(fileId||null);
   const [pop,setPop]=useState(null);            // {type, el}
   const inputRef=useRef(null);
   const popOpen=useRef(false);
 
-  const ctx={people,outputs};
-  const outName=(id)=>outputs.find(o=>o.id===id)?.title||'output';
-  const reset=()=>{setText('');setAsg([]);setDue(null);setOutId(null);setFlagKind(null);};
+  const targetFile=pickFile?fileSel:fileId;
+  const outs=pickFile?(fileSel?(m?.outputsByFile?.[fileSel]||[]):[]):outputs;
+  const ctx={people,outputs:outs,files:pickFile?(m?.files||[]):undefined};
+  const outName=(id)=>outs.find(o=>o.id===id)?.title||'output';
+  const fileName=(id)=>(m?.fileById?.[id]?.title)||'file';
+  const reset=()=>{setText('');setAsg([]);setDue(null);setOutId(null);setFlagKind(null);if(pickFile)setFileSel(null);};
   const collapse=()=>{reset();setPop(null);popOpen.current=false;setOpen(false);};
   const focus=()=>setTimeout(()=>inputRef.current&&inputRef.current.focus(),0);
   const start=()=>{setOpen(true);focus();};
+  const chooseFile=(id)=>{setFileSel(id);setOutId(null);};
 
   const onChange=(e)=>{
     const r=scanLive(e.target.value,ctx);
+    if(r.fileId&&pickFile)chooseFile(r.fileId);
     if(r.assigneeIds.length)setAsg(prev=>{const n=[...prev];r.assigneeIds.forEach(id=>{if(!n.includes(id))n.push(id);});return n;});
     if(r.due&&mode!=='flag')setDue(r.due);
     if(r.outputId&&!fixedOutputId)setOutId(r.outputId);
@@ -60,9 +88,13 @@ export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=
     const asgF=[...asg];r.assigneeIds.forEach(id=>{if(!asgF.includes(id))asgF.push(id);});
     const dueF=due||r.due||null;
     const outF=fixedOutputId||outId||r.outputId||null;
+    const fileF=pickFile?(fileSel||r.fileId||null):fileId;
     const title=(r.text||'').trim();
     if(!title)return;
-    if(mode==='task')actions.addTask({file_id:fileId,output_id:outF,title,assignee_ids:asgF,due:dueF});
+    if(mode==='task'){
+      if(!fileF){setFileSel(null);focus();return;}      // Today: a file is required
+      actions.addTask({file_id:fileF,output_id:outF,title,assignee_ids:asgF,due:dueF});
+    }
     else if(mode==='output')actions.addOutput({file_id:fileId,title,due:dueF});
     else if(mode==='flag')actions.addFlag({file_id:fileId,kind:flagKind||r.flagKind||'question',text:title,owner_id:asgF[0]||null});
     reset();focus();
@@ -73,6 +105,7 @@ export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=
     if(asg.length){setAsg(asg.slice(0,-1));return;}
     if(mode==='flag'&&flagKind){setFlagKind(null);return;}
     if(outId&&!fixedOutputId){setOutId(null);return;}
+    if(pickFile&&fileSel){setFileSel(null);return;}
   };
   const onKey=(e)=>{
     if(e.key==='Enter'){e.preventDefault();submit();}
@@ -81,7 +114,7 @@ export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=
   };
   const onBlur=()=>setTimeout(()=>{
     if(popOpen.current)return;
-    const has=text.trim()||asg.length||due||outId||(mode==='flag'&&flagKind);
+    const has=text.trim()||asg.length||due||outId||(mode==='flag'&&flagKind)||(pickFile&&fileSel);
     if(!has)collapse();
   },150);
 
@@ -98,15 +131,16 @@ export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=
   }
 
   const btn={fontSize:sc(12),padding:'2px 6px',borderRadius:4,lineHeight:1};
-  const showOut=mode==='task'&&outputs.length>0&&!fixedOutputId;
+  const showOut=mode==='task'&&outs.length>0&&!fixedOutputId;
   const showAt=mode==='task'||mode==='flag';
   const showDate=mode!=='flag';
   const placeholder=mode==='flag'?'question…  Q: / RISK: / BLOCKED:  ·  @owner'
     :mode==='output'?'output title…  ·  jun 20  ·  m/o jul'
-    :'task title…  ·  @name  ·  jun 20  ·  w/o jun 15'+(showOut?'  ·  > output:':'');
+    :(pickFile?'Dorval: task title…  ·  @name  ·  jun 20':'task title…  ·  @name  ·  jun 20  ·  w/o jun 15'+(showOut?'  ·  > output:':''));
 
   return(
     <div style={{...ROW,paddingLeft:inset?20:9,flexWrap:'wrap',background:'rgba(91,156,246,0.04)'}}>
+      {pickFile&&fileSel&&<RmChip bg={'rgba(91,156,246,0.12)'} tx={T.acc} onRemove={()=>setFileSel(null)}>▦ {fileName(fileSel)}</RmChip>}
       {mode==='flag'&&flagKind&&<RmChip bg={(FLAG_KIND[flagKind]||FLAG_KIND.question).bg} tx={(FLAG_KIND[flagKind]||FLAG_KIND.question).tx} onRemove={()=>setFlagKind(null)}>{(FLAG_KIND[flagKind]||FLAG_KIND.question).label}</RmChip>}
       {outId&&!fixedOutputId&&<RmChip bg={'rgba(212,146,42,0.12)'} tx={T.y} onRemove={()=>setOutId(null)}>↳ {outName(outId)}</RmChip>}
       {asg.map(id=><RmChip key={id} bg={'rgba(91,156,246,0.12)'} tx={T.acc} onRemove={()=>setAsg(asg.filter(x=>x!==id))}>{personFirst(m,id)||'?'}</RmChip>)}
@@ -114,17 +148,19 @@ export default function Composer({mode='task',fileId,m,outputs=[],fixedOutputId=
       <input ref={inputRef} value={text} onChange={onChange} onKeyDown={onKey} onBlur={onBlur} placeholder={placeholder}
         style={{flex:1,minWidth:140,background:'transparent',border:'none',outline:'none',color:T.tx,fontSize:sc(12),fontFamily:T.font,padding:'2px 0'}}/>
       <span style={{display:'inline-flex',gap:2,flexShrink:0}}>
+        {pickFile&&<HoverBtn title="File" onClick={e=>openPop('file',e.currentTarget)} style={btn} hoverBg={T.s2} hoverColor={T.acc} active={pop?.type==='file'}>▦</HoverBtn>}
         {showDate&&<HoverBtn title="Date" onClick={e=>openPop('date',e.currentTarget)} style={btn} hoverBg={T.s2} hoverColor={T.acc} active={pop?.type==='date'}>📅</HoverBtn>}
         {showAt&&<HoverBtn title={mode==='flag'?'Owner':'Assign'} onClick={e=>openPop('person',e.currentTarget)} style={btn} hoverBg={T.s2} hoverColor={T.acc} active={pop?.type==='person'}>@</HoverBtn>}
         {showOut&&<HoverBtn title="Link to output" onClick={e=>openPop('output',e.currentTarget)} style={btn} hoverBg={T.s2} hoverColor={T.acc} active={pop?.type==='output'}>↳</HoverBtn>}
       </span>
       {pop&&(
         <AnchoredPopover anchorEl={pop.el} onClose={closePop} width={pop.type==='output'?200:undefined}>
+          {pop.type==='file'&&<FilePicker m={m} onPick={id=>{chooseFile(id);closePop();}}/>}
           {pop.type==='date'&&<MiniCalendar onPick={f=>{setDue(f);closePop();}}/>}
           {pop.type==='person'&&<PersonPicker people={people} selectedIds={asg} onToggle={id=>setAsg(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id])}/>}
           {pop.type==='output'&&(
             <div style={{display:'flex',flexDirection:'column',gap:2}}>
-              {outputs.map(o=>(
+              {outs.map(o=>(
                 <button key={o.id} onMouseDown={e=>e.preventDefault()} onClick={()=>{setOutId(o.id);closePop();}}
                   onMouseEnter={e=>e.currentTarget.style.background=T.s2} onMouseLeave={e=>e.currentTarget.style.background=o.id===outId?T.s2:'transparent'}
                   style={{textAlign:'left',fontSize:sc(11),color:T.tx,background:o.id===outId?T.s2:'transparent',border:'none',borderRadius:5,padding:'5px 8px',cursor:'pointer',fontFamily:T.font}}>↳ {o.title}</button>

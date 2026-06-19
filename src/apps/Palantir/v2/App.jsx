@@ -1,26 +1,33 @@
-// Palantír 2.0 shell: frame + Files surface, editable (Session 5a), at /palantir2.
+// Palantír 2.0 shell: frame + surface switch (Today default, Files, Activity), editable, at
+// /palantir2. Today and Activity ship in Session 6; Team lands in Session 7. Internal view
+// state for now; real URL sub-routes are the Session 8 sweep.
 import React,{useEffect,useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { StoreProvider, useStore } from "./data/store";
 import { T, sc, ss, SCALE_VAR, FONT_LINK } from "./theme";
+import Today from "./views/Today";
 import Files from "./views/Files";
+import Activity from "./views/Activity";
 import ToastHost from "./components/Toasts";
 import BatchBar from "./components/BatchBar";
 
-const NAV=[{id:'files',label:'Files',on:true},{id:'today',label:'Today'},{id:'team',label:'Team'},{id:'activity',label:'Activity'}];
+const NAV=[{id:'today',label:'Today',on:true},{id:'files',label:'Files',on:true},{id:'team',label:'Team'},{id:'activity',label:'Activity',on:true}];
 
 function readScale(){try{const v=parseFloat(localStorage.getItem('pal2-scale'));return v>=0.7&&v<=1.6?v:1.0;}catch(e){return 1.0;}}
+function readView(){try{const v=localStorage.getItem('pal2-view');return ['today','files','activity'].includes(v)?v:'today';}catch(e){return 'today';}}
 
 function Shell(){
   const navigate=useNavigate();
   const {live,lastSync,reload,loading,saving,clearSel}=useStore();
   const [scale,setScale]=useState(readScale);
+  const [view,setView]=useState(readView);
 
   useEffect(()=>{const l=document.createElement('link');l.href=FONT_LINK;l.rel='stylesheet';document.head.appendChild(l);
     return()=>{if(document.head.contains(l))document.head.removeChild(l);};},[]);
   useEffect(()=>{const onKey=e=>{if(e.key==='Escape')clearSel();};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);},[clearSel]);
 
   const setScaleP=(v)=>{setScale(v);try{localStorage.setItem('pal2-scale',String(v));}catch(e){/* noop */}};
+  const setViewP=(v)=>{setView(v);clearSel();try{localStorage.setItem('pal2-view',v);}catch(e){/* noop */}};
   const synced=lastSync?lastSync.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'';
 
   return(
@@ -31,9 +38,10 @@ function Shell(){
         <span style={{fontSize:sc(9),fontWeight:700,color:T.acc,background:'rgba(91,156,246,0.12)',borderRadius:8,padding:'1px 6px',marginRight:12,flexShrink:0}}>v2 · editing</span>
         <div style={{display:'flex',gap:0,overflow:'hidden'}}>
           {NAV.map(n=>(
-            <span key={n.id} title={n.on?'':'Coming in a later session'} style={{padding:'4px 10px',fontSize:sc(11),fontWeight:500,
-              color:n.on?T.acc:T.tx3,borderBottom:`2px solid ${n.on?T.acc:'transparent'}`,whiteSpace:'nowrap',
-              cursor:n.on?'default':'not-allowed'}}>{n.label}</span>
+            <span key={n.id} onClick={n.on?()=>setViewP(n.id):undefined} title={n.on?'':'Coming in a later session'}
+              style={{padding:'4px 10px',fontSize:sc(11),fontWeight:view===n.id?700:500,
+              color:n.on?(view===n.id?T.acc:T.tx2):T.tx3,borderBottom:`2px solid ${view===n.id?T.acc:'transparent'}`,whiteSpace:'nowrap',
+              cursor:n.on?'pointer':'not-allowed',userSelect:'none'}}>{n.label}</span>
           ))}
         </div>
         <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
@@ -46,7 +54,7 @@ function Shell(){
       </div>
 
       <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-        <Files/>
+        {view==='today'?<Today/>:view==='activity'?<Activity/>:<Files/>}
       </div>
 
       <div style={{height:32,background:T.hdr,borderTop:`1px solid ${T.bd}`,display:'flex',alignItems:'center',justifyContent:'center',gap:10,flexShrink:0,userSelect:'none'}}>

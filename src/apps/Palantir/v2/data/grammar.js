@@ -2,7 +2,8 @@
 // required, and fold into the same chips the click buttons set. scanLive consumes only
 // space-closed tokens so a half-typed @name or date is never eaten mid-keystroke; the
 // composer re-runs it with a trailing space on submit to catch the final token.
-// Tokens: leading "Q:/RISK:/BLOCKED:" kind, leading "> output:" routing, "@name",
+// Tokens: leading "Q:/RISK:/BLOCKED:" kind, leading "Name:" file route (Today capture only,
+// when ctx.files is supplied), leading "> output:" routing, "@name",
 // dates (today, tmrw, weekday, "jun 20", "w/o jun 15" week-of, "m/o jul" month-of, tbd).
 
 const MONTHS=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
@@ -69,6 +70,15 @@ export function findOutput(outputs,name){
   return hit||null;
 }
 
+// File route for the Today quick-add ("Dorval: call Philippe"). Active files win ties.
+export function findFile(files,name){
+  const q=deburr(name).trim(); if(!q)return null;
+  const cand=[...files].sort((a,b)=>(Number(!a.archived)-Number(!b.archived)));
+  let hit=cand.find(f=>deburr(f.title).startsWith(q));
+  if(!hit)hit=cand.find(f=>deburr(f.title).includes(q));
+  return hit||null;
+}
+
 function scanDate(text){
   let m;
   if((m=text.match(new RegExp(`\\bw/o\\s+${MO}\\.?\\s+(\\d{1,2})\\b\\s`,'i')))){const d=monthDay(m[1],m[2]);if(d)return{due:weekFlex(d),rest:text.replace(m[0],' ')};}
@@ -84,12 +94,18 @@ function scanDate(text){
 // Consume space-closed tokens from the input. Returns leftover title text plus whatever was
 // extracted; the composer merges this into its chip state and replaces the input text.
 export function scanLive(input,ctx={}){
-  const people=ctx.people||[],outputs=ctx.outputs||[];
+  const people=ctx.people||[],outputs=ctx.outputs||[],files=ctx.files||null;
   let text=String(input==null?'':input);
-  const found={assigneeIds:[],due:null,outputId:null,flagKind:null};
+  const found={assigneeIds:[],due:null,outputId:null,flagKind:null,fileId:null};
 
   const km=text.match(/^\s*(q|risk|blocked|blocker)\s*:\s*/i);
   if(km){found.flagKind=normKind(km[1]);text=text.slice(km[0].length);}
+
+  // File route (Today only): leading "Name:" that resolves to a known file.
+  if(files&&files.length){
+    const fm=text.match(/^\s*([^:>@\n]{1,60}?)\s*:\s+/);
+    if(fm){const f=findFile(files,fm[1].trim());if(f){found.fileId=f.id;text=text.slice(fm[0].length);}}
+  }
 
   const om=text.match(/^\s*>\s*([^:>]+):\s*/);
   if(om){const o=findOutput(outputs,om[1].trim());if(o){found.outputId=o.id;text=text.slice(om[0].length);}}
