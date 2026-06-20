@@ -359,6 +359,18 @@ const sysProgress = (sys, statuses) => {
 
 const orderActions = acts => acts.slice().sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9));
 
+// ─── DATE HELPERS (scheduling) ──────────────────────────────────────────────────
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const toISO = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+const startOfWeek = d => { const x = new Date(d); const dow = (x.getDay() + 6) % 7; return addDays(x, -dow); };
+const weekDates = mon => Array.from({ length:7 }, (_, i) => toISO(addDays(mon, i)));
+const DOW_FR = ['lun','mar','mer','jeu','ven','sam','dim'];
+const MON_FR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+const dayNum = iso => Number(iso.split('-')[2]);
+const monShort = iso => MON_FR[Number(iso.split('-')[1]) - 1];
+const todayISO = () => toISO(new Date());
+const isToday = iso => iso === todayISO();
+
 // Interim material-to-project association for Session 1. The canonical link is the
 // union of action.materialIds (blueprint 3.3), but those are seeded empty until
 // Session 4, so we fall back to the material's existing project text.
@@ -510,7 +522,7 @@ function ProjectDashboard({ system, statuses, materials, onOpenAction, onBack })
 }
 
 // ─── ACTION VIEW (basic, Session 1) ─────────────────────────────────────────────
-function ActionView({ system, action, status, onStatusChange, onBack, backLabel }) {
+function ActionView({ system, action, status, onStatusChange, onBack, backLabel, schedule, onSchedule }) {
   const wc = WSTATUS[status] || WSTATUS['À faire'];
   const steps = action.steps || [];
   const cautions = action.cautions || [];
@@ -530,6 +542,8 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel 
           {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
         </select>
       </div>
+
+      <PlanifierControl value={schedule} onSet={onSchedule} />
 
       {cautions.length > 0 && (
         <div style={{ background:'rgba(217,95,95,0.07)', border:`1px solid rgba(217,95,95,0.22)`, borderRadius:9, padding:'11px 12px', marginBottom:12 }}>
@@ -898,6 +912,156 @@ function EntretienView({ maintenance, mDone, onToggleMaint, narrow }) {
   );
 }
 
+// ─── PLANIFIER CONTROL ──────────────────────────────────────────────────────────
+const planBtn = (active, danger) => ({ background: active ? 'rgba(91,156,246,0.16)' : T.s2, border:`1px solid ${active ? T.acc : T.bd2}`, borderRadius:6, padding:'5px 10px', fontSize:11, color: danger ? T.r : active ? T.acc : T.tx2, cursor:'pointer', fontFamily:T.font });
+const fmtSched = iso => iso ? `${DOW_FR[(new Date(iso + 'T00:00').getDay() + 6) % 7]} ${dayNum(iso)} ${monShort(iso)}` : null;
+
+function PlanifierControl({ value, onSet }) {
+  const set = d => onSet && onSet(d);
+  const tomorrow = toISO(addDays(new Date(), 1));
+  return (
+    <div style={{ marginBottom:14 }}>
+      <SectionLab style={{ margin:'0 0 6px' }}>Planifier</SectionLab>
+      <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+        {value && <span style={{ ...ss.pill('rgba(91,156,246,0.14)', T.acc), fontSize:11 }}>{fmtSched(value)}</span>}
+        <button onClick={() => set(todayISO())} style={planBtn(value === todayISO())}>Aujourd'hui</button>
+        <button onClick={() => set(tomorrow)} style={planBtn(value === tomorrow)}>Demain</button>
+        <input type="date" value={value || ''} onChange={e => set(e.target.value || null)}
+          style={{ background:T.s2, border:`1px solid ${T.bd2}`, borderRadius:6, padding:'4px 8px', fontSize:11, color:T.tx2, fontFamily:T.font, colorScheme:'dark', cursor:'pointer' }} />
+        {value && <button onClick={() => set(null)} style={planBtn(false, true)}>Retirer</button>}
+      </div>
+    </div>
+  );
+}
+
+// ─── CALENDAR VIEW (desktop) ────────────────────────────────────────────────────
+function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange }) {
+  const [weekStart, setWeekStart] = useState(() => toISO(startOfWeek(new Date())));
+  const [pending, setPending] = useState(null);
+  const [selId, setSelId] = useState(null);
+
+  const allActions = useMemo(() => systems.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name }))), [systems]);
+  const byId = id => allActions.find(a => a.id === id);
+  const days = weekDates(new Date(weekStart + 'T00:00'));
+  const tray = orderActions(allActions.filter(a => !schedules[a.id] && (statuses[a.id] || a.status) !== 'Fait'));
+  const forDay = iso => allActions.filter(a => schedules[a.id] === iso).sort((x, y) => (PRIORITY_ORDER[x.priority] ?? 9) - (PRIORITY_ORDER[y.priority] ?? 9));
+  const assignTo = iso => { if (pending) { scheduleAction(pending, iso); setPending(null); } };
+
+  const sel = selId ? byId(selId) : null;
+  const selSys = sel ? systems.find(s => s.id === sel.sysId) : null;
+  const rangeLabel = `${dayNum(days[0])} ${monShort(days[0])} – ${dayNum(days[6])} ${monShort(days[6])}`;
+  const navBtn = { background:T.s2, border:`1px solid ${T.bd2}`, borderRadius:6, padding:'4px 9px', fontSize:12, color:T.tx2, cursor:'pointer', fontFamily:T.font };
+
+  const calendar = (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0 }}>
+        <button onClick={() => setWeekStart(toISO(addDays(new Date(weekStart + 'T00:00'), -7)))} style={navBtn}>‹</button>
+        <button onClick={() => setWeekStart(toISO(startOfWeek(new Date())))} style={{ ...navBtn, fontSize:11 }}>Cette semaine</button>
+        <button onClick={() => setWeekStart(toISO(addDays(new Date(weekStart + 'T00:00'), 7)))} style={navBtn}>›</button>
+        <span style={{ fontSize:13, fontWeight:600, color:T.tx, marginLeft:6 }}>{rangeLabel}</span>
+        {pending && <span style={{ marginLeft:'auto', fontSize:11, color:T.acc, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'45%' }}>Choisis un jour pour: <span style={{ color:T.tx }}>{byId(pending)?.desc}</span></span>}
+      </div>
+      <div style={{ flex:1, overflowY:'auto', display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:1, background:T.bd, padding:1 }}>
+        {days.map(iso => {
+          const acts = forDay(iso);
+          const isT = isToday(iso);
+          return (
+            <div key={iso} onClick={() => assignTo(iso)}
+              style={{ background:T.bg, minHeight:130, padding:'7px 6px', cursor: pending ? 'copy' : 'default', display:'flex', flexDirection:'column', gap:5, borderTop:`2px solid ${isT ? T.acc : 'transparent'}` }}>
+              <div style={{ fontSize:10, fontWeight:600, color: isT ? T.acc : T.tx3, textAlign:'center', marginBottom:2 }}>
+                {DOW_FR[(new Date(iso + 'T00:00').getDay() + 6) % 7]} {dayNum(iso)}
+              </div>
+              {acts.map(a => {
+                const hot = a.priority === 'Urgent' || a.priority === 'Danger';
+                return (
+                  <div key={a.id} onClick={e => { e.stopPropagation(); setSelId(a.id); }}
+                    style={{ background: hot ? 'rgba(217,95,95,0.16)' : 'rgba(91,156,246,0.14)', border:`1px solid ${hot ? 'rgba(217,95,95,0.4)' : 'rgba(91,156,246,0.35)'}`, borderRadius:5, padding:'4px 6px', cursor:'pointer' }}>
+                    <div style={{ fontSize:9.5, color: hot ? T.r : T.acc, fontWeight:600, lineHeight:1.25, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{a.desc}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3 }}>
+                      <span style={{ fontSize:8, color:T.tx3, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.sysName}</span>
+                      <span onClick={e => { e.stopPropagation(); scheduleAction(a.id, null); }} title="Retirer" style={{ fontSize:12, color:T.tx3, cursor:'pointer', lineHeight:1 }}>×</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ flexShrink:0, borderTop:`1px solid ${T.bd}`, background:T.s1, maxHeight:160, display:'flex', flexDirection:'column' }}>
+        <div style={{ padding:'7px 14px 4px', fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em' }}>À planifier <span style={{ opacity:0.7 }}>({tray.length})</span></div>
+        <div style={{ overflowY:'auto', padding:'4px 10px 10px', display:'flex', flexWrap:'wrap', gap:6 }}>
+          {tray.length === 0 && <span style={{ fontSize:11, color:T.tx3, fontStyle:'italic', padding:'4px' }}>Tout est planifié.</span>}
+          {tray.map(a => {
+            const on = pending === a.id;
+            return (
+              <button key={a.id} onClick={() => setPending(on ? null : a.id)}
+                style={{ textAlign:'left', maxWidth:230, background: on ? 'rgba(91,156,246,0.18)' : T.s2, border:`1px solid ${on ? T.acc : T.bd2}`, borderLeft:`3px solid ${(PRIORITY[a.priority] || PRIORITY['—']).tx}`, borderRadius:6, padding:'5px 8px', cursor:'pointer', fontFamily:T.font }}>
+                <div style={{ fontSize:11, color:T.tx, lineHeight:1.3, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{a.desc}</div>
+                <div style={{ fontSize:9, color:T.tx3, marginTop:2 }}>{a.sysName}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const detail = sel ? (
+    <ActionView system={selSys} action={sel} status={statuses[sel.id] || sel.status} onStatusChange={onStatusChange}
+      schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier" />
+  ) : (
+    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:10, padding:24, textAlign:'center' }}>
+      <div style={{ fontSize:28, opacity:0.12 }}>🗓</div>
+      <span style={{ fontSize:12, color:T.tx3, fontStyle:'italic', maxWidth:220, lineHeight:1.6 }}>Clique une tâche pour l'ouvrir, ou choisis une tâche « à planifier » puis un jour.</span>
+    </div>
+  );
+
+  return (
+    <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+      {calendar}
+      <div style={{ width:360, flexShrink:0, borderLeft:`1px solid ${T.bd}`, overflowY:'auto', display:'flex', flexDirection:'column' }}>{detail}</div>
+    </div>
+  );
+}
+
+// ─── AUJOURD'HUI VIEW (phone) ───────────────────────────────────────────────────
+function AujourdhuiView({ systems, statuses, schedules, onOpenAction }) {
+  const all = systems.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name })));
+  const todays = all.filter(a => schedules[a.id] && schedules[a.id] <= todayISO() && (statuses[a.id] || a.status) !== 'Fait')
+    .sort((x, y) => schedules[x.id] < schedules[y.id] ? -1 : schedules[x.id] > schedules[y.id] ? 1 : (PRIORITY_ORDER[x.priority] ?? 9) - (PRIORITY_ORDER[y.priority] ?? 9));
+  return (
+    <div style={{ padding:'14px 14px 24px' }}>
+      <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.07em', textTransform:'uppercase', margin:'2px 0 4px' }}>Aujourd'hui</div>
+      <div style={{ fontSize:11, color:T.tx3, marginBottom:12 }}>Ce qui est planifié pour aujourd'hui ou en retard.</div>
+      {todays.length === 0 ? (
+        <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'22px 16px', textAlign:'center' }}>
+          <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.6 }}>Rien de planifié pour aujourd'hui.</div>
+          <div style={{ fontSize:11, color:T.tx3, marginTop:6 }}>Ouvre une action dans un projet et touche « Planifier » pour la programmer.</div>
+        </div>
+      ) : todays.map(a => {
+        const pc = PRIORITY[a.priority] || PRIORITY['—'];
+        const overdue = schedules[a.id] < todayISO();
+        return (
+          <div key={a.id} onClick={() => onOpenAction(a.sysId, a.id)}
+            style={{ background:T.s1, border:`1px solid ${T.bd}`, borderLeft:`3px solid ${pc.tx}`, borderRadius:10, padding:'12px 13px', marginBottom:8, cursor:'pointer' }}>
+            <div style={{ fontSize:10.5, color:pc.tx, fontWeight:600, marginBottom:3 }}>{a.sysName}</div>
+            <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+              <div style={{ flex:1, fontSize:12.5, color:T.tx, lineHeight:1.45 }}>{a.desc}</div>
+              <span style={{ color:T.tx3, fontSize:18, lineHeight:1 }}>›</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:8 }}>
+              <PriorityBadge p={a.priority} />
+              {overdue && <span style={{ ...ss.pill('rgba(217,95,95,0.14)', T.r), fontSize:9 }}>En retard</span>}
+              <span style={{ marginLeft:'auto' }}><WStatusBadge s={statuses[a.id] || a.status} /></span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── PHONE SHELL ────────────────────────────────────────────────────────────────
 const TAB_ICONS = {
   projets: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -916,17 +1080,17 @@ const TabIcon = ({ id, color }) => (
 );
 
 function PhoneShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let body;
   if (tab === 'projets') {
-    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} onBack={() => setSelAction(null)} />;
+    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} />;
     else if (system) body = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} onBack={() => setSelProject(null)} />;
     else body = <ProjectList systems={systems} statuses={statuses} onSelect={id => { setSelProject(id); setSelAction(null); }} />;
   } else if (tab === 'aujourdhui') {
-    body = <Placeholder title="Aujourd'hui" note="Optionnel. Cette vue se remplira quand tu programmeras une action depuis un projet (Session 2)." />;
+    body = <AujourdhuiView systems={systems} statuses={statuses} schedules={schedules} onOpenAction={(sysId, aid) => { setSelProject(sysId); setSelAction(aid); setTab('projets'); }} />;
   } else if (tab === 'achats') {
     body = <AchatsView narrow shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />;
   } else if (tab === 'entretien') {
@@ -967,14 +1131,14 @@ const DESK_NAV = [
 ];
 
 function DesktopShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let main;
   if (tab === 'projets') {
     let detail;
-    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} onBack={() => setSelAction(null)} backLabel="Retour au projet" />;
+    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" />;
     else if (system) detail = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} />;
     else detail = (
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
@@ -995,7 +1159,7 @@ function DesktopShell(props) {
   } else if (tab === 'entretien') {
     main = <EntretienView maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
   } else if (tab === 'calendrier') {
-    main = <Placeholder title="Calendrier" note="La planification par semaine arrive en Session 2: déposer les travaux sur des journées et préparer les courses." />;
+    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} />;
   } else {
     main = <Placeholder title="Aujourd'hui" note="Optionnel. Se remplit quand tu programmes une action (Session 2)." />;
   }
@@ -1066,7 +1230,9 @@ function hydrateDoc(doc) {
   const md = {};
   (doc.maintenance || []).forEach(m => { const h = m.history || []; if (h.length) md[m.id] = h[h.length - 1].date; });
   const items = (doc.materials || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  return { st, md, items };
+  const sched = {};
+  (doc.systems || []).forEach(s => (s.actions || []).forEach(a => { if (a.scheduledDate) sched[a.id] = a.scheduledDate; }));
+  return { st, md, items, sched };
 }
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────────────
@@ -1079,6 +1245,7 @@ export default function DurinsWorksApp() {
   const [statuses, setStatuses] = useState({});
   const [mDone, setMDone] = useState({});
   const [shopItems, setShopItems] = useState([]);
+  const [schedules, setSchedules] = useState({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(true);
 
@@ -1114,8 +1281,8 @@ export default function DurinsWorksApp() {
         }
         stateRef.current = doc;
         versionRef.current = version;
-        const { st, md, items } = hydrateDoc(doc);
-        setStatuses(st); setMDone(md); setShopItems(items);
+        const { st, md, items, sched } = hydrateDoc(doc);
+        setStatuses(st); setMDone(md); setShopItems(items); setSchedules(sched);
       } catch (e) { console.error('Durin\'s Works load error:', e); }
       setLoading(false);
     };
@@ -1159,6 +1326,13 @@ export default function DurinsWorksApp() {
     setStatuses(prev => ({ ...prev, [id]: val }));
     saveStatus(id, val);
   }, [saveStatus]);
+
+  const scheduleAction = useCallback((id, date) => {
+    setSchedules(prev => { const n = { ...prev }; if (date) n[id] = date; else delete n[id]; return n; });
+    const doc = stateRef.current;
+    if (doc) doc.systems.forEach(s => s.actions.forEach(a => { if (a.id === id) a.scheduledDate = date || null; }));
+    persist('planif ' + id);
+  }, [persist]);
 
   const toggleMaint = useCallback(async (taskId, checked) => {
     const doneDate = checked ? today() : null;
@@ -1211,7 +1385,7 @@ export default function DurinsWorksApp() {
 
   const shellProps = {
     tab, setTab, systems, maintenance, statuses, mDone, shopItems,
-    selProject, setSelProject, selAction, setSelAction,
+    selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction,
     onStatusChange: changeStatus, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem,
     saved, onHome: () => navigate('/'),
   };
