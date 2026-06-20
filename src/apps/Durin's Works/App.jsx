@@ -994,6 +994,48 @@ function EntretienView({ mDone, onToggleMaint }) {
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 const DENSITY_ZOOM = { compact:0.88, comfortable:1.0, presentation:1.15 };
 
+// ─── v2 STATE DOCUMENT (single JSONB store) ─────────────────────────────────────
+// Build the full document from the static constants on first run. The constants stay
+// as the seed source; once the document lives in Supabase it becomes the truth.
+function buildSeedDoc() {
+  return {
+    meta: { address: '8235, Avenue Orégon', schemaVersion: 2 },
+    systems: SYSTEMS.map(s => ({
+      ...s,
+      actions: s.actions.map(a => ({
+        ...a,
+        scheduledDate: null,
+        status: 'À faire',
+        cautions: [],
+        steps: [],
+        materialIds: [],
+        log: [],
+        cost: { estimate: null, actual: null, quotes: [] },
+        contractor: null,
+        photos: [],
+      })),
+    })),
+    maintenance: MAINTENANCE.map(m => ({ ...m, history: [] })),
+    materials: SHOPPING_SEED.map((m, i) => ({
+      id: 'm' + (i + 1),
+      project: m.project, article: m.article, magasin: m.magasin,
+      prix_unitaire: m.prix_unitaire, qty: m.qty, status: m.status,
+      lien: m.lien, notes: m.notes, sort_order: m.sort_order, bought: false,
+    })),
+    buyRuns: [],
+  };
+}
+
+// Derive the in-memory shapes the existing views expect from the document.
+function hydrateDoc(doc) {
+  const st = {};
+  (doc.systems || []).forEach(s => (s.actions || []).forEach(a => { st[a.id] = a.status || 'À faire'; }));
+  const md = {};
+  (doc.maintenance || []).forEach(m => { const h = m.history || []; if (h.length) md[m.id] = h[h.length - 1].date; });
+  const items = (doc.materials || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  return { st, md, items };
+}
+
 export default function DurinsWorksApp() {
   const navigate = useNavigate();
   const [view, setView] = useState('dashboard');
@@ -1008,6 +1050,11 @@ export default function DurinsWorksApp() {
   const [density, setDensity] = useState('comfortable');
   const effectiveZoom = fontScale * (DENSITY_ZOOM[density] || 1.0);
 
+  // Single-document store (v2): the loaded doc, its version guard, and a once-per-session snapshot flag.
+  const stateRef = useRef(null);
+  const versionRef = useRef(1);
+  const snappedRef = useRef(false);
+
   // Inject fonts
   useEffect(() => {
     if (!document.getElementById('durins-works-fonts')) {
@@ -1017,39 +1064,30 @@ export default function DurinsWorksApp() {
     }
   }, []);
 
-  // Load all state from Supabase
+  // Load the single-document state (self-seeds from the constants on first run)
   useEffect(() => {
-    const loadAll = async () => {
+    const loadDoc = async () => {
       setLoading(true);
       try {
-        const [sRes, mRes, shopRes] = await Promise.all([
-          supabase.from('durins_works_action_statuses').select('*'),
-          supabase.from('durins_works_maintenance_completions').select('*'),
-          supabase.from('durins_works_shopping_items').select('*').order('sort_order').order('created_at'),
-        ]);
-        if (sRes.data) {
-          const map = {};
-          sRes.data.forEach(r => { map[r.action_id] = r.status; });
-          setStatuses(map);
+        let doc, version = 1;
+        const { data } = await supabase.from('durins_works_state').select('state, version').eq('id', 1).maybeSingle();
+        if (data && data.state && Array.isArray(data.state.systems) && data.state.systems.length) {
+          doc = data.state; version = data.version || 1;
+        } else {
+          doc = buildSeedDoc();
+          const { data: ins } = await supabase.from('durins_works_state')
+            .upsert({ id: 1, state: doc, version: 1, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+            .select('version').maybeSingle();
+          version = (ins && ins.version) || 1;
         }
-        if (mRes.data) {
-          const map = {};
-          mRes.data.forEach(r => { map[r.task_id] = r.done_date; });
-          setMDone(map);
-        }
-        if (shopRes.data) {
-          if (shopRes.data.length === 0) {
-            // Seed with Excel items on first use
-            const { data: seeded } = await supabase.from('durins_works_shopping_items').insert(SHOPPING_SEED).select();
-            if (seeded) setShopItems(seeded);
-          } else {
-            setShopItems(shopRes.data);
-          }
-        }
+        stateRef.current = doc;
+        versionRef.current = version;
+        const { st, md, items } = hydrateDoc(doc);
+        setStatuses(st); setMDone(md); setShopItems(items);
       } catch(e) { console.error('Durin\'s Works load error:', e); }
       setLoading(false);
     };
-    loadAll();
+    loadDoc();
   }, []);
 
   // Handle pending navigation from Dashboard
@@ -1061,38 +1099,73 @@ export default function DurinsWorksApp() {
 
   const flash = () => { setSaved(false); setTimeout(() => setSaved(true), 900); };
 
-  const saveStatus = useCallback(async (actionId, status) => {
+  // Persist the whole document with an optimistic version guard + once-per-session snapshot.
+  const persist = useCallback(async (label) => {
     flash();
-    await supabase.from('durins_works_action_statuses').upsert({ action_id:actionId, status, updated_at:new Date().toISOString() }, { onConflict:'action_id' });
+    const doc = stateRef.current;
+    if (!doc) return;
+    try {
+      if (!snappedRef.current) {
+        snappedRef.current = true;
+        await supabase.from('durins_works_snapshots').insert({ label: label || ('auto ' + today()), state: doc });
+      }
+      const guard = versionRef.current;
+      const { data } = await supabase.from('durins_works_state')
+        .update({ state: doc, version: guard + 1, updated_at: new Date().toISOString() })
+        .eq('id', 1).eq('version', guard).select('version').maybeSingle();
+      if (data) { versionRef.current = data.version; return; }
+      // Version moved under us (another tab/session): refetch and rewrite once.
+      const { data: fresh } = await supabase.from('durins_works_state').select('version').eq('id', 1).maybeSingle();
+      const base = fresh ? fresh.version : guard;
+      await supabase.from('durins_works_state')
+        .update({ state: doc, version: base + 1, updated_at: new Date().toISOString() })
+        .eq('id', 1);
+      versionRef.current = base + 1;
+    } catch(e) { console.error('Durin\'s Works persist error:', e); }
   }, []);
+
+  const saveStatus = useCallback(async (actionId, status) => {
+    const doc = stateRef.current;
+    if (doc) doc.systems.forEach(s => s.actions.forEach(a => { if (a.id === actionId) a.status = status; }));
+    await persist('statut ' + actionId);
+  }, [persist]);
 
   const toggleMaint = useCallback(async (taskId, checked) => {
     const doneDate = checked ? today() : null;
     setMDone(prev => ({ ...prev, [taskId]: doneDate }));
-    flash();
-    await supabase.from('durins_works_maintenance_completions').upsert(
-      { task_id:taskId, done_date:doneDate, year:new Date().getFullYear(), updated_at:new Date().toISOString() },
-      { onConflict:'task_id' }
-    );
-  }, []);
+    const doc = stateRef.current;
+    if (doc) {
+      const m = (doc.maintenance || []).find(x => x.id === taskId);
+      if (m) {
+        m.history = m.history || [];
+        if (checked) { if (!m.history.some(h => h.date === today())) m.history.push({ date: today() }); }
+        else { m.history = m.history.filter(h => h.date !== today()); }
+      }
+    }
+    await persist('entretien ' + taskId);
+  }, [persist]);
 
   const saveShopItem = useCallback(async (id, updates) => {
     setShopItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
-    flash();
-    await supabase.from('durins_works_shopping_items').update({ ...updates, updated_at:new Date().toISOString() }).eq('id', id);
-  }, []);
+    const doc = stateRef.current;
+    if (doc) doc.materials = (doc.materials || []).map(i => i.id === id ? { ...i, ...updates } : i);
+    await persist('achat maj');
+  }, [persist]);
 
   const addShopItem = useCallback(async (item) => {
-    flash();
-    const { data } = await supabase.from('durins_works_shopping_items').insert({ ...item, sort_order:Date.now() }).select().single();
-    if (data) setShopItems(prev => [...prev, data]);
-  }, []);
+    const row = { id: 'm' + Date.now(), sort_order: Date.now(), bought: false, ...item };
+    setShopItems(prev => [...prev, row]);
+    const doc = stateRef.current;
+    if (doc) doc.materials = [...(doc.materials || []), row];
+    await persist('achat ajout');
+  }, [persist]);
 
   const deleteShopItem = useCallback(async (id) => {
     setShopItems(prev => prev.filter(i => i.id !== id));
-    flash();
-    await supabase.from('durins_works_shopping_items').delete().eq('id', id);
-  }, []);
+    const doc = stateRef.current;
+    if (doc) doc.materials = (doc.materials || []).filter(i => i.id !== id);
+    await persist('achat suppr');
+  }, [persist]);
 
   const handleGoToAction = (actionId, sysId) => {
     setPendingGoTo({ actionId, sysId });

@@ -1,4 +1,4 @@
-# Palantír 2.0 — Session 6 Report (Today + Activity; cutover M4 held)
+# Palantír 2.0: Session 6 Report (Today + Activity; cutover M4 held)
 
 Date: 2026-06-19 (Opus, Cowork). Project `ngdbtgsbtyfghdyqbazj`. Two new surfaces on the v2 app
 at `/palantir2`. v1 at `/palantir` untouched throughout (`App.jsx` byte-identical, 252,942 bytes,
@@ -63,7 +63,7 @@ suppresses the app's own realtime echo, undo over confirm, no `window.confirm`. 
 - **Build:** green `vite build` to a temp outDir, 107 modules (was 104 in 5b; +TaskRow, Today,
   Activity), v1 and v2 both bundled. Only warning is the pre-existing v1 `App.jsx` duplicate
   `position` key (out of scope, flagged since 5a).
-- **Grammar:** 7/7 node assertions — `w/o` week-of, `m/o` month-of, `> output:` route, `RISK:` flag
+- **Grammar:** 7/7 node assertions: `w/o` week-of, `m/o` month-of, `> output:` route, `RISK:` flag
   kind, non-month guard ("Plan 3" not a date), the new `Dorval:` file route with accented `@me` and
   `tbd`, and a plain title left untouched. No regression in existing tokens.
 - **Reversible live round-trip** (file `p01`): inserted a throwaway captured task with an exact

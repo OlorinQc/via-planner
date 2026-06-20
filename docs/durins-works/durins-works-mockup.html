@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Durin's Works · Maquette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080a10; --s1:#0f1219; --s2:#141824; --s3:#1a1f2e;
+    --bd:rgba(255,255,255,0.06); --bd2:rgba(255,255,255,0.11);
+    --tx:#dde1ec; --tx2:#7e8a9e; --tx3:#3e4a5a;
+    --acc:#5b9cf6; --acc2:#a8b8d0;
+    --g:#3fb68b; --y:#d4922a; --r:#d95f5f;
+    --hdr:#0a0c14;
+    --font:'IBM Plex Sans',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --serif:'Cinzel',serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#050507;font-family:var(--font);color:var(--tx);
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px 12px 60px}
+  .lede{max-width:412px;text-align:center;margin-bottom:18px}
+  .lede h1{font-family:var(--serif);font-weight:600;font-size:18px;letter-spacing:.06em;color:var(--acc2);margin:0 0 6px}
+  .lede p{font-size:12.5px;line-height:1.6;color:var(--tx2);margin:0}
+  .lede .hint{font-size:11px;color:var(--tx3);margin-top:8px}
+
+  /* phone frame */
+  .phone{width:412px;max-width:100%;height:min(840px,86vh);background:var(--bg);
+    border:1px solid var(--bd2);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 0 0 8px #0a0b10, 0 26px 60px rgba(0,0,0,.6)}
+  .top{height:50px;flex-shrink:0;background:var(--hdr);border-bottom:1px solid var(--bd);
+    display:flex;align-items:center;gap:10px;padding:0 14px}
+  .os{background:rgba(91,156,246,0.12);border:1px solid rgba(91,156,246,0.2);border-radius:6px;
+    padding:4px 9px;font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.02em}
+  .brand{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--acc2);letter-spacing:.06em}
+  .plus{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--bd2);
+    background:var(--s2);color:var(--acc);font-size:18px;display:flex;align-items:center;justify-content:center}
+
+  .view{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .pad{padding:14px 14px 20px}
+
+  .tabs{height:60px;flex-shrink:0;background:var(--hdr);border-top:1px solid var(--bd);
+    display:flex;align-items:stretch}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    color:var(--tx3);font-size:10px;cursor:pointer;border:none;background:none;font-family:var(--font)}
+  .tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .tab.on{color:var(--acc)}
+
+  .scope{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.07em;text-transform:uppercase;margin:2px 0 10px}
+  .scope .sub{display:block;color:var(--tx3);font-weight:400;letter-spacing:.02em;text-transform:none;font-size:11px;margin-top:3px}
+
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:13px 14px;margin-bottom:9px;cursor:pointer;transition:border-color .15s}
+  .card:active{border-color:var(--bd2)}
+  .card.lft{border-left-width:3px}
+  .row{display:flex;align-items:center;gap:8px}
+  .ttl{font-size:14.5px;font-weight:600;color:var(--tx);line-height:1.3}
+  .sub{font-size:11.5px;color:var(--tx2);line-height:1.5}
+  .meta{font-size:11px;color:var(--tx3)}
+  .chev{margin-left:auto;color:var(--tx3);font-size:18px}
+
+  .pill{border-radius:11px;padding:2px 8px;font-size:9.5px;font-weight:600;white-space:nowrap;display:inline-block}
+  .chip{font-size:10px;font-family:var(--mono);background:var(--s3);color:var(--acc);padding:2px 6px;border-radius:4px}
+  .bar{height:5px;border-radius:3px;background:var(--s3);overflow:hidden;margin-top:9px}
+  .bar > i{display:block;height:100%;background:var(--g)}
+
+  .back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--tx2);
+    font-size:12px;font-family:var(--font);padding:0;margin-bottom:12px;cursor:pointer}
+  .h2{font-size:18px;font-weight:700;color:var(--tx);line-height:1.25;margin:0 0 4px}
+  .acc-box{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:11px 12px;margin-bottom:10px}
+  .lab{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .txt{font-size:12.5px;color:var(--tx2);line-height:1.65}
+
+  .step{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--bd)}
+  .num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--s3);border:1px solid var(--bd2);
+    color:var(--acc);font-size:12px;font-weight:600;font-family:var(--mono);display:flex;align-items:center;justify-content:center}
+  .step-body{flex:1}
+  .step-body .t{font-size:13px;color:var(--tx);line-height:1.45}
+  .step-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .mat-chip{font-size:10.5px;background:rgba(91,156,246,0.10);color:var(--acc);border:1px solid rgba(91,156,246,0.22);padding:2px 7px;border-radius:5px}
+  .warn-chip{font-size:10.5px;background:rgba(217,95,95,0.11);color:#e98a78;border:1px solid rgba(217,95,95,0.25);padding:2px 7px;border-radius:5px}
+
+  .danger-box{background:rgba(217,95,95,0.07);border:1px solid rgba(217,95,95,0.22);border-radius:9px;padding:11px 12px;margin-bottom:12px}
+  .danger-box .lab{color:var(--r)}
+  .danger-box ul{margin:0;padding-left:16px}
+  .danger-box li{font-size:12px;color:#e9b0a6;line-height:1.6;margin-bottom:3px}
+
+  .mat-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bd)}
+  .mat-row .a{flex:1;font-size:12.5px;color:var(--tx)}
+  .mat-row .q{font-size:11px;color:var(--tx3);font-family:var(--mono)}
+  .mat-row .p{font-size:12px;color:var(--y);font-family:var(--mono);min-width:54px;text-align:right}
+  .store-h{display:flex;align-items:center;gap:8px;margin:16px 0 4px}
+  .store-h .n{font-size:13px;font-weight:700;color:var(--tx)}
+  .store-h .s{font-size:11px;color:var(--y);font-family:var(--mono);margin-left:auto}
+
+  .seg{display:flex;gap:0;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:2px;margin-bottom:14px}
+  .seg button{flex:1;border:none;background:none;color:var(--tx3);font-size:11.5px;padding:6px;border-radius:6px;font-family:var(--font);cursor:pointer}
+  .seg button.on{background:var(--s3);color:var(--tx)}
+
+  .note{font-size:11.5px;color:var(--tx3);font-style:italic;line-height:1.5;margin-bottom:14px}
+  .check{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;background:var(--s1);border:1px solid var(--bd);border-radius:9px;margin-bottom:7px}
+  .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--bd2);flex-shrink:0;margin-top:1px}
+  .add-line{display:flex;align-items:center;gap:8px;background:var(--s1);border:1px dashed var(--bd2);border-radius:8px;padding:10px 12px;color:var(--tx3);font-size:12px;margin-top:8px}
+  .total{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--bd2);border-radius:9px;padding:11px 13px;margin-top:14px}
+  .total .l{font-size:12px;color:var(--tx2)}
+  .total .v{font-size:16px;color:var(--y);font-family:var(--mono);font-weight:600}
+  .planbadge{font-size:10px;padding:2px 7px;border-radius:5px}
+  .ready{background:rgba(63,182,139,0.12);color:var(--g)}
+  .todo{background:rgba(62,74,90,0.18);color:var(--tx2)}
+</style>
+</head>
+<body>
+  <div class="lede">
+    <h1>Durin's Works · Maquette interactive</h1>
+    <p>Cliquable. Touche les onglets en bas, ouvre un projet, puis une action pour voir son plan détaillé (étapes, matériaux, précautions).</p>
+    <p class="hint">Maquette de direction, pas le produit final. Contenu réel de 8235 Orégon, deux plans d'action rédigés à titre d'exemple.</p>
+  </div>
+
+  <div class="phone">
+    <div class="top">
+      <span class="os">KarlOS</span>
+      <span class="brand">Durin's Works</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="view" id="view"></div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+
+<script>
+const PRI = {
+  'Urgent':{bg:'rgba(217,95,95,0.18)',tx:'#d95f5f'},
+  'Danger':{bg:'rgba(217,95,95,0.11)',tx:'#e07050'},
+  'Défaut':{bg:'rgba(212,146,42,0.13)',tx:'#d4922a'},
+  'Avertissement':{bg:'rgba(212,186,42,0.10)',tx:'#b8960a'},
+  'Surveillance':{bg:'rgba(91,156,246,0.10)',tx:'#5b9cf6'},
+};
+function priPill(p){const c=PRI[p]||PRI['Surveillance'];return `<span class="pill" style="background:${c.bg};color:${c.tx}">${p}</span>`;}
+function money(n){return n==null?'à chiffrer':n.toLocaleString('fr-CA',{style:'currency',currency:'CAD',maximumFractionDigits:0});}
+
+const DATA = {
+ projects:[
+  {id:'s4',name:'Fondations et dalle de béton',zone:'Fondation / sous-sol',pri:'Urgent',done:1,total:5,
+   sait:"Historique de réparations de fissures (1994, 2016, ~2023). Attaches de coffrage non scellées avec efflorescence. Trou dans la dalle du sous-sol.",
+   pourquoi:"Les fissures actives ou non scellées permettent l'infiltration d'eau. Une expertise confirme l'ampleur des correctifs.",
+   actions:[
+    {id:'a4-1',desc:"Mandater un spécialiste en fondations pour évaluer fissures et efflorescence",pri:'Urgent',planned:false},
+    {id:'a4-2',desc:"Couper et sceller les attaches de coffrage visibles non protégées",pri:'Urgent',planned:false},
+    {id:'a4-4',desc:"Réparer le trou dans la dalle du sous-sol (atelier)",pri:'Défaut',planned:false},
+    {id:'a4-5',desc:"Colmater les fissures de la dalle de béton avant",pri:'Défaut',planned:false},
+   ]},
+  {id:'s11',name:'Salles de bain',zone:'Étage / sous-sol',pri:'Défaut',done:0,total:3,
+   sait:"Salle de bain RDC: ne pas utiliser comme douche (murs en gypse non protégés), dosseret absent autour du bain.",
+   pourquoi:"L'utilisation d'une douche sur des murs non protégés causerait des dégâts d'eau immédiats.",
+   actions:[
+    {id:'a11-1',desc:"Refaire la protection murale du bain pour permettre l'usage comme douche",pri:'Défaut',planned:true,
+     why:"L'utilisation d'une douche sur des murs en gypse non protégés causerait des dégâts d'eau immédiats.",
+     cautions:["Couper l'eau de la salle de bain avant tout travail de plomberie","Ne pas utiliser le bain comme douche tant que la protection n'est pas posée","Porter un masque lors du retrait du gyproc (poussière, moisissure possible)"],
+     steps:[
+      {t:"Couper l'alimentation d'eau de la salle de bain",caution:"Vérifier que l'eau est bien coupée"},
+      {t:"Retirer le gyproc endommagé autour du bain",material:"Sac à débris + couteau à gyproc"},
+      {t:"Détacher la plomberie apparente du bain",material:"Clé à molette"},
+      {t:"Poser une membrane d'étanchéité sur les montants",material:"Membrane d'étanchéité (Kerdi ou équiv.)"},
+      {t:"Installer les panneaux acryliques direct-to-stud",material:"Kit panneaux acryliques bain-douche"},
+      {t:"Reconnecter la plomberie et tester l'absence de fuite"},
+      {t:"Sceller tous les joints au scellant sanitaire",material:"Scellant silicone sanitaire"},
+     ],
+     materials:[{a:"Kit panneaux acryliques bain-douche",s:'Rona',p:null,q:1},{a:"Membrane d'étanchéité",s:'Rona',p:null,q:1},{a:"Scellant silicone sanitaire",s:'Rona',p:18,q:1}],
+    },
+    {id:'a11-2',desc:"Maintenir et refaire le joint de scellant autour du bain",pri:'Défaut',planned:false},
+    {id:'a11-3',desc:"Test d'étanchéité complet de la douche du sous-sol",pri:'Défaut',planned:false},
+   ]},
+  {id:'s7',name:'Électricité',zone:'Maison',pri:'Danger',done:0,total:4,
+   sait:"Disjoncteurs non tous étiquetés. Deux jonctions aluminium-cuivre. Prises à risque (polarité, GFCI, peinture).",
+   pourquoi:"Ces correctifs touchent la sécurité des occupants et la conformité.",
+   actions:[
+    {id:'a7-4',desc:"Corriger les prises à risque (GFCI, polarité, prises peintes)",pri:'Danger',planned:true,
+     why:"Les prises près de la plomberie sans protection GFCI présentent un risque de choc électrique.",
+     cautions:["Couper l'électricité au panneau avant tout travail","Confirmer l'absence de tension avec un testeur avant de toucher les fils"],
+     steps:[
+      {t:"Couper le disjoncteur du circuit concerné",caution:"Couper au panneau, pas seulement l'interrupteur"},
+      {t:"Vérifier l'absence de tension à la prise",material:"Testeur de tension sans contact"},
+      {t:"Retirer l'ancienne prise et noter le câblage"},
+      {t:"Installer la prise GFCI (line / load respectés)",material:"Prise GFCI 15A"},
+      {t:"Rétablir le courant et tester (test / reset)"},
+     ],
+     materials:[{a:"Prise GFCI 15A",s:'Rona',p:25,q:2},{a:"Testeur de tension sans contact",s:'Canadian Tire',p:30,q:1}],
+    },
+    {id:'a7-2',desc:"Identifier et étiqueter tous les disjoncteurs",pri:'Danger',planned:false},
+    {id:'a7-1',desc:"Ajouter des attaches au mât électrique",pri:'Défaut',planned:false},
+    {id:'a7-3',desc:"Vérifier les jonctions aluminium-cuivre",pri:'Avertissement',planned:false},
+   ]},
+  {id:'s6',name:'Plomberie',zone:'Maison',pri:'Urgent',done:0,total:4,
+   sait:"Valve principale rotative à remplacer. Chauffe-eau 2015 en fin de vie. Conduits oxydés.",
+   pourquoi:"Le chauffe-eau en fin de vie représente un risque de dégât d'eau si non remplacé.",
+   actions:[
+    {id:'a6-4',desc:"Remplacer le chauffe-eau 2015 et raccorder le bac de sûreté",pri:'Urgent',planned:false},
+    {id:'a6-1',desc:"Remplacer la valve principale rotative par une valve à levier",pri:'Défaut',planned:false},
+    {id:'a6-5',desc:"Faire vérifier les conduits oxydés par un maître plombier",pri:'Urgent',planned:false},
+   ]},
+  {id:'s9',name:'Ventilation (hotte, conduits)',zone:'Cuisine / entretoit',pri:'Urgent',done:0,total:4,
+   sait:"La hotte évacue dans l'entretoit (urgence). Conduit de sécheuse en plastique. Conduits non isolés.",
+   pourquoi:"La hotte dans l'entretoit est un risque majeur d'humidité et de moisissures.",
+   actions:[
+    {id:'a9-1',desc:"Corriger l'évacuation de la hotte vers une sortie murale",pri:'Urgent',planned:false},
+    {id:'a9-2',desc:"Remplacer le conduit de sécheuse en plastique par du rigide",pri:'Défaut',planned:false},
+   ]},
+  {id:'s1',name:'Drainage extérieur et terrassement',zone:'Extérieur',pri:'Urgent',done:0,total:3,
+   sait:"Pentes négatives autour de la maison. Dégagement sol/revêtement insuffisant. Margelles absentes.",
+   pourquoi:"L'eau qui revient vers la maison sollicite anormalement les fondations.",
+   actions:[
+    {id:'a1-1',desc:"Corriger les pentes négatives (pente min. 5% sur 2 m)",pri:'Urgent',planned:false},
+    {id:'a1-2',desc:"Abaisser le sol et installer des margelles aux fenêtres basses",pri:'Urgent',planned:false},
+   ]},
+ ],
+ materials:[
+  {a:"SEKTION base cabinet 76x61",s:'IKEA',p:224,q:2,proj:'Îlot de cuisine'},
+  {a:"LOCKEBO comptoir verre",s:'IKEA',p:80,q:20,proj:'Îlot de cuisine'},
+  {a:"Kit panneaux acryliques bain-douche",s:'Rona',p:null,q:1,proj:'Salle de bain'},
+  {a:"Membrane d'étanchéité",s:'Rona',p:null,q:1,proj:'Salle de bain'},
+  {a:"Scellant silicone sanitaire",s:'Rona',p:18,q:1,proj:'Salle de bain'},
+  {a:"Prise GFCI 15A",s:'Rona',p:25,q:2,proj:'Électricité'},
+  {a:"Valve à levier (entrée d'eau)",s:'Rona',p:null,q:1,proj:'Plomberie'},
+  {a:"Conduit rigide galvanisé + sortie murale",s:'Home Depot',p:null,q:1,proj:'Hotte'},
+  {a:"Testeur de tension sans contact",s:'Canadian Tire',p:30,q:1,proj:'Électricité'},
+  {a:"Avertisseur fumée / CO",s:'Canadian Tire',p:45,q:1,proj:'Sécurité'},
+ ],
+ today:[
+  {proj:'Électricité',id:'a7-4',desc:"Corriger les prises à risque (GFCI)",pri:'Danger'},
+  {proj:'Salle de bain',id:'a11-2',desc:"Refaire le joint de scellant autour du bain",pri:'Défaut'},
+ ],
+ buyToday:[{a:"Prise GFCI 15A",s:'Rona',p:25,q:2},{a:"Testeur de tension sans contact",s:'Canadian Tire',p:30,q:1}],
+ entretien:[
+  {task:"Nettoyer les gouttières",zone:'Extérieur',season:'Printemps + automne'},
+  {task:"Inspecter le calfeutrage des fenêtres",zone:'Fenêtres',season:'Printemps'},
+  {task:"Vérifier les équerres et le bois du patio",zone:'Patio',season:'Printemps'},
+  {task:"Tester les prises GFCI / DDFT",zone:'Électricité',season:'Printemps'},
+  {task:"Maintenir la distance rideaux / calorifères",zone:'Salon',season:"Toute l'année"},
+ ],
+};
+
+// ── navigation ──
+let stack=['projets'];
+const TABS=[
+ {id:'projets',label:'Projets',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
+ {id:'aujourdhui',label:"Aujourd'hui",icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>'},
+ {id:'achats',label:'Achats',icon:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>'},
+ {id:'entretien',label:'Entretien',icon:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>'},
+];
+function top(){return stack[stack.length-1];}
+function go(id){stack.push(id);render();}
+function setTab(id){stack=[id];render();}
+function back(){stack.pop();render();}
+
+function render(){
+ const t=top();
+ const v=document.getElementById('view');
+ let html='';
+ if(t==='projets') html=projetsScreen();
+ else if(t==='aujourdhui') html=aujourdScreen();
+ else if(t==='achats') html=achatsScreen();
+ else if(t==='entretien') html=entretienScreen();
+ else if(t.startsWith('project:')) html=projectScreen(t.split(':')[1]);
+ else if(t.startsWith('action:')){const[_,p,a]=t.split(':');html=actionScreen(p,a);}
+ v.innerHTML=html;v.scrollTop=0;
+ const rootTab=stack[0];
+ document.getElementById('tabs').innerHTML=TABS.map(tb=>
+   `<button class="tab ${tb.id===rootTab?'on':''}" onclick="setTab('${tb.id}')">
+      <svg viewBox="0 0 24 24">${tb.icon}</svg>${tb.label}</button>`).join('');
+}
+
+// ── screens ──
+function projetsScreen(){
+ const cards=DATA.projects.map(p=>{
+  const c=PRI[p.pri]||PRI['Surveillance'];
+  return `<div class="card lft" style="border-left-color:${c.tx}" onclick="go('project:${p.id}')">
+    <div class="row"><div class="ttl">${p.name}</div><span class="chev">›</span></div>
+    <div class="sub" style="margin:3px 0 8px">${p.zone}</div>
+    <div class="row">${priPill(p.pri)}<span class="meta">${p.actions.length} actions</span>
+      <span class="meta" style="margin-left:auto;font-family:var(--mono)">${p.done}/${p.total}</span></div>
+    <div class="bar"><i style="width:${Math.round(p.done/p.total*100)}%"></i></div>
+  </div>`;}).join('');
+ return `<div class="pad"><div class="scope">Projets<span class="sub">Choisis un chantier pour voir son plan et ses matériaux</span></div>${cards}</div>`;
+}
+
+function projectScreen(id){
+ const p=DATA.projects.find(x=>x.id===id);
+ const c=PRI[p.pri]||PRI['Surveillance'];
+ const acts=p.actions.map(a=>{
+  const ac=PRI[a.pri]||PRI['Surveillance'];
+  const badge=a.planned?`<span class="planbadge ready">Plan prêt · ${a.steps.length} étapes</span>`:`<span class="planbadge todo">Plan à venir</span>`;
+  return `<div class="card lft" style="border-left-color:${ac.tx}" onclick="go('action:${p.id}:${a.id}')">
+    <div class="row"><div class="sub" style="color:var(--tx);font-weight:500;flex:1">${a.desc}</div><span class="chev">›</span></div>
+    <div class="row" style="margin-top:7px">${priPill(a.pri)}${badge}</div></div>`;}).join('');
+ const mats=DATA.materials.filter(m=>matchProj(m.proj,p.name));
+ const matTotal=mats.reduce((s,m)=>s+(m.p?m.p*(m.q||1):0),0);
+ const matList=mats.length?mats.map(m=>matRow(m)).join('')+
+   `<div class="total"><span class="l">Matériaux de ce projet</span><span class="v">${money(matTotal)}</span></div>`
+   :`<div class="note">Aucun matériau lié pour l'instant.</div>`;
+ return `<div class="pad">
+   <button class="back" onclick="back()">‹ Projets</button>
+   <div class="row" style="margin-bottom:4px">${priPill(p.pri)}<span class="meta" style="margin-left:auto;font-family:var(--mono)">${p.done}/${p.total} fait</span></div>
+   <h2 class="h2">${p.name}</h2><div class="sub" style="margin-bottom:12px">${p.zone}</div>
+   <div class="acc-box"><div class="lab">Ce que l'on sait</div><div class="txt">${p.sait}</div></div>
+   <div class="acc-box"><div class="lab">Pourquoi c'est important</div><div class="txt">${p.pourquoi}</div></div>
+   <div class="lab" style="margin:18px 0 8px">Étapes du projet (touche une action pour son plan)</div>
+   ${acts}
+   <div class="lab" style="margin:18px 0 8px">Matériaux du projet</div>
+   ${matList}
+ </div>`;
+}
+
+function actionScreen(pid,aid){
+ const p=DATA.projects.find(x=>x.id===pid);
+ const a=p.actions.find(x=>x.id===aid);
+ if(!a.planned){
+  return `<div class="pad"><button class="back" onclick="back()">‹ ${p.name}</button>
+   <h2 class="h2">${a.desc}</h2><div class="row" style="margin:6px 0 16px">${priPill(a.pri)}</div>
+   <div class="acc-box" style="text-align:center;padding:24px 16px">
+     <div style="font-size:13px;color:var(--tx2);line-height:1.6">Le plan détaillé de cette action n'est pas encore rédigé.</div>
+     <div class="add-line" style="justify-content:center;margin-top:14px;border-style:solid;color:var(--acc)">+ Rédiger le plan avec Claude (recherche)</div>
+     <div style="font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.5">Étapes, matériaux et précautions seront injectés selon le format standard.</div>
+   </div></div>`;
+ }
+ const steps=a.steps.map((s,i)=>`<div class="step"><div class="num">${i+1}</div><div class="step-body">
+    <div class="t">${s.t}</div>
+    <div class="step-chips">${s.material?`<span class="mat-chip">⛬ ${s.material}</span>`:''}${s.caution?`<span class="warn-chip">⚠ ${s.caution}</span>`:''}</div>
+   </div></div>`).join('');
+ const cautions=a.cautions?`<div class="danger-box"><div class="lab">Précautions</div><ul>${a.cautions.map(c=>`<li>${c}</li>`).join('')}</ul></div>`:'';
+ const matTotal=a.materials.reduce((s,m)=>s+(m.p?m.p*(m.q||1):0),0);
+ const mats=a.materials.map(m=>matRow(m)).join('')+
+   `<div class="total"><span class="l">Matériaux de cette action</span><span class="v">${money(matTotal)}</span></div>`;
+ return `<div class="pad">
+   <button class="back" onclick="back()">‹ ${p.name}</button>
+   <div class="row" style="margin-bottom:4px">${priPill(a.pri)}<span class="planbadge ready" style="margin-left:auto">Plan prêt</span></div>
+   <h2 class="h2">${a.desc}</h2>
+   ${cautions}
+   <div class="lab" style="margin:6px 0 4px">Étapes</div>
+   <div>${steps}</div>
+   <div class="lab" style="margin:18px 0 6px">Matériaux</div>
+   ${mats}
+   <div class="add-line">+ Ajouter un matériau</div>
+   <div class="acc-box" style="margin-top:16px"><div class="lab">Pourquoi</div><div class="txt">${a.why||p.pourquoi}</div></div>
+   <div class="lab" style="margin:16px 0 6px">Journal</div>
+   <div class="add-line">+ Noter (ex: maçon appelé, devis 1200, RDV le 24)</div>
+ </div>`;
+}
+
+function aujourdScreen(){
+ const acts=DATA.today.map(t=>{const c=PRI[t.pri]||PRI['Surveillance'];
+   return `<div class="card lft" style="border-left-color:${c.tx}">
+     <div class="meta" style="color:${c.tx};font-weight:600;margin-bottom:3px">${t.proj}</div>
+     <div class="row"><div class="sub" style="color:var(--tx);flex:1">${t.desc}</div><div class="box"></div></div></div>`;}).join('');
+ const total=DATA.buyToday.reduce((s,m)=>s+(m.p?m.p*(m.q||1):0),0);
+ const buy=DATA.buyToday.map(m=>matRow(m)).join('')+
+   `<div class="total"><span class="l">À acheter aujourd'hui</span><span class="v">${money(total)}</span></div>`;
+ return `<div class="pad">
+   <div class="scope">Aujourd'hui<span class="sub">Optionnel. Planifie une journée seulement quand tu le veux.</span></div>
+   <div class="note">Tu n'es pas obligé de planifier à la journée. Cette vue se remplit quand tu programmes une action depuis un projet.</div>
+   <div class="lab" style="margin:4px 0 8px">À faire aujourd'hui</div>${acts}
+   <div class="lab" style="margin:18px 0 8px">À acheter aujourd'hui</div>${buy}
+ </div>`;
+}
+
+let achatsMode='magasin';
+function setAchats(m){achatsMode=m;render();}
+function achatsScreen(){
+ const groups={};
+ const key=achatsMode==='magasin'?'s':'proj';
+ DATA.materials.forEach(m=>{(groups[m[key]]=groups[m[key]]||[]).push(m);});
+ let body='';let grand=0;
+ Object.keys(groups).forEach(g=>{
+   const items=groups[g];const sub=items.reduce((s,m)=>s+(m.p?m.p*(m.q||1):0),0);grand+=sub;
+   body+=`<div class="store-h"><span class="n">${g}</span><span class="s">${money(sub)}</span></div>`+items.map(m=>matRow(m,true)).join('');
+ });
+ return `<div class="pad">
+   <div class="scope">Achats<span class="sub">Tous les matériaux, tous projets confondus. Pratique pour acheter en lot.</span></div>
+   <div class="seg">
+     <button class="${achatsMode==='magasin'?'on':''}" onclick="setAchats('magasin')">Par magasin</button>
+     <button class="${achatsMode==='projet'?'on':''}" onclick="setAchats('projet')">Par projet</button>
+   </div>
+   ${body}
+   <div class="total"><span class="l">Total estimé (articles chiffrés)</span><span class="v">${money(grand)}</span></div>
+ </div>`;
+}
+
+function entretienScreen(){
+ const groups={};
+ DATA.entretien.forEach(e=>{(groups[e.season]=groups[e.season]||[]).push(e);});
+ let body='';
+ Object.keys(groups).forEach(s=>{
+   body+=`<div class="lab" style="margin:16px 0 8px">${s}</div>`+groups[s].map(e=>
+     `<div class="check"><div class="box"></div><div style="flex:1">
+        <div style="font-size:13px;color:var(--tx)">${e.task}</div>
+        <div class="meta" style="margin-top:2px">${e.zone}</div></div></div>`).join('');
+ });
+ return `<div class="pad">
+   <div class="scope">Entretien<span class="sub">Saisonnier. Sans coût, sans date. Séparé des projets et des achats.</span></div>
+   <div class="note">Ce sont des gestes récurrents par saison. Cochés, ils reviennent au prochain cycle.</div>
+   ${body}
+ </div>`;
+}
+
+// ── helpers ──
+function matRow(m,showProj){
+ return `<div class="mat-row"><span class="a">${m.a}${showProj&&m.proj?` <span class="meta">· ${m.proj}</span>`:''}</span>
+   ${m.q&&m.q>1?`<span class="q">x${m.q}</span>`:''}<span class="p">${money(m.p?m.p*(m.q||1):null)}</span></div>`;
+}
+function matchProj(matProj,projName){
+ const map={'Salle de bain':'Salles de bain','Électricité':'Électricité','Plomberie':'Plomberie','Hotte':'Ventilation','Îlot de cuisine':'cuisine'};
+ const norm=map[matProj]||matProj;
+ return projName.toLowerCase().includes(norm.toLowerCase())||matProj.toLowerCase().split(' ')[0]&&projName.toLowerCase().includes(matProj.toLowerCase().split(' ')[0]);
+}
+
+render();
+</script>
+</body>
+</html>
