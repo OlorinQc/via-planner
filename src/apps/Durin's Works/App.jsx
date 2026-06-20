@@ -334,410 +334,296 @@ const TimingBadge = ({ t }) => {
   return <span style={{ ...ss.pill(c.bg, c.tx), fontSize:9 }}>{t}</span>;
 };
 
-// ─── RESIZE HANDLE ────────────────────────────────────────────────────────────
-function ResizeHandle({ currentWidth, onResizeLive, onResizeEnd, min=200, max=560, reversed=false }) {
-  const onMouseDown = e => {
-    e.preventDefault();
-    const startX = e.clientX, startW = currentWidth;
-    const clamp = v => Math.max(min, Math.min(max, v));
-    const delta = reversed ? startX - e.clientX : e.clientX - startX;
-    const onMove = e => { const d = reversed ? startX - e.clientX : e.clientX - startX; onResizeLive(clamp(startW + d)); };
-    const onUp = e => { const d = reversed ? startX - e.clientX : e.clientX - startX; onResizeEnd(clamp(startW + d)); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  };
+// ─── RESPONSIVE SHELL HOOK ──────────────────────────────────────────────────────
+function useIsDesktop() {
+  const q = '(min-width: 820px)';
+  const get = () => typeof window !== 'undefined' && window.matchMedia(q).matches;
+  const [d, setD] = useState(get);
+  useEffect(() => {
+    const mq = window.matchMedia(q);
+    const on = e => setD(e.matches);
+    if (mq.addEventListener) mq.addEventListener('change', on); else mq.addListener(on);
+    return () => { if (mq.removeEventListener) mq.removeEventListener('change', on); else mq.removeListener(on); };
+  }, []);
+  return d;
+}
+
+// ─── PROJETS HELPERS ────────────────────────────────────────────────────────────
+const money = n => n == null ? 'à chiffrer' : n.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 });
+
+const sysProgress = (sys, statuses) => {
+  const total = sys.actions.length;
+  const done = sys.actions.filter(a => (statuses[a.id] || a.status) === 'Fait').length;
+  return { done, total, pct: total ? Math.round(done / total * 100) : 0 };
+};
+
+const orderActions = acts => acts.slice().sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9));
+
+// Interim material-to-project association for Session 1. The canonical link is the
+// union of action.materialIds (blueprint 3.3), but those are seeded empty until
+// Session 4, so we fall back to the material's existing project text.
+const MAT_PROJECT_TO_SYS = {
+  'Îlot de cuisine':'s14', 'Peinture intérieure':'s14', 'Salle de bain étage':'s11',
+  'Isolation entretoit':'s10', 'Hotte de cuisine':'s9', 'Sécurité incendie':'s8',
+  'Plomberie':'s6', 'Extérieur':'s2',
+};
+function projectMaterials(sys, materials) {
+  const ids = new Set(sys.actions.flatMap(a => a.materialIds || []));
+  let matched = ids.size ? materials.filter(m => ids.has(m.id)) : [];
+  if (!matched.length) {
+    matched = materials.filter(m => {
+      const mapped = MAT_PROJECT_TO_SYS[m.project];
+      if (mapped) return mapped === sys.id;
+      const p = (m.project || '').toLowerCase();
+      return p && sys.name.toLowerCase().includes(p);
+    });
+  }
+  const subtotal = matched.reduce((s, m) => s + (m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : 0), 0);
+  return { matched, subtotal };
+}
+
+const MatRow = ({ m }) => (
+  <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 0', borderBottom:`1px solid ${T.bd}` }}>
+    <span style={{ flex:1, fontSize:12.5, color:T.tx }}>{m.article}</span>
+    {m.qty > 1 && <span style={{ fontSize:11, color:T.tx3, fontFamily:T.mono }}>x{m.qty}</span>}
+    <span style={{ fontSize:12, color:T.y, fontFamily:T.mono, minWidth:60, textAlign:'right' }}>
+      {money(m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : null)}
+    </span>
+  </div>
+);
+
+const SubtotalRow = ({ label, value }) => (
+  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:T.s2, border:`1px solid ${T.bd2}`, borderRadius:9, padding:'11px 13px', marginTop:14 }}>
+    <span style={{ fontSize:12, color:T.tx2 }}>{label}</span>
+    <span style={{ fontSize:16, color:T.y, fontFamily:T.mono, fontWeight:600 }}>{money(value)}</span>
+  </div>
+);
+
+const PlanBadge = ({ steps }) => {
+  const ready = (steps?.length || 0) > 0;
   return (
-    <div onMouseDown={onMouseDown}
-      style={{ width:5, cursor:'col-resize', flexShrink:0, background:'transparent', transition:'background .15s', zIndex:10 }}
-      onMouseEnter={e => e.currentTarget.style.background = T.acc}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    />
+    <span style={{ fontSize:10, padding:'2px 7px', borderRadius:5,
+      background: ready ? 'rgba(63,182,139,0.12)' : 'rgba(62,74,90,0.18)', color: ready ? T.g : T.tx2 }}>
+      {ready ? `Plan prêt · ${steps.length} étapes` : 'Plan à venir'}
+    </span>
+  );
+};
+
+const SectionLab = ({ children, style }) => (
+  <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', margin:'0 0 8px', ...style }}>{children}</div>
+);
+
+const BackBtn = ({ label, onClick }) => (
+  <button onClick={onClick} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', color:T.tx2, fontSize:12, fontFamily:T.font, padding:0, marginBottom:12, cursor:'pointer' }}>‹ {label}</button>
+);
+
+// ─── PROJECT LIST ───────────────────────────────────────────────────────────────
+function ProjectList({ systems, statuses, selProject, onSelect, embedded }) {
+  const ordered = systems.slice().sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9));
+  return (
+    <div style={{ padding: embedded ? '10px' : '14px 14px 24px' }}>
+      {!embedded && <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.07em', textTransform:'uppercase', margin:'2px 0 4px' }}>Projets</div>}
+      {!embedded && <div style={{ fontSize:11, color:T.tx3, marginBottom:12 }}>Choisis un chantier pour voir son plan et ses matériaux.</div>}
+      {ordered.map(sys => {
+        const pc = PRIORITY[sys.priority] || PRIORITY['—'];
+        const { done, total, pct } = sysProgress(sys, statuses);
+        const sel = selProject === sys.id;
+        return (
+          <div key={sys.id} onClick={() => onSelect(sys.id)}
+            style={{ background: sel ? T.s2 : T.s1, border:`1px solid ${sel ? T.acc : T.bd}`, borderLeft:`3px solid ${pc.tx}`,
+              borderRadius:10, padding:'13px 14px', marginBottom:9, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ fontSize:14.5, fontWeight:600, color:T.tx, lineHeight:1.3, flex:1 }}>{sys.name}</div>
+              <span style={{ color:T.tx3, fontSize:18 }}>›</span>
+            </div>
+            <div style={{ fontSize:11.5, color:T.tx2, margin:'3px 0 9px' }}>{sys.zone}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <PriorityBadge p={sys.priority} />
+              <span style={{ fontSize:11, color:T.tx3 }}>{total} action{total > 1 ? 's' : ''}</span>
+              <span style={{ marginLeft:'auto', fontSize:11, color: done === total && total > 0 ? T.g : T.tx3, fontFamily:T.mono }}>{done}/{total}</span>
+            </div>
+            <div style={{ height:5, borderRadius:3, background:T.s3, overflow:'hidden', marginTop:9 }}>
+              <div style={{ height:'100%', width:`${pct}%`, background:T.g }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-// ─── DASHBOARD VIEW ───────────────────────────────────────────────────────────
-function DashboardView({ statuses, mDone, onGoToAction, onToggleMaint }) {
-  const allActions = useMemo(() => SYSTEMS.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name, sysPourquoi:s.pourquoi }))), []);
-  const done = allActions.filter(a => statuses[a.id] === 'Fait').length;
-  const inProg = allActions.filter(a => statuses[a.id] === 'En cours').length;
-  const urgentLeft = allActions.filter(a => isUrgentTiming(a.timing) && statuses[a.id] !== 'Fait').length;
-  const remaining = allActions.length - done;
-  const season = currentSeason();
-  const seasonTasks = MAINTENANCE.filter(t => seasonMatch(t.season, season));
-  const [selAction, setSelAction] = useState(null);
-  const [panelW, setPanelW] = useState(380);
-  const [liveW, setLiveW] = useState(null);
-  const panelWidth = liveW ?? panelW;
+// ─── PROJECT DASHBOARD ──────────────────────────────────────────────────────────
+function ProjectDashboard({ system, statuses, materials, onOpenAction, onBack }) {
+  const { done, total } = sysProgress(system, statuses);
+  const acts = orderActions(system.actions);
+  const { matched, subtotal } = projectMaterials(system, materials);
+  return (
+    <div style={{ padding:'14px 16px 28px', maxWidth:760, margin:'0 auto', width:'100%', boxSizing:'border-box' }}>
+      {onBack && <BackBtn label="Projets" onClick={onBack} />}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+        <PriorityBadge p={system.priority} />
+        <span style={{ marginLeft:'auto', fontSize:11, color: done === total && total > 0 ? T.g : T.tx3, fontFamily:T.mono }}>{done}/{total} fait</span>
+      </div>
+      <div style={{ fontSize:18, fontWeight:700, color:T.tx, lineHeight:1.25, marginBottom:4 }}>{system.name}</div>
+      <div style={{ fontSize:12, color:T.tx2, marginBottom:14 }}>{system.zone}</div>
 
-  const urgentActions = allActions
-    .filter(a => isUrgentTiming(a.timing) && statuses[a.id] !== 'Fait')
-    .sort((a,b) => (PRIORITY_ORDER[a.priority]||9) - (PRIORITY_ORDER[b.priority]||9))
-    .slice(0, 10);
-
-  const metrics = [
-    { num: urgentLeft, label:'Actions urgentes restantes', color: urgentLeft > 0 ? T.r : T.g },
-    { num: inProg, label:'En cours', color: inProg > 0 ? T.acc : T.tx2 },
-    { num: done, label:'Tâches complétées', color: T.g },
-    { num: remaining, label:'Tâches restantes', color: T.tx },
-    { num: SYSTEMS.length, label:'Systèmes', color: T.tx2 },
-  ];
-
-  const activeAction = selAction ? allActions.find(a => a.id === selAction) : null;
-
-  const MainContent = (
-    <div style={{ flex:1, overflowY:'auto', padding:'18px 20px', minWidth:0 }}>
-      {/* Metric cards */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:24 }}>
-        {metrics.map((m,i) => (
-          <div key={i} style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:8, padding:'12px 14px' }}>
-            <div style={{ fontSize:28, fontWeight:700, fontFamily:T.mono, color:m.color, marginBottom:2 }}>{m.num}</div>
-            <div style={{ fontSize:10, color:T.tx2, lineHeight:1.3 }}>{m.label}</div>
-          </div>
-        ))}
+      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginBottom:10 }}>
+        <SectionLab style={{ margin:'0 0 6px' }}>Ce que l'on sait</SectionLab>
+        <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.65 }}>{system.ceQueOnSait}</div>
+      </div>
+      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginBottom:10 }}>
+        <SectionLab style={{ margin:'0 0 6px' }}>Pourquoi c'est important</SectionLab>
+        <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.65 }}>{system.pourquoi}</div>
       </div>
 
-      {/* Urgent actions */}
-      {urgentActions.length > 0 && (
-        <>
-          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 }}>
-            Actions prioritaires restantes
+      <SectionLab style={{ margin:'18px 0 8px' }}>Actions à réaliser</SectionLab>
+      {acts.map(a => {
+        const ac = PRIORITY[a.priority] || PRIORITY['—'];
+        const st = statuses[a.id] || a.status;
+        return (
+          <div key={a.id} onClick={() => onOpenAction(a.id)}
+            style={{ background:T.s1, border:`1px solid ${T.bd}`, borderLeft:`3px solid ${ac.tx}`, borderRadius:10, padding:'12px 13px', marginBottom:8, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+              <div style={{ flex:1, fontSize:12.5, color: st === 'Fait' ? T.tx3 : T.tx, fontWeight:500, lineHeight:1.45, textDecoration: st === 'Fait' ? 'line-through' : 'none' }}>{a.desc}</div>
+              <span style={{ color:T.tx3, fontSize:18, lineHeight:1 }}>›</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:8, flexWrap:'wrap' }}>
+              <PriorityBadge p={a.priority} />
+              <PlanBadge steps={a.steps} />
+              <span style={{ marginLeft:'auto' }}><WStatusBadge s={st} /></span>
+            </div>
           </div>
-          <div style={{ marginBottom:22 }}>
-            {urgentActions.map(a => {
-              const isSel = selAction === a.id;
-              const pc = PRIORITY[a.priority] || PRIORITY['—'];
-              return (
-                <div key={a.id} onClick={() => setSelAction(prev => prev === a.id ? null : a.id)}
-                  style={{ padding:'9px 12px', background: isSel ? 'rgba(91,156,246,0.08)' : T.s1,
-                    border:`1px solid ${isSel ? T.acc : T.bd}`, borderLeft:`3px solid ${pc.tx}`,
-                    borderRadius:6, marginBottom:4, cursor:'pointer', transition:'background .1s' }}
-                  onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
-                  onMouseLeave={e => !isSel && (e.currentTarget.style.background = T.s1)}
-                >
-                  {/* Hierarchy breadcrumb */}
-                  <div style={{ fontSize:10, color:T.tx3, marginBottom:4, display:'flex', alignItems:'center', gap:5 }}>
-                    <span style={{ color:pc.tx, fontWeight:600 }}>{a.sysName}</span>
-                  </div>
-                  {/* Action description */}
-                  <div style={{ fontSize:12, color:T.tx, lineHeight:1.4, marginBottom:5 }}>
-                    {a.desc.length > 110 ? a.desc.substring(0,110) + '…' : a.desc}
-                  </div>
-                  <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
-                    <TimingBadge t={a.timing} />
-                    <PriorityBadge p={a.priority} />
-                    {a.composantes.slice(0,2).map(c => (
-                      <span key={c} style={{ fontSize:9, background:T.s3, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>
-                    ))}
-                  </div>
+        );
+      })}
+
+      <SectionLab style={{ margin:'18px 0 6px' }}>Matériaux du projet</SectionLab>
+      {matched.length ? (
+        <>
+          {matched.map(m => <MatRow key={m.id} m={m} />)}
+          <SubtotalRow label="Matériaux de ce projet" value={subtotal} />
+        </>
+      ) : (
+        <div style={{ fontSize:11.5, color:T.tx3, fontStyle:'italic' }}>Aucun matériau lié pour l'instant.</div>
+      )}
+    </div>
+  );
+}
+
+// ─── ACTION VIEW (basic, Session 1) ─────────────────────────────────────────────
+function ActionView({ system, action, status, onStatusChange, onBack, backLabel }) {
+  const wc = WSTATUS[status] || WSTATUS['À faire'];
+  const steps = action.steps || [];
+  const cautions = action.cautions || [];
+  return (
+    <div style={{ padding:'14px 16px 28px', maxWidth:760, margin:'0 auto', width:'100%', boxSizing:'border-box' }}>
+      <BackBtn label={backLabel || system.name} onClick={onBack} />
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+        <PriorityBadge p={action.priority} />
+        <span style={{ marginLeft:'auto' }}><PlanBadge steps={steps} /></span>
+      </div>
+      <div style={{ fontSize:18, fontWeight:700, color:T.tx, lineHeight:1.25, marginBottom:14 }}>{action.desc}</div>
+
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+        <span style={{ fontSize:11, fontWeight:600, color:T.tx3 }}>Statut</span>
+        <select value={status} onChange={e => onStatusChange(action.id, e.target.value)}
+          style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}44`, borderRadius:5, padding:'5px 9px', fontSize:12, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
+          {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
+        </select>
+      </div>
+
+      {cautions.length > 0 && (
+        <div style={{ background:'rgba(217,95,95,0.07)', border:`1px solid rgba(217,95,95,0.22)`, borderRadius:9, padding:'11px 12px', marginBottom:12 }}>
+          <SectionLab style={{ color:T.r, margin:'0 0 6px' }}>Précautions</SectionLab>
+          <ul style={{ margin:0, paddingLeft:16 }}>
+            {cautions.map((c, i) => <li key={i} style={{ fontSize:12, color:'#e9b0a6', lineHeight:1.6, marginBottom:3 }}>{c}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {steps.length > 0 && (
+        <>
+          <SectionLab style={{ margin:'6px 0 4px' }}>Étapes</SectionLab>
+          <div style={{ marginBottom:6 }}>
+            {steps.map((s, i) => (
+              <div key={s.id || i} style={{ display:'flex', gap:10, padding:'11px 0', borderBottom:`1px solid ${T.bd}` }}>
+                <div style={{ flexShrink:0, width:24, height:24, borderRadius:'50%', background:T.s3, border:`1px solid ${T.bd2}`, color:T.acc, fontSize:12, fontWeight:600, fontFamily:T.mono, display:'flex', alignItems:'center', justifyContent:'center' }}>{i + 1}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, color:T.tx, lineHeight:1.45 }}>{s.text}</div>
+                  {s.detail && <div style={{ fontSize:11.5, color:T.tx3, lineHeight:1.55, marginTop:3 }}>{s.detail}</div>}
+                  {(s.material || s.caution) && (
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:6 }}>
+                      {s.material && <span style={{ fontSize:10.5, background:'rgba(91,156,246,0.10)', color:T.acc, border:`1px solid rgba(91,156,246,0.22)`, padding:'2px 7px', borderRadius:5 }}>⛬ {s.material}</span>}
+                      {s.caution && <span style={{ fontSize:10.5, background:'rgba(217,95,95,0.11)', color:'#e98a78', border:`1px solid rgba(217,95,95,0.25)`, padding:'2px 7px', borderRadius:5 }}>⚠ {s.caution}</span>}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </>
       )}
 
-      {/* Seasonal maintenance */}
-      <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 }}>
-        Entretien — {season} {new Date().getFullYear()}
-        <span style={{ ...ss.pill('rgba(63,182,139,0.12)', T.g), marginLeft:8, fontSize:9 }}>
-          {seasonTasks.filter(t => mDone[t.id]).length}/{seasonTasks.length} fait
-        </span>
+      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginTop:14 }}>
+        <SectionLab style={{ margin:'0 0 6px' }}>Pourquoi</SectionLab>
+        <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.65 }}>{system.pourquoi}</div>
       </div>
-      <div>
-        {seasonTasks.map(t => (
-          <div key={t.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px',
-            background: mDone[t.id] ? 'rgba(63,182,139,0.05)' : T.s1,
-            border:`1px solid ${T.bd}`, borderRadius:6, marginBottom:4 }}
-          >
-            <input type="checkbox" checked={!!mDone[t.id]} onChange={e => onToggleMaint(t.id, e.target.checked)}
-              style={{ width:15, height:15, cursor:'pointer', accentColor:T.g, flexShrink:0 }} />
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, color: mDone[t.id] ? T.tx3 : T.tx, textDecoration: mDone[t.id] ? 'line-through' : 'none' }}>{t.task}</div>
-              {mDone[t.id] && <div style={{ fontSize:10, color:T.g, marginTop:2 }}>✓ {mDone[t.id]}</div>}
-            </div>
-            <span style={{ fontSize:10, color:T.tx3, flexShrink:0 }}>{t.zone}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
-  const ActionPanel = activeAction && (
-    <div style={{ width:panelWidth, flexShrink:0, display:'flex', flexDirection:'column', overflow:'hidden', borderLeft:`1px solid ${T.bd}` }}>
-      <div style={{ padding:'10px 14px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ fontSize:11, color:T.tx3, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-          {activeAction.sysName}
-        </span>
-        <button onClick={() => setSelAction(null)} style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:18, lineHeight:1, padding:0 }}>×</button>
-      </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
-        <div style={{ fontSize:13, fontWeight:600, color:T.tx, lineHeight:1.5, marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${T.bd}` }}>
-          {activeAction.desc}
+      {action.composantes?.length > 0 && (
+        <div style={{ marginTop:12 }}>
+          <SectionLab style={{ margin:'0 0 6px' }}>Composantes</SectionLab>
+          <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+            {action.composantes.map(c => <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono }}>{c}</span>)}
+          </div>
         </div>
-        {[
-          ['Système', activeAction.sysName],
-          ['Zone', (() => { const s = SYSTEMS.find(s => s.id === activeAction.sysId); return s?.zone || '—'; })()],
-          ['Priorité', <PriorityBadge p={activeAction.priority} />],
-          ['Timing', <TimingBadge t={activeAction.timing} />],
-          activeAction.composantes.length > 0 && ['Composantes', (
-            <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-              {activeAction.composantes.map(c => <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono }}>{c}</span>)}
-            </div>
-          )],
-          ['Pourquoi', activeAction.sysPourquoi],
-          activeAction.notes && ['Notes', activeAction.notes],
-        ].filter(Boolean).map(([label, val]) => (
-          <div key={label} style={{ display:'flex', gap:10, marginBottom:10, paddingBottom:10, borderBottom:`1px solid ${T.bd3}`, alignItems:'flex-start' }}>
-            <span style={{ fontSize:11, fontWeight:600, color:T.tx3, minWidth:84, paddingTop:1, flexShrink:0 }}>{label}</span>
-            <span style={{ fontSize:12, color:T.tx2, flex:1, lineHeight:1.6 }}>{val}</span>
-          </div>
-        ))}
-        <button onClick={() => onGoToAction(activeAction.id, activeAction.sysId)}
-          style={{ ...ss.btn, width:'100%', textAlign:'center', marginTop:8, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>
-          Voir dans Travaux →
-        </button>
-      </div>
-    </div>
-  );
+      )}
 
-  return (
-    <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
-      {MainContent}
-      {activeAction && <>
-        <ResizeHandle reversed currentWidth={panelWidth} onResizeLive={setLiveW} onResizeEnd={v => { setLiveW(null); setPanelW(v); }} min={260} max={560} />
-        {ActionPanel}
-      </>}
+      {action.notes && (
+        <div style={{ marginTop:12 }}>
+          <SectionLab style={{ margin:'0 0 6px' }}>Notes</SectionLab>
+          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.6 }}>{action.notes}</div>
+        </div>
+      )}
+
+      {action.source && <div style={{ marginTop:12, fontSize:10.5, color:T.tx3, fontFamily:T.mono }}>Source: {action.source}</div>}
     </div>
   );
 }
 
-// ─── TRAVAUX VIEW ─────────────────────────────────────────────────────────────
-function TravauxView({ statuses, setStatuses, saveStatus, searchQuery }) {
-  const [selSys, setSelSys] = useState(null);
-  const [selAction, setSelAction] = useState(null);
-  const [fStatus, setFStatus] = useState('all');
-  const [fPriority, setFPriority] = useState('all');
-  const [leftW, setLeftW] = useState(300);
-  const [liveW, setLiveW] = useState(null);
-  const panelW = liveW ?? leftW;
-
-  const filtered = useMemo(() => {
-    return SYSTEMS.filter(sys => {
-      if (fStatus !== 'all') {
-        const hasMatch = sys.actions.some(a => (statuses[a.id] || 'À faire') === fStatus);
-        if (!hasMatch) return false;
-      }
-      if (fPriority !== 'all' && sys.priority !== fPriority) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return sys.name.toLowerCase().includes(q) ||
-          sys.zone.toLowerCase().includes(q) ||
-          sys.actions.some(a => a.desc.toLowerCase().includes(q) || a.composantes.join(' ').toLowerCase().includes(q));
-      }
-      return true;
-    });
-  }, [fStatus, fPriority, searchQuery, statuses]);
-
-  const PRI_ORDER = ['Urgent','Danger','Défaut','Avertissement','Surveillance','Info','Limité','Hors mandat','—'];
-  const byPriority = PRI_ORDER.map(p => ({ p, systems: filtered.filter(s => s.priority === p) })).filter(g => g.systems.length > 0);
-
-  const activeSys = selSys ? SYSTEMS.find(s => s.id === selSys) : null;
-  const activeAction = useMemo(() => {
-    if (!selAction) return null;
-    for (const s of SYSTEMS) { const a = s.actions.find(a => a.id === selAction); if (a) return { action:a, sys:s }; }
-    return null;
-  }, [selAction]);
-
-  const handleStatusChange = (id, val) => {
-    setStatuses(prev => ({ ...prev, [id]: val }));
-    saveStatus(id, val);
-  };
-
-  const selectSys = id => { setSelSys(prev => prev === id ? null : id); setSelAction(null); };
-  const selStyle = { outline:'none', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'3px 6px', fontSize:11, cursor:'pointer', color:T.tx, fontFamily:T.font };
-
-  // ── Left panel ──
-  const LeftPanel = (
-    <div style={{ width:panelW, flexShrink:0, display:'flex', flexDirection:'column', overflow:'hidden', borderRight:`1px solid ${T.bd}` }}>
-      <div style={{ padding:'8px 10px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0 }}>
-        <div style={{ display:'flex', gap:3, marginBottom:6, flexWrap:'wrap' }}>
-          {['all','À faire','En cours','Fait','Reporté'].map(s => (
-            <button key={s} onClick={() => setFStatus(s)}
-              style={{ ...ss.btn, fontSize:10, padding:'2px 7px', background:fStatus===s?T.acc:'transparent', color:fStatus===s?'#fff':T.tx2, border:`1px solid ${fStatus===s?T.acc:T.bd}` }}>
-              {s === 'all' ? 'Tous' : s}
-            </button>
-          ))}
-        </div>
-        <select value={fPriority} onChange={e => setFPriority(e.target.value)} style={{ ...selStyle, width:'100%' }}>
-          <option value="all">Toutes priorités</option>
-          {['Urgent','Danger','Défaut','Avertissement','Surveillance','Limité'].map(p => <option key={p}>{p}</option>)}
-        </select>
-      </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'8px' }}>
-        {byPriority.length === 0 && <div style={{ textAlign:'center', padding:'30px 10px', color:T.tx3, fontSize:12, fontStyle:'italic' }}>Aucun système.</div>}
-        {byPriority.map(g => (
-          <div key={g.p} style={{ marginBottom:10 }}>
-            <div style={{ fontSize:9, fontWeight:700, color:(PRIORITY[g.p]||PRIORITY['—']).tx, textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:5, paddingLeft:4 }}>
-              {g.p} <span style={{ opacity:0.5 }}>({g.systems.length})</span>
-            </div>
-            {g.systems.map(sys => {
-              const pc = PRIORITY[sys.priority] || PRIORITY['—'];
-              const done = sys.actions.filter(a => statuses[a.id] === 'Fait').length;
-              const isSel = selSys === sys.id;
-              const visActions = isSel ? sys.actions.filter(a => fStatus === 'all' || (statuses[a.id]||'À faire') === fStatus) : [];
-              return (
-                <div key={sys.id} style={{ marginBottom:3, borderRadius:6, overflow:'hidden', border:`1px solid ${isSel ? T.acc : T.bd}`, borderLeft:`3px solid ${pc.tx}` }}>
-                  {/* System header — prominent name */}
-                  <div onClick={() => selectSys(sys.id)}
-                    style={{ padding:'9px 10px', cursor:'pointer', background: isSel ? T.s2 : T.s1, userSelect:'none', transition:'background .1s' }}
-                    onMouseEnter={e => !isSel && (e.currentTarget.style.background = T.s2)}
-                    onMouseLeave={e => !isSel && (e.currentTarget.style.background = T.s1)}
-                  >
-                    <div style={{ fontSize:13, fontWeight:700, color:T.tx, lineHeight:1.3, marginBottom:5 }}>{sys.name}</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                      <TimingBadge t={sys.timing} />
-                      <PriorityBadge p={sys.priority} />
-                      <span style={{ marginLeft:'auto', fontSize:10, color:done===sys.actions.length?T.g:T.tx3, fontFamily:T.mono }}>{done}/{sys.actions.length}</span>
-                    </div>
-                  </div>
-                  {/* Accordion: actions inline */}
-                  {isSel && (
-                    <div style={{ borderTop:`1px solid ${T.bd}` }}>
-                      {visActions.map(a => {
-                        const st = statuses[a.id] || 'À faire';
-                        const wc = WSTATUS[st] || WSTATUS['À faire'];
-                        const apc = PRIORITY[a.priority] || PRIORITY['—'];
-                        const isActSel = selAction === a.id;
-                        return (
-                          <div key={a.id}>
-                            <div onClick={() => setSelAction(prev => prev === a.id ? null : a.id)}
-                              style={{ padding:'8px 10px 8px 14px', cursor:'pointer', borderBottom:`1px solid ${T.bd3}`,
-                                background: isActSel ? 'rgba(91,156,246,0.10)' : st==='Fait'?'rgba(63,182,139,0.03)':'transparent',
-                                borderLeft:`2px solid ${isActSel ? T.acc : apc.tx}`, transition:'background .1s' }}
-                              onMouseEnter={e => !isActSel && (e.currentTarget.style.background = T.s3)}
-                              onMouseLeave={e => !isActSel && (e.currentTarget.style.background = isActSel?'rgba(91,156,246,0.10)':st==='Fait'?'rgba(63,182,139,0.03)':'transparent')}
-                            >
-                              <div style={{ fontSize:11, color:st==='Fait'?T.tx3:T.tx, lineHeight:1.4, marginBottom:5,
-                                textDecoration:st==='Fait'?'line-through':'none', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
-                                {a.desc}
-                              </div>
-                              <div style={{ display:'flex', gap:4, alignItems:'center', flexWrap:'wrap' }}>
-                                <TimingBadge t={a.timing} />
-                                <select value={st} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); handleStatusChange(a.id, e.target.value); }}
-                                  style={{ background:wc.bg, color:wc.tx, border:`1px solid ${wc.tx}44`, borderRadius:4, padding:'2px 5px', fontSize:10, cursor:'pointer', fontFamily:T.font, outline:'none', marginLeft:'auto', flexShrink:0 }}>
-                                  {['À faire','En cours','Fait','Reporté','À confirmer','Sans objet'].map(o => <option key={o}>{o}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                            {/* Inline action detail */}
-                            {isActSel && (
-                              <div style={{ padding:'10px 12px 12px 14px', background:T.s3, borderBottom:`1px solid ${T.bd}` }}>
-                                {[
-                                  a.composantes.length > 0 && ['Composantes', (
-                                    <div style={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-                                      {a.composantes.map(c => <span key={c} style={{ fontSize:9, background:T.s2, color:T.acc, padding:'1px 5px', borderRadius:3, fontFamily:T.mono }}>{c}</span>)}
-                                    </div>
-                                  )],
-                                  ['Pourquoi', sys.pourquoi],
-                                  a.notes && ['Notes', a.notes],
-                                  a.source && ['Source', <span style={{ fontFamily:T.mono, fontSize:10, color:T.tx3 }}>{a.source}</span>],
-                                ].filter(Boolean).map(([label, val]) => (
-                                  <div key={label} style={{ display:'flex', gap:8, marginBottom:7, alignItems:'flex-start' }}>
-                                    <span style={{ fontSize:10, fontWeight:600, color:T.tx3, minWidth:72, flexShrink:0, paddingTop:1 }}>{label}</span>
-                                    <span style={{ fontSize:11, color:T.tx2, flex:1, lineHeight:1.5 }}>{val}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {visActions.length === 0 && (
-                        <div style={{ padding:'8px 12px', fontSize:11, color:T.tx3, fontStyle:'italic' }}>Aucune action pour ce filtre.</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div style={{ padding:'6px 10px', borderTop:`1px solid ${T.bd}`, background:T.s1, fontSize:10, color:T.tx3, flexShrink:0 }}>
-        {filtered.length} système{filtered.length!==1?'s':''} · {filtered.reduce((n,s)=>n+s.actions.length,0)} actions
-      </div>
-    </div>
-  );
-
-  // ── System detail panel ──
-  // ── Right panel: system context ──
-  const SystemContext = activeSys ? (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.bd}`, background:T.s1, flexShrink:0 }}>
-        <div style={{ fontSize:15, fontWeight:700, color:T.tx, lineHeight:1.3, marginBottom:4 }}>{activeSys.name}</div>
-        <div style={{ fontSize:11, color:T.tx3, marginBottom:8 }}>{activeSys.zone}</div>
-        <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
-          <PriorityBadge p={activeSys.priority} />
-          <TimingBadge t={activeSys.timing} />
-          {(() => { const done = activeSys.actions.filter(a => statuses[a.id] === 'Fait').length; const total = activeSys.actions.length;
-            return <span style={{ ...ss.pill(done===total?'rgba(63,182,139,0.12)':'rgba(62,74,90,0.15)', done===total?T.g:T.tx2), fontSize:9 }}>{done}/{total} fait</span>; })()}
-        </div>
-      </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
-        <div style={{ marginBottom:14 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Ce que l'on sait</div>
-          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeSys.ceQueOnSait}</div>
-        </div>
-        <div>
-          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Pourquoi c'est important</div>
-          <div style={{ fontSize:12, color:T.tx2, lineHeight:1.7, background:T.s1, border:`1px solid ${T.bd}`, borderRadius:6, padding:'10px 12px' }}>{activeSys.pourquoi}</div>
-        </div>
-      </div>
-    </div>
-  ) : null;
-
+// ─── PLACEHOLDER ────────────────────────────────────────────────────────────────
+function Placeholder({ title, note }) {
   return (
-    <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
-      {LeftPanel}
-      <ResizeHandle currentWidth={panelW} onResizeLive={setLiveW} onResizeEnd={v => { setLiveW(null); setLeftW(v); }} />
-      {activeSys ? SystemContext :
-        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
-          <div style={{ fontSize:32, opacity:0.10 }}>⚒</div>
-          <span style={{ fontSize:13, color:T.tx3, fontStyle:'italic' }}>Sélectionner un système</span>
-        </div>
-      }
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:'40px 24px', gap:10, minHeight:'60vh' }}>
+      <div style={{ fontSize:13, fontWeight:700, color:T.tx2, letterSpacing:'0.04em' }}>{title}</div>
+      <div style={{ fontSize:12, color:T.tx3, lineHeight:1.6, maxWidth:300 }}>{note}</div>
+      <div style={{ fontSize:10, color:T.tx3, fontFamily:T.mono, marginTop:4, opacity:0.7 }}>À venir</div>
     </div>
   );
 }
 
-// ─── ACHATS VIEW ──────────────────────────────────────────────────────────────
-function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, addShopItem }) {
+// ─── ACHATS VIEW (responsive) ───────────────────────────────────────────────────
+function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, addShopItem, narrow }) {
   const [fProject, setFProject] = useState('all');
   const [fStatus, setFStatus] = useState('all');
-  const [editCell, setEditCell] = useState(null); // { id, field }
+  const [editCell, setEditCell] = useState(null);
   const [editVal, setEditVal] = useState('');
   const [addingRow, setAddingRow] = useState(false);
   const [newRow, setNewRow] = useState({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
 
   const projects = useMemo(() => [...new Set(shopItems.map(i => i.project))].sort(), [shopItems]);
-
   const filtered = useMemo(() => shopItems.filter(i => {
     if (fProject !== 'all' && i.project !== fProject) return false;
     if (fStatus !== 'all' && i.status !== fStatus) return false;
     return true;
   }), [shopItems, fProject, fStatus]);
-
   const grouped = useMemo(() => {
     const g = {};
     filtered.forEach(i => { if (!g[i.project]) g[i.project] = []; g[i.project].push(i); });
     return g;
   }, [filtered]);
-
-  const grandTotal = useMemo(() =>
-    filtered.filter(i => i.prix_unitaire).reduce((s,i) => s + i.prix_unitaire*(i.qty||1), 0), [filtered]);
+  const grandTotal = useMemo(() => filtered.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0), [filtered]);
+  const fmtMoney = n => n.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 });
 
   const startEdit = (id, field, val) => { setEditCell({ id, field }); setEditVal(String(val ?? '')); };
-
   const commitEdit = async (id, field) => {
     let val = editVal;
     if (field === 'prix_unitaire') val = editVal !== '' ? parseFloat(editVal) : null;
@@ -746,46 +632,45 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
     await saveShopItem(id, { [field]: val });
     setEditCell(null);
   };
-
   const addRow = async () => {
     if (!newRow.project.trim() || !newRow.article.trim()) return;
-    const item = { ...newRow, prix_unitaire: newRow.prix_unitaire !== '' ? parseFloat(newRow.prix_unitaire) : null, qty: parseInt(newRow.qty)||1 };
+    const item = { ...newRow, prix_unitaire: newRow.prix_unitaire !== '' ? parseFloat(newRow.prix_unitaire) : null, qty: parseInt(newRow.qty) || 1 };
     await addShopItem(item);
     setNewRow({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
     setAddingRow(false);
   };
 
+  const filterBar = (
+    <div style={{ padding:'8px 12px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1, flexWrap:'wrap', flexShrink:0 }}>
+      <select value={fProject} onChange={e => setFProject(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'4px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
+        <option value="all">Tous les projets</option>
+        {projects.map(p => <option key={p}>{p}</option>)}
+      </select>
+      <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'4px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
+        <option value="all">Tous statuts</option>
+        {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
+      </select>
+      <span style={{ marginLeft:'auto', fontSize:12, color:T.y, fontFamily:T.mono }}>{grandTotal > 0 ? fmtMoney(grandTotal) : ''}</span>
+      <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Article</button>
+    </div>
+  );
+
   const cellStyle = (w) => ({ width:w, padding:'6px 8px', borderRight:`1px solid ${T.bd3}`, fontSize:11, color:T.tx, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'text', flexShrink:0, boxSizing:'border-box' });
   const inpStyle = { background:'transparent', border:'none', outline:`1px solid ${T.acc}`, borderRadius:2, padding:'1px 4px', fontSize:11, color:T.tx, fontFamily:T.font, width:'100%', boxSizing:'border-box' };
   const hdrStyle = (w) => ({ width:w, padding:'5px 8px', fontSize:9, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px', borderRight:`1px solid ${T.bd3}`, flexShrink:0, boxSizing:'border-box' });
-
-  const EditableCell = ({ id, field, val, width, type='text' }) => {
+  const EditableCell = ({ id, field, val, width, type = 'text' }) => {
     const isEditing = editCell?.id === id && editCell?.field === field;
     return (
       <div style={cellStyle(width)} onClick={() => !isEditing && startEdit(id, field, val)}>
         {isEditing
-          ? <input autoFocus value={editVal} type={type} onChange={e => setEditVal(e.target.value)}
-              onBlur={() => commitEdit(id, field)}
-              onKeyDown={e => { if (e.key === 'Enter') commitEdit(id, field); if (e.key === 'Escape') setEditCell(null); }}
-              style={inpStyle} />
+          ? <input autoFocus value={editVal} type={type} onChange={e => setEditVal(e.target.value)} onBlur={() => commitEdit(id, field)}
+              onKeyDown={e => { if (e.key === 'Enter') commitEdit(id, field); if (e.key === 'Escape') setEditCell(null); }} style={inpStyle} />
           : <span style={{ color: val == null || val === '' ? T.tx3 : T.tx, fontStyle: val == null || val === '' ? 'italic' : 'normal' }}>
               {field === 'prix_unitaire' && val != null ? `${val}$` : val || '—'}
-            </span>
-        }
+            </span>}
       </div>
     );
   };
-
-  const StatusCell = ({ id, val, width }) => (
-    <div style={{ ...cellStyle(width), padding:'4px 6px' }}>
-      <select value={val} onChange={e => { saveShopItem(id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === id ? { ...i, status:e.target.value } : i)); }}
-        style={{ background:(PSTATUS[val]||PSTATUS['À trouver']).bg, color:(PSTATUS[val]||PSTATUS['À trouver']).tx,
-          border:'none', borderRadius:4, padding:'2px 5px', fontSize:10, cursor:'pointer', fontFamily:T.font, outline:'none', width:'100%' }}>
-        {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
-      </select>
-    </div>
-  );
-
   const cols = [
     { key:'article', label:'Article', w:220 },
     { key:'magasin', label:'Magasin', w:110 },
@@ -794,117 +679,144 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
     { key:'status', label:'Statut', w:120 },
     { key:'notes', label:'Notes', w:160 },
   ];
-
-  return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      {/* Filter bar */}
-      <div style={{ padding:'8px 12px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1, flexShrink:0 }}>
-        <select value={fProject} onChange={e => setFProject(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'3px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
-          <option value="all">Tous les projets</option>
-          {projects.map(p => <option key={p}>{p}</option>)}
-        </select>
-        <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'3px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
-          <option value="all">Tous statuts</option>
-          {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
-        </select>
-        <span style={{ marginLeft:'auto', fontSize:11, color:T.y, fontFamily:T.mono }}>
-          {grandTotal > 0 ? grandTotal.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 }) : ''}
-        </span>
-        <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Article</button>
-      </div>
-
-      {/* Table */}
-      <div style={{ flex:1, overflowY:'auto' }}>
-        {Object.entries(grouped).map(([project, items]) => {
-          const projTotal = items.filter(i => i.prix_unitaire).reduce((s,i) => s + i.prix_unitaire*(i.qty||1), 0);
-          return (
-            <div key={project}>
-              {/* Project group header */}
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}`, borderTop:`1px solid ${T.bd}`, position:'sticky', top:0, zIndex:2 }}>
-                <span style={{ fontSize:12, fontWeight:700, color:T.tx }}>{project}</span>
-                {projTotal > 0 && <span style={{ fontSize:10, color:T.y, fontFamily:T.mono }}>{projTotal.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 })}</span>}
-                <span style={{ fontSize:10, color:T.tx3 }}>{items.length} article{items.length>1?'s':''}</span>
-              </div>
-              {/* Column headers */}
-              <div style={{ display:'flex', alignItems:'center', background:T.hdr, borderBottom:`1px solid ${T.bd}`, position:'sticky', top:34, zIndex:1 }}>
-                {cols.map(c => <div key={c.key} style={hdrStyle(c.w)}>{c.label}</div>)}
-                <div style={{ width:32, flexShrink:0 }} />
-              </div>
-              {/* Rows */}
-              {items.map((item, idx) => (
-                <div key={item.id}
-                  style={{ display:'flex', alignItems:'center', borderBottom:`1px solid ${T.bd3}`,
-                    background: idx%2===0 ? T.bg : T.s1, transition:'background .1s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.s2}
-                  onMouseLeave={e => e.currentTarget.style.background = idx%2===0 ? T.bg : T.s1}
-                >
-                  <EditableCell id={item.id} field="article" val={item.article} width={220} />
-                  <EditableCell id={item.id} field="magasin" val={item.magasin} width={110} />
-                  <EditableCell id={item.id} field="prix_unitaire" val={item.prix_unitaire} width={70} type="number" />
-                  <EditableCell id={item.id} field="qty" val={item.qty} width={50} type="number" />
-                  <StatusCell id={item.id} val={item.status} width={120} />
-                  <EditableCell id={item.id} field="notes" val={item.notes} width={160} />
-                  <div style={{ width:32, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <button onClick={() => deleteShopItem(item.id)} title="Supprimer"
-                      style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1 }}
-                      onMouseEnter={e => e.currentTarget.style.color = T.r}
-                      onMouseLeave={e => e.currentTarget.style.color = T.tx3}>✕</button>
-                  </div>
-                </div>
-              ))}
+  const wideTable = Object.entries(grouped).map(([project, items]) => {
+    const projTotal = items.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0);
+    return (
+      <div key={project}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}`, borderTop:`1px solid ${T.bd}`, position:'sticky', top:0, zIndex:2 }}>
+          <span style={{ fontSize:12, fontWeight:700, color:T.tx }}>{project}</span>
+          {projTotal > 0 && <span style={{ fontSize:10, color:T.y, fontFamily:T.mono }}>{fmtMoney(projTotal)}</span>}
+          <span style={{ fontSize:10, color:T.tx3 }}>{items.length} article{items.length > 1 ? 's' : ''}</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', background:T.hdr, borderBottom:`1px solid ${T.bd}`, position:'sticky', top:34, zIndex:1 }}>
+          {cols.map(c => <div key={c.key} style={hdrStyle(c.w)}>{c.label}</div>)}
+          <div style={{ width:32, flexShrink:0 }} />
+        </div>
+        {items.map((item, idx) => (
+          <div key={item.id} style={{ display:'flex', alignItems:'center', borderBottom:`1px solid ${T.bd3}`, background: idx % 2 === 0 ? T.bg : T.s1 }}
+            onMouseEnter={e => e.currentTarget.style.background = T.s2}
+            onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? T.bg : T.s1}>
+            <EditableCell id={item.id} field="article" val={item.article} width={220} />
+            <EditableCell id={item.id} field="magasin" val={item.magasin} width={110} />
+            <EditableCell id={item.id} field="prix_unitaire" val={item.prix_unitaire} width={70} type="number" />
+            <EditableCell id={item.id} field="qty" val={item.qty} width={50} type="number" />
+            <div style={{ ...cellStyle(120), padding:'4px 6px' }}>
+              <select value={item.status} onChange={e => { saveShopItem(item.id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === item.id ? { ...i, status:e.target.value } : i)); }}
+                style={{ background:(PSTATUS[item.status] || PSTATUS['À trouver']).bg, color:(PSTATUS[item.status] || PSTATUS['À trouver']).tx, border:'none', borderRadius:4, padding:'2px 5px', fontSize:10, cursor:'pointer', fontFamily:T.font, outline:'none', width:'100%' }}>
+                {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
+              </select>
             </div>
-          );
-        })}
-
-        {/* Add row form */}
-        {addingRow && (
-          <div style={{ borderTop:`1px solid ${T.bd}` }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}` }}>
-              <span style={{ fontSize:12, fontWeight:700, color:T.acc }}>Nouvel article</span>
-            </div>
-            <div style={{ padding:'12px 16px', background:T.s1, display:'flex', flexWrap:'wrap', gap:10 }}>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Projet *</span>
-                <input value={newRow.project} onChange={e => setNewRow(r=>({...r,project:e.target.value}))} list="proj-list" placeholder="Projet…"
-                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
-                <datalist id="proj-list">{projects.map(p=><option key={p} value={p}/>)}</datalist>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Article *</span>
-                <input value={newRow.article} onChange={e => setNewRow(r=>({...r,article:e.target.value}))} placeholder="Description…"
-                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:200 }} />
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Magasin</span>
-                <input value={newRow.magasin} onChange={e => setNewRow(r=>({...r,magasin:e.target.value}))} placeholder="RONA, IKEA…"
-                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:110 }} />
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Prix $</span>
-                <input type="number" value={newRow.prix_unitaire} onChange={e => setNewRow(r=>({...r,prix_unitaire:e.target.value}))} placeholder="0.00"
-                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:70 }} />
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Qté</span>
-                <input type="number" min={1} value={newRow.qty} onChange={e => setNewRow(r=>({...r,qty:e.target.value}))}
-                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:50 }} />
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Notes</span>
-                <input value={newRow.notes} onChange={e => setNewRow(r=>({...r,notes:e.target.value}))} placeholder="…"
-                  style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
-              </div>
-              <div style={{ display:'flex', alignItems:'flex-end', gap:6 }}>
-                <button onClick={addRow} disabled={!newRow.project.trim()||!newRow.article.trim()}
-                  style={{ ...ss.btn, background:newRow.project&&newRow.article?'rgba(63,182,139,0.15)':T.s3, color:newRow.project&&newRow.article?T.g:T.tx3, border:`1px solid ${newRow.project&&newRow.article?T.g+'44':T.bd}` }}>
-                  Ajouter
-                </button>
-                <button onClick={() => setAddingRow(false)} style={ss.btn}>Annuler</button>
-              </div>
+            <EditableCell id={item.id} field="notes" val={item.notes} width={160} />
+            <div style={{ width:32, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <button onClick={() => deleteShopItem(item.id)} title="Supprimer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1 }}
+                onMouseEnter={e => e.currentTarget.style.color = T.r} onMouseLeave={e => e.currentTarget.style.color = T.tx3}>✕</button>
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    );
+  });
 
+  const cardEdit = (item, field, opts = {}) => {
+    const editing = editCell?.id === item.id && editCell?.field === field;
+    const val = item[field];
+    const display = field === 'prix_unitaire' ? (val != null ? `${val}$` : '—') : (val === '' || val == null ? '—' : val);
+    if (editing) {
+      return <input autoFocus type={opts.type || 'text'} value={editVal} onChange={e => setEditVal(e.target.value)} onBlur={() => commitEdit(item.id, field)}
+        onKeyDown={e => { if (e.key === 'Enter') commitEdit(item.id, field); if (e.key === 'Escape') setEditCell(null); }}
+        style={{ background:T.s3, border:`1px solid ${T.acc}`, borderRadius:4, padding:'3px 6px', fontSize:opts.fs || 12, color:T.tx, fontFamily:T.font, outline:'none', width:opts.w || '100%', boxSizing:'border-box' }} />;
+    }
+    return <span onClick={() => startEdit(item.id, field, val)} style={{ cursor:'text', color: val === '' || val == null ? T.tx3 : T.tx, fontStyle: val === '' || val == null ? 'italic' : 'normal', fontSize:opts.fs || 12 }}>{display}</span>;
+  };
+  const narrowCards = (
+    <div style={{ padding:'10px 12px 24px' }}>
+      {Object.entries(grouped).map(([project, items]) => {
+        const projTotal = items.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0);
+        return (
+          <div key={project} style={{ marginBottom:16 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={{ fontSize:12.5, fontWeight:700, color:T.tx }}>{project}</span>
+              {projTotal > 0 && <span style={{ fontSize:11, color:T.y, fontFamily:T.mono }}>{fmtMoney(projTotal)}</span>}
+              <span style={{ fontSize:10, color:T.tx3, marginLeft:'auto' }}>{items.length} article{items.length > 1 ? 's' : ''}</span>
+            </div>
+            {items.map(item => (
+              <div key={item.id} style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginBottom:8 }}>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                  <div style={{ flex:1, lineHeight:1.4 }}>{cardEdit(item, 'article', { fs:13 })}</div>
+                  <button onClick={() => deleteShopItem(item.id)} title="Supprimer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:15, padding:0, lineHeight:1, flexShrink:0 }}>✕</button>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, flexWrap:'wrap' }}>
+                  {cardEdit(item, 'magasin', { fs:11.5, w:120 })}
+                  <span style={{ color:T.y, fontFamily:T.mono }}>{cardEdit(item, 'prix_unitaire', { type:'number', w:70, fs:12 })}</span>
+                  <span style={{ color:T.tx3, fontFamily:T.mono, fontSize:11 }}>x {cardEdit(item, 'qty', { type:'number', w:44, fs:11 })}</span>
+                  <select value={item.status} onChange={e => { saveShopItem(item.id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === item.id ? { ...i, status:e.target.value } : i)); }}
+                    style={{ marginLeft:'auto', background:(PSTATUS[item.status] || PSTATUS['À trouver']).bg, color:(PSTATUS[item.status] || PSTATUS['À trouver']).tx, border:'none', borderRadius:5, padding:'3px 7px', fontSize:10.5, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
+                    {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginTop:8, lineHeight:1.5 }}>{cardEdit(item, 'notes', { fs:11 })}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      {filtered.length === 0 && !addingRow && <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>Aucun article trouvé.</div>}
+    </div>
+  );
+
+  const addForm = addingRow && (
+    <div style={{ borderTop:`1px solid ${T.bd}` }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}` }}>
+        <span style={{ fontSize:12, fontWeight:700, color:T.acc }}>Nouvel article</span>
+      </div>
+      <div style={{ padding:'12px 16px', background:T.s1, display:'flex', flexWrap:'wrap', gap:10 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Projet *</span>
+          <input value={newRow.project} onChange={e => setNewRow(r => ({ ...r, project:e.target.value }))} list="proj-list" placeholder="Projet…"
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
+          <datalist id="proj-list">{projects.map(p => <option key={p} value={p} />)}</datalist>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Article *</span>
+          <input value={newRow.article} onChange={e => setNewRow(r => ({ ...r, article:e.target.value }))} placeholder="Description…"
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:200 }} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Magasin</span>
+          <input value={newRow.magasin} onChange={e => setNewRow(r => ({ ...r, magasin:e.target.value }))} placeholder="RONA, IKEA…"
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:110 }} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Prix $</span>
+          <input type="number" value={newRow.prix_unitaire} onChange={e => setNewRow(r => ({ ...r, prix_unitaire:e.target.value }))} placeholder="0.00"
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:70 }} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Qté</span>
+          <input type="number" min={1} value={newRow.qty} onChange={e => setNewRow(r => ({ ...r, qty:e.target.value }))}
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:50 }} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Notes</span>
+          <input value={newRow.notes} onChange={e => setNewRow(r => ({ ...r, notes:e.target.value }))} placeholder="…"
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
+        </div>
+        <div style={{ display:'flex', alignItems:'flex-end', gap:6 }}>
+          <button onClick={addRow} disabled={!newRow.project.trim() || !newRow.article.trim()}
+            style={{ ...ss.btn, background:newRow.project && newRow.article ? 'rgba(63,182,139,0.15)' : T.s3, color:newRow.project && newRow.article ? T.g : T.tx3, border:`1px solid ${newRow.project && newRow.article ? T.g + '44' : T.bd}` }}>Ajouter</button>
+          <button onClick={() => setAddingRow(false)} style={ss.btn}>Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (narrow) return <div>{filterBar}{narrowCards}{addForm}</div>;
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {filterBar}
+      <div style={{ flex:1, overflowY:'auto' }}>
+        {wideTable}
+        {addForm}
         {filtered.length === 0 && !addingRow && (
           <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>
             Aucun article trouvé.
@@ -916,74 +828,129 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
   );
 }
 
-// ─── ENTRETIEN VIEW ───────────────────────────────────────────────────────────
-function EntretienView({ mDone, onToggleMaint }) {
+// ─── ENTRETIEN VIEW (responsive) ────────────────────────────────────────────────
+function EntretienView({ maintenance, mDone, onToggleMaint, narrow }) {
   const [fSeason, setFSeason] = useState('all');
   const season = currentSeason();
-  const seasons = ['Printemps', 'Été', 'Automne', 'Hiver', "Toute l'année", 'Annuel', 'Avant premiers gels', 'Après grosses tempêtes', 'Octobre', 'Printemps + automne'];
-  const uniqueSeasons = [...new Set(MAINTENANCE.map(t => t.season))];
-
-  const filtered = fSeason === 'all' ? MAINTENANCE : MAINTENANCE.filter(t => t.season === fSeason);
-
+  const uniqueSeasons = [...new Set(maintenance.map(t => t.season))];
+  const filtered = fSeason === 'all' ? maintenance : maintenance.filter(t => t.season === fSeason);
   const grouped = useMemo(() => {
     const g = {};
     filtered.forEach(t => { if (!g[t.season]) g[t.season] = []; g[t.season].push(t); });
     return g;
   }, [filtered]);
-
   const seasonOrder = ["Toute l'année", 'Printemps', 'Printemps + automne', 'Été', 'Automne', 'Octobre', 'Avant premiers gels', 'Hiver', 'Après grosses tempêtes', 'Annuel'];
-  const orderedSeasons = Object.keys(grouped).sort((a,b) => {
+  const orderedSeasons = Object.keys(grouped).sort((a, b) => {
     const ai = seasonOrder.indexOf(a); const bi = seasonOrder.indexOf(b);
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
   });
 
+  const header = (
+    <div style={{ padding:'10px 14px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1, flexWrap:'wrap', flexShrink:0 }}>
+      <select value={fSeason} onChange={e => setFSeason(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'4px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
+        <option value="all">Toutes les saisons</option>
+        {uniqueSeasons.map(s => <option key={s}>{s}</option>)}
+      </select>
+      <span style={{ fontSize:11, color:T.tx3 }}>Saison actuelle: <span style={{ color:T.acc }}>{season}</span></span>
+      <span style={{ ...ss.pill('rgba(63,182,139,0.12)', T.g), marginLeft:'auto' }}>{maintenance.filter(t => mDone[t.id]).length}/{maintenance.length} complétés</span>
+    </div>
+  );
+
+  const list = (
+    <div style={{ padding:'12px 14px 24px' }}>
+      {orderedSeasons.map(s => {
+        const tasks = grouped[s];
+        const isCur = seasonMatch(s, season);
+        const doneCount = tasks.filter(t => mDone[t.id]).length;
+        return (
+          <div key={s} style={{ marginBottom:20 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+              <span style={{ fontSize:12, fontWeight:600, color:T.tx }}>{s}</span>
+              {isCur && <span style={{ ...ss.pill('rgba(63,182,139,0.14)', T.g), fontSize:9 }}>Maintenant</span>}
+              <span style={{ fontSize:10, color:T.tx3 }}>{doneCount}/{tasks.length} fait</span>
+            </div>
+            {tasks.map(t => (
+              <div key={t.id} style={{ display:'flex', gap:11, padding:'10px 12px',
+                background: mDone[t.id] ? 'rgba(63,182,139,0.05)' : isCur && !mDone[t.id] ? 'rgba(91,156,246,0.04)' : T.s1,
+                border:`1px solid ${isCur && !mDone[t.id] ? 'rgba(91,156,246,0.18)' : T.bd}`, borderRadius:8, marginBottom:6, alignItems:'flex-start' }}>
+                <input type="checkbox" checked={!!mDone[t.id]} onChange={e => onToggleMaint(t.id, e.target.checked)} style={{ width:17, height:17, cursor:'pointer', accentColor:T.g, flexShrink:0, marginTop:1 }} />
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, color: mDone[t.id] ? T.tx3 : T.tx, fontWeight:500, textDecoration: mDone[t.id] ? 'line-through' : 'none', marginBottom: t.detail ? 3 : 0 }}>{t.task}</div>
+                  <div style={{ fontSize:11.5, color:T.tx3, lineHeight:1.55 }}>{t.detail}</div>
+                  {mDone[t.id] && <div style={{ fontSize:10, color:T.g, marginTop:3 }}>✓ Complété le {mDone[t.id]}</div>}
+                  {t.notes && <div style={{ fontSize:10, color:T.tx3, marginTop:2, fontFamily:T.mono }}>{t.notes}</div>}
+                </div>
+                <span style={{ fontSize:10, color:T.tx3, flexShrink:0, textAlign:'right', maxWidth:90 }}>{t.zone}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (narrow) return <div>{header}{list}</div>;
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <div style={{ padding:'10px 16px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1 }}>
-        <select value={fSeason} onChange={e => setFSeason(e.target.value)}
-          style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'3px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
-          <option value="all">Toutes les saisons</option>
-          {uniqueSeasons.map(s => <option key={s}>{s}</option>)}
-        </select>
-        <span style={{ fontSize:11, color:T.tx3 }}>
-          Saison actuelle: <span style={{ color:T.acc }}>{season}</span>
-        </span>
-        <span style={{ ...ss.pill('rgba(63,182,139,0.12)', T.g), marginLeft:'auto' }}>
-          {MAINTENANCE.filter(t=>mDone[t.id]).length}/{MAINTENANCE.length} complétés
-        </span>
+      {header}
+      <div style={{ flex:1, overflowY:'auto' }}>{list}</div>
+    </div>
+  );
+}
+
+// ─── PHONE SHELL ────────────────────────────────────────────────────────────────
+const TAB_ICONS = {
+  projets: '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  aujourdhui: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
+  achats: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>',
+  entretien: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>',
+};
+const PHONE_TABS = [
+  { id:'projets', label:'Projets' },
+  { id:'aujourdhui', label:"Aujourd'hui" },
+  { id:'achats', label:'Achats' },
+  { id:'entretien', label:'Entretien' },
+];
+const TabIcon = ({ id, color }) => (
+  <svg viewBox="0 0 24 24" width="20" height="20" style={{ stroke:color, fill:'none', strokeWidth:1.6 }} dangerouslySetInnerHTML={{ __html: TAB_ICONS[id] }} />
+);
+
+function PhoneShell(props) {
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
+  const system = selProject ? systems.find(s => s.id === selProject) : null;
+  const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
+
+  let body;
+  if (tab === 'projets') {
+    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} onBack={() => setSelAction(null)} />;
+    else if (system) body = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} onBack={() => setSelProject(null)} />;
+    else body = <ProjectList systems={systems} statuses={statuses} onSelect={id => { setSelProject(id); setSelAction(null); }} />;
+  } else if (tab === 'aujourdhui') {
+    body = <Placeholder title="Aujourd'hui" note="Optionnel. Cette vue se remplira quand tu programmeras une action depuis un projet (Session 2)." />;
+  } else if (tab === 'achats') {
+    body = <AchatsView narrow shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />;
+  } else if (tab === 'entretien') {
+    body = <EntretienView narrow maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
+  }
+
+  return (
+    <div style={{ fontFamily:T.font, display:'flex', flexDirection:'column', height:'100vh', background:T.bg, color:T.tx, overflow:'hidden' }}>
+      <div style={{ height:50, flexShrink:0, background:T.hdr, borderBottom:`1px solid ${T.bd}`, display:'flex', alignItems:'center', gap:10, padding:'0 14px' }}>
+        <button onClick={onHome} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:6, padding:'4px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', fontFamily:T.font, letterSpacing:'0.02em' }}>KarlOS</button>
+        <span style={{ fontFamily:T.serif, fontSize:15, fontWeight:600, color:T.acc2, letterSpacing:'0.06em' }}>Durin's Works</span>
+        <button title="Ajout rapide (à venir)" style={{ marginLeft:'auto', width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1 }}>+</button>
+        <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono, minWidth:12, textAlign:'center' }}>{saved ? '✓' : '…'}</span>
       </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
-        {orderedSeasons.map(s => {
-          const tasks = grouped[s];
-          const isCurrentSeason = seasonMatch(s, season);
-          const doneCount = tasks.filter(t => mDone[t.id]).length;
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', WebkitOverflowScrolling:'touch' }}>{body}</div>
+      <div style={{ height:60, flexShrink:0, background:T.hdr, borderTop:`1px solid ${T.bd}`, display:'flex', alignItems:'stretch' }}>
+        {PHONE_TABS.map(t => {
+          const on = tab === t.id;
           return (
-            <div key={s} style={{ marginBottom:20 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <span style={{ fontSize:12, fontWeight:600, color:T.tx }}>{s}</span>
-                {isCurrentSeason && <span style={{ ...ss.pill('rgba(63,182,139,0.14)', T.g), fontSize:9 }}>Maintenant</span>}
-                <span style={{ fontSize:10, color:T.tx3 }}>{doneCount}/{tasks.length} fait</span>
-              </div>
-              {tasks.map(t => (
-                <div key={t.id} style={{ display:'flex', gap:10, padding:'9px 12px',
-                  background: mDone[t.id] ? 'rgba(63,182,139,0.05)' : isCurrentSeason && !mDone[t.id] ? 'rgba(91,156,246,0.04)' : T.s1,
-                  border:`1px solid ${isCurrentSeason && !mDone[t.id] ? 'rgba(91,156,246,0.18)' : T.bd}`,
-                  borderRadius:6, marginBottom:4, alignItems:'flex-start' }}>
-                  <input type="checkbox" checked={!!mDone[t.id]} onChange={e => onToggleMaint(t.id, e.target.checked)}
-                    style={{ width:15, height:15, cursor:'pointer', accentColor:T.g, flexShrink:0, marginTop:2 }} />
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:12, color: mDone[t.id] ? T.tx3 : T.tx, fontWeight:500,
-                      textDecoration: mDone[t.id] ? 'line-through' : 'none', marginBottom: t.detail ? 3 : 0 }}>
-                      {t.task}
-                    </div>
-                    <div style={{ fontSize:11, color:T.tx3, lineHeight:1.5 }}>{t.detail}</div>
-                    {mDone[t.id] && <div style={{ fontSize:10, color:T.g, marginTop:3 }}>✓ Complété le {mDone[t.id]}</div>}
-                    {t.notes && <div style={{ fontSize:10, color:T.tx3, marginTop:2, fontFamily:T.mono }}>{t.notes}</div>}
-                  </div>
-                  <span style={{ fontSize:10, color:T.tx3, flexShrink:0, textAlign:'right' }}>{t.zone}</span>
-                </div>
-              ))}
-            </div>
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, color: on ? T.acc : T.tx3, fontSize:10, cursor:'pointer', border:'none', background:'none', fontFamily:T.font }}>
+              <TabIcon id={t.id} color={on ? T.acc : T.tx3} />
+              {t.label}
+            </button>
           );
         })}
       </div>
@@ -991,9 +958,75 @@ function EntretienView({ mDone, onToggleMaint }) {
   );
 }
 
-// ─── MAIN APP ──────────────────────────────────────────────────────────────────
-const DENSITY_ZOOM = { compact:0.88, comfortable:1.0, presentation:1.15 };
+// ─── DESKTOP SHELL ──────────────────────────────────────────────────────────────
+const DESK_NAV = [
+  { id:'calendrier', label:'Calendrier' },
+  { id:'projets', label:'Projets' },
+  { id:'achats', label:'Achats' },
+  { id:'entretien', label:'Entretien' },
+];
 
+function DesktopShell(props) {
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
+  const system = selProject ? systems.find(s => s.id === selProject) : null;
+  const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
+
+  let main;
+  if (tab === 'projets') {
+    let detail;
+    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} onBack={() => setSelAction(null)} backLabel="Retour au projet" />;
+    else if (system) detail = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} />;
+    else detail = (
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
+        <div style={{ fontSize:30, opacity:0.10 }}>⚒</div>
+        <span style={{ fontSize:13, color:T.tx3, fontStyle:'italic' }}>Sélectionner un projet</span>
+      </div>
+    );
+    main = (
+      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+        <div style={{ width:330, flexShrink:0, borderRight:`1px solid ${T.bd}`, overflowY:'auto' }}>
+          <ProjectList systems={systems} statuses={statuses} selProject={selProject} onSelect={id => { setSelProject(id); setSelAction(null); }} embedded />
+        </div>
+        <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>{detail}</div>
+      </div>
+    );
+  } else if (tab === 'achats') {
+    main = <AchatsView shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />;
+  } else if (tab === 'entretien') {
+    main = <EntretienView maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
+  } else if (tab === 'calendrier') {
+    main = <Placeholder title="Calendrier" note="La planification par semaine arrive en Session 2: déposer les travaux sur des journées et préparer les courses." />;
+  } else {
+    main = <Placeholder title="Aujourd'hui" note="Optionnel. Se remplit quand tu programmes une action (Session 2)." />;
+  }
+
+  return (
+    <div style={{ fontFamily:T.font, display:'flex', height:'100vh', background:T.bg, color:T.tx, overflow:'hidden' }}>
+      <div style={{ width:172, flexShrink:0, background:T.hdr, borderRight:`1px solid ${T.bd}`, display:'flex', flexDirection:'column' }}>
+        <div style={{ padding:'12px 14px', borderBottom:`1px solid ${T.bd}` }}>
+          <button onClick={onHome} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:6, padding:'3px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', fontFamily:T.font, letterSpacing:'0.02em', marginBottom:10 }}>KarlOS</button>
+          <div style={{ fontFamily:T.serif, fontSize:15, fontWeight:600, color:T.acc2, letterSpacing:'0.06em' }}>Durin's Works</div>
+        </div>
+        <div style={{ flex:1, padding:'10px 8px', overflowY:'auto' }}>
+          {DESK_NAV.map(n => {
+            const on = tab === n.id;
+            return (
+              <button key={n.id} onClick={() => setTab(n.id)}
+                style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 11px', marginBottom:3, fontSize:12.5, fontWeight: on ? 600 : 500, border:'none', borderRadius:7, cursor:'pointer', fontFamily:T.font, background: on ? 'rgba(91,156,246,0.10)' : 'transparent', color: on ? T.acc : T.tx2 }}>
+                {n.label}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ padding:'10px 14px', borderTop:`1px solid ${T.bd}`, display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:10, fontFamily:T.serif, color:T.tx3, letterSpacing:'0.03em', flex:1 }}>8235, Avenue Orégon</span>
+          <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono }}>{saved ? '✓' : '…'}</span>
+        </div>
+      </div>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>{main}</div>
+    </div>
+  );
+}
 // ─── v2 STATE DOCUMENT (single JSONB store) ─────────────────────────────────────
 // Build the full document from the static constants on first run. The constants stay
 // as the seed source; once the document lives in Supabase it becomes the truth.
@@ -1036,19 +1069,18 @@ function hydrateDoc(doc) {
   return { st, md, items };
 }
 
+// ─── MAIN APP ───────────────────────────────────────────────────────────────────
 export default function DurinsWorksApp() {
   const navigate = useNavigate();
-  const [view, setView] = useState('dashboard');
+  const isDesktop = useIsDesktop();
+  const [tab, setTab] = useState('projets');
+  const [selProject, setSelProject] = useState(null);
+  const [selAction, setSelAction] = useState(null);
   const [statuses, setStatuses] = useState({});
   const [mDone, setMDone] = useState({});
   const [shopItems, setShopItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [pendingGoTo, setPendingGoTo] = useState(null);
-  const [fontScale, setFontScale] = useState(1.0);
-  const [density, setDensity] = useState('comfortable');
-  const effectiveZoom = fontScale * (DENSITY_ZOOM[density] || 1.0);
 
   // Single-document store (v2): the loaded doc, its version guard, and a once-per-session snapshot flag.
   const stateRef = useRef(null);
@@ -1084,18 +1116,11 @@ export default function DurinsWorksApp() {
         versionRef.current = version;
         const { st, md, items } = hydrateDoc(doc);
         setStatuses(st); setMDone(md); setShopItems(items);
-      } catch(e) { console.error('Durin\'s Works load error:', e); }
+      } catch (e) { console.error('Durin\'s Works load error:', e); }
       setLoading(false);
     };
     loadDoc();
   }, []);
-
-  // Handle pending navigation from Dashboard
-  useEffect(() => {
-    if (pendingGoTo && view === 'travaux') {
-      setPendingGoTo(null);
-    }
-  }, [view, pendingGoTo]);
 
   const flash = () => { setSaved(false); setTimeout(() => setSaved(true), 900); };
 
@@ -1121,7 +1146,7 @@ export default function DurinsWorksApp() {
         .update({ state: doc, version: base + 1, updated_at: new Date().toISOString() })
         .eq('id', 1);
       versionRef.current = base + 1;
-    } catch(e) { console.error('Durin\'s Works persist error:', e); }
+    } catch (e) { console.error('Durin\'s Works persist error:', e); }
   }, []);
 
   const saveStatus = useCallback(async (actionId, status) => {
@@ -1129,6 +1154,11 @@ export default function DurinsWorksApp() {
     if (doc) doc.systems.forEach(s => s.actions.forEach(a => { if (a.id === actionId) a.status = status; }));
     await persist('statut ' + actionId);
   }, [persist]);
+
+  const changeStatus = useCallback((id, val) => {
+    setStatuses(prev => ({ ...prev, [id]: val }));
+    saveStatus(id, val);
+  }, [saveStatus]);
 
   const toggleMaint = useCallback(async (taskId, checked) => {
     const doneDate = checked ? today() : null;
@@ -1167,21 +1197,6 @@ export default function DurinsWorksApp() {
     await persist('achat suppr');
   }, [persist]);
 
-  const handleGoToAction = (actionId, sysId) => {
-    setPendingGoTo({ actionId, sysId });
-    setView('travaux');
-  };
-
-  const allActions = useMemo(() => SYSTEMS.flatMap(s => s.actions), []);
-  const urgentLeft = allActions.filter(a => isUrgentTiming(a.timing) && statuses[a.id] !== 'Fait').length;
-
-  const NAV = [
-    { id:'dashboard', label:'Tableau de bord' },
-    { id:'travaux', label:'Travaux' },
-    { id:'achats', label:'Achats' },
-    { id:'entretien', label:'Entretien' },
-  ];
-
   if (loading) {
     return (
       <div style={{ fontFamily:T.font, display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:T.bg, color:T.tx2, fontSize:13 }}>
@@ -1190,59 +1205,16 @@ export default function DurinsWorksApp() {
     );
   }
 
-  return (
-    <div style={{ fontFamily:T.font, display:'flex', flexDirection:'column', height:'100vh', background:T.bg, overflow:'hidden', color:T.tx }}>
-      {/* Zoomed area — header + body */}
-      <div style={{ flex:1, zoom:effectiveZoom, display:'flex', flexDirection:'column', overflow:'hidden', background:T.bg, color:T.tx }}>
-        {/* HEADER */}
-        <div style={{ background:T.hdr, borderBottom:`1px solid ${T.bd}`, padding:'0 12px', display:'flex', alignItems:'center', height:44, flexShrink:0, gap:0 }}>
-          <button onClick={() => navigate('/')} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:5, padding:'3px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', marginRight:10, fontFamily:T.font, letterSpacing:'0.02em', flexShrink:0 }}>KarlOS</button>
-          <span style={{ fontFamily:T.serif, fontSize:14, fontWeight:600, color:T.acc2, letterSpacing:'0.06em', marginRight:14, flexShrink:0 }}>Durin's Works</span>
-          <div style={{ display:'flex', gap:0 }}>
-            {NAV.map(n => (
-              <button key={n.id} onClick={() => setView(n.id)} style={{ padding:'4px 10px', fontSize:11, fontWeight:500, border:'none', background:'transparent', cursor:'pointer', color:view===n.id ? T.acc : T.tx2, borderBottom:`2px solid ${view===n.id ? T.acc : 'transparent'}`, borderRadius:0, fontFamily:T.font, transition:'color .1s', whiteSpace:'nowrap' }}>
-                {n.label}
-              </button>
-            ))}
-          </div>
-          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-            {urgentLeft > 0 && <span style={{ fontSize:10, background:'rgba(217,95,95,0.15)', color:T.r, borderRadius:10, padding:'1px 7px', fontWeight:600 }}>{urgentLeft} urgent{urgentLeft>1?'s':''}</span>}
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher…"
-              style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${T.bd}`, borderRadius:14, padding:'3px 12px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
-            <span style={{ fontSize:10, color:saved ? T.g : T.tx3, fontFamily:T.mono }}>{saved ? '✓' : '…'}</span>
-          </div>
-        </div>
-        {/* BODY */}
-        <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-          {view === 'dashboard' && <DashboardView statuses={statuses} mDone={mDone} onGoToAction={handleGoToAction} onToggleMaint={toggleMaint} />}
-          {view === 'travaux' && <TravauxView statuses={statuses} setStatuses={setStatuses} saveStatus={saveStatus} searchQuery={searchQuery} />}
-          {view === 'achats' && <AchatsView shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />}
-          {view === 'entretien' && <EntretienView mDone={mDone} onToggleMaint={toggleMaint} />}
-        </div>
-      </div>
+  const doc = stateRef.current;
+  const systems = (doc && doc.systems) || [];
+  const maintenance = (doc && doc.maintenance) || [];
 
-      {/* BOTTOM BAR — outside zoom */}
-      <div style={{ height:32, background:T.hdr, borderTop:`1px solid ${T.bd}`, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 12px', flexShrink:0, gap:10 }}>
-        <span style={{ fontSize:11, fontFamily:T.serif, color:T.tx3, letterSpacing:'0.04em', flexShrink:0 }}>8235, Avenue Orégon</span>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          {[{k:'compact',label:'⊟ Compact'},{k:'comfortable',label:'⊡ Confort'},{k:'presentation',label:'⊞ Grand'}].map(d => (
-            <button key={d.k} onClick={() => setDensity(d.k)}
-              style={{ background:'transparent', border:`1px solid ${density===d.k?T.acc:T.bd}`, borderRadius:4, padding:'1px 7px', fontSize:9,
-                fontWeight:density===d.k?700:400, color:density===d.k?T.acc:T.tx3, cursor:'pointer', fontFamily:T.font }}>
-              {d.label}
-            </button>
-          ))}
-          <span style={{ fontSize:10, color:T.tx3, marginLeft:4 }}>A</span>
-          <input type="range" min={0.7} max={1.4} step={0.05} value={fontScale}
-            onChange={e => setFontScale(parseFloat(e.target.value))}
-            style={{ width:90, cursor:'pointer', accentColor:T.acc }} />
-          <span style={{ fontSize:13, color:T.tx3 }}>A</span>
-          <span style={{ fontSize:10, color:T.tx3, fontFamily:T.mono, minWidth:30 }}>{Math.round(effectiveZoom*100)}%</span>
-        </div>
-        <span style={{ fontSize:10, color:T.tx3, flexShrink:0 }}>
-          {allActions.filter(a => statuses[a.id] === 'Fait').length}/{allActions.length} actions · {MAINTENANCE.filter(t=>mDone[t.id]).length}/{MAINTENANCE.length} entretien
-        </span>
-      </div>
-    </div>
-  );
+  const shellProps = {
+    tab, setTab, systems, maintenance, statuses, mDone, shopItems,
+    selProject, setSelProject, selAction, setSelAction,
+    onStatusChange: changeStatus, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem,
+    saved, onHome: () => navigate('/'),
+  };
+
+  return isDesktop ? <DesktopShell {...shellProps} /> : <PhoneShell {...shellProps} />;
 }
