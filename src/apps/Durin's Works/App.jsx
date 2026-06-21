@@ -68,13 +68,14 @@ const timingStyle = t => {
   return { bg:'rgba(62,74,90,0.12)', tx:T.tx2 };
 };
 
-const currentSeason = () => {
-  const m = new Date().getMonth();
+const currentSeasonAt = (date) => {
+  const m = date.getMonth();
   if (m >= 2 && m <= 4) return 'Printemps';
   if (m >= 5 && m <= 7) return 'Été';
   if (m >= 8 && m <= 10) return 'Automne';
   return 'Hiver';
 };
+const currentSeason = () => currentSeasonAt(new Date());
 
 const seasonMatch = (season, current) => {
   if (!season) return false;
@@ -371,6 +372,55 @@ const monShort = iso => MON_FR[Number(iso.split('-')[1]) - 1];
 const todayISO = () => toISO(new Date());
 const isToday = iso => iso === todayISO();
 
+// ─── SESSION 6 HELPERS (records, recurrence, snapshots) ─────────────────────────
+const PHOTO_BUCKET = 'durins-works-photos';
+const parseNum = v => { if (v === '' || v == null) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+
+// Maintenance recurrence (blueprint 3.3): a task is due when its season is the current
+// season and its last completion is before the start of the current cycle.
+const currentCycleStartISO = (season, date = new Date()) => {
+  const s = stripAccents(String(season || '')).toLowerCase().trim();
+  const y = date.getFullYear();
+  if (s === 'annuel' || s === "toute l'annee" || s === 'toute lannee') return `${y}-01-01`;
+  const c = stripAccents(currentSeasonAt(date)).toLowerCase();
+  if (c === 'printemps') return `${y}-03-01`;
+  if (c === 'ete') return `${y}-06-01`;
+  if (c === 'automne') return `${y}-09-01`;
+  return date.getMonth() >= 11 ? `${y}-12-01` : `${y - 1}-12-01`;
+};
+const lastDoneISO = task => {
+  const h = (task && task.history) || [];
+  let max = null;
+  for (const e of h) { const d = e && e.date; if (d && (max === null || d > max)) max = d; }
+  return max;
+};
+const maintDueState = (task, date = new Date()) => {
+  const inSeason = seasonMatch(task.season, currentSeasonAt(date));
+  const last = lastDoneISO(task);
+  const cycleStart = currentCycleStartISO(task.season, date);
+  const doneThisCycle = !!(last && last >= cycleStart);
+  return { inSeason, last, cycleStart, doneThisCycle, due: inSeason && !doneThisCycle };
+};
+
+// Snapshot row summary (systems / scheduled actions / materials / runs).
+const snapshotSummary = state => {
+  const systems = (state && state.systems) || [];
+  let scheduled = 0;
+  systems.forEach(s => (s.actions || []).forEach(a => { if (a.scheduledDate) scheduled++; }));
+  return { systems: systems.length, scheduled, materials: ((state && state.materials) || []).length, runs: ((state && state.buyRuns) || []).length };
+};
+
+// Per-project cost roll-up across its actions (estimates and actuals).
+const projectCost = sys => {
+  let est = 0, act = 0, hasEst = false, hasAct = false;
+  ((sys && sys.actions) || []).forEach(a => {
+    const c = a.cost || {};
+    if (c.estimate != null) { est += Number(c.estimate) || 0; hasEst = true; }
+    if (c.actual != null) { act += Number(c.actual) || 0; hasAct = true; }
+  });
+  return { est, act, hasEst, hasAct };
+};
+
 // Interim material-to-project association for Session 1. The canonical link is the
 // union of action.materialIds (blueprint 3.3), but those are seeded empty until
 // Session 4, so we fall back to the material's existing project text.
@@ -480,6 +530,7 @@ function ProjectDashboard({ system, statuses, materials, onOpenAction, onBack })
   const { done, total } = sysProgress(system, statuses);
   const acts = orderActions(system.actions);
   const { matched, subtotal } = projectMaterials(system, materials);
+  const cost = projectCost(system);
   return (
     <div style={{ padding:'14px 16px 28px', maxWidth:760, margin:'0 auto', width:'100%', boxSizing:'border-box' }}>
       {onBack && <BackBtn label="Projets" onClick={onBack} />}
@@ -527,6 +578,16 @@ function ProjectDashboard({ system, statuses, materials, onOpenAction, onBack })
         </>
       ) : (
         <div style={{ fontSize:11.5, color:T.tx3, fontStyle:'italic' }}>Aucun matériau lié pour l'instant.</div>
+      )}
+
+      {(cost.hasEst || cost.hasAct) && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:T.s2, border:`1px solid ${T.bd2}`, borderRadius:9, padding:'11px 13px', marginTop:10 }}>
+          <span style={{ fontSize:12, color:T.tx2 }}>Coûts du projet</span>
+          <span style={{ display:'flex', gap:14, alignItems:'baseline' }}>
+            <span style={{ fontSize:11, color:T.tx3 }}>estimé <span style={{ fontSize:14, color:T.y, fontFamily:T.mono, fontWeight:600 }}>{cost.hasEst ? money(cost.est) : '—'}</span></span>
+            <span style={{ fontSize:11, color:T.tx3 }}>réel <span style={{ fontSize:14, color: cost.hasAct ? T.g : T.tx3, fontFamily:T.mono, fontWeight:600 }}>{cost.hasAct ? money(cost.act) : '—'}</span></span>
+          </span>
+        </div>
       )}
     </div>
   );
@@ -723,7 +784,8 @@ function resolveMaterial(query, materials) {
 
 // ─── ACTION VIEW (execution screen, Session 3) ──────────────────────────────────
 function ActionView({ system, action, status, onStatusChange, onBack, backLabel, schedule, onSchedule,
-  materials = [], stepsDone = {}, onToggleStep, onAddLog, onLinkMaterial, onAddMaterial, onUnlinkMaterial, onApplyPlan }) {
+  materials = [], stepsDone = {}, onToggleStep, onAddLog, onLinkMaterial, onAddMaterial, onUnlinkMaterial, onApplyPlan,
+  onSetCost, onAddQuote, onUpdateQuote, onRemoveQuote, onSetContractor, onAddPhoto, onRemovePhoto }) {
   const wc = WSTATUS[status] || WSTATUS['À faire'];
   const steps = action.steps || [];
   const cautions = action.cautions || [];
@@ -732,6 +794,10 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
   const matSubtotal = linkedMats.reduce((s, m) => s + (m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : 0), 0);
   const unlinkedMats = materials.filter(m => !linkedIds.includes(m.id));
   const log = action.log || [];
+  const cost = action.cost || { estimate: null, actual: null, quotes: [] };
+  const quotes = cost.quotes || [];
+  const photos = action.photos || [];
+  const ecart = (cost.estimate != null && cost.actual != null) ? (cost.actual - cost.estimate) : null;
   const doneOf = s => (s.id && stepsDone[`${action.id}:${s.id}`] != null) ? stepsDone[`${action.id}:${s.id}`] : !!s.done;
   const doneCount = steps.filter(doneOf).length;
 
@@ -743,12 +809,39 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [pasteErr, setPasteErr] = useState('');
+  const [costEst, setCostEst] = useState('');
+  const [costAct, setCostAct] = useState('');
+  const [qForm, setQForm] = useState({ id: null, who: '', amount: '', note: '' });
+  const [showQForm, setShowQForm] = useState(false);
+  const [contractor, setContractor] = useState({ name: '', phone: '', email: '', notes: '' });
+  const [signedUrls, setSignedUrls] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [photoErr, setPhotoErr] = useState('');
 
   useEffect(() => {
     setExpanded({}); setLogText(''); setMatMode(null); setLinkSel('');
     setNewMat({ article:'', magasin:'', prix_unitaire:'', qty:1 });
     setShowPaste(false); setPasteText(''); setPasteErr('');
+    const c = action.cost || {};
+    setCostEst(c.estimate == null ? '' : String(c.estimate));
+    setCostAct(c.actual == null ? '' : String(c.actual));
+    setQForm({ id: null, who: '', amount: '', note: '' }); setShowQForm(false);
+    const ct = action.contractor || {};
+    setContractor({ name: ct.name || '', phone: ct.phone || '', email: ct.email || '', notes: ct.notes || '' });
+    setSignedUrls({}); setUploading(false); setPhotoErr('');
   }, [action.id]);
+
+  // Mint short-lived signed URLs for this action's photos (private bucket).
+  useEffect(() => {
+    let cancelled = false;
+    const need = photos.filter(p => p.path && !signedUrls[p.path]).map(p => p.path);
+    if (!need.length) return;
+    supabase.storage.from(PHOTO_BUCKET).createSignedUrls(need, 3600).then(({ data }) => {
+      if (cancelled || !data) return;
+      setSignedUrls(prev => { const n = { ...prev }; data.forEach(d => { if (d && d.path && d.signedUrl) n[d.path] = d.signedUrl; }); return n; });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [action.id, photos.map(p => p.path).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inpStyle = { background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:5, padding:'6px 9px', fontSize:12, color:T.tx, fontFamily:T.font, outline:'none', boxSizing:'border-box' };
   const fmtLog = iso => { const d = new Date(iso); return `${d.toLocaleDateString('fr-CA', { month:'short', day:'numeric' })} ${d.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' })}`; };
@@ -772,6 +865,32 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
     }
     if (onApplyPlan) onApplyPlan(action.id, parsed, system.name);
     setPasteText(''); setShowPaste(false); setPasteErr('');
+  };
+
+  const commitCostEst = () => { const v = parseNum(costEst); if (v !== (cost.estimate ?? null) && onSetCost) onSetCost(action.id, { estimate: v }); };
+  const commitCostAct = () => { const v = parseNum(costAct); if (v !== (cost.actual ?? null) && onSetCost) onSetCost(action.id, { actual: v }); };
+  const submitQuote = () => {
+    const amount = parseNum(qForm.amount), who = (qForm.who || '').trim(), note = (qForm.note || '').trim();
+    if (!who && amount == null && !note) return;
+    if (qForm.id) { if (onUpdateQuote) onUpdateQuote(action.id, qForm.id, { who, amount, note }); }
+    else if (onAddQuote) onAddQuote(action.id, { who, amount, note });
+    setQForm({ id: null, who: '', amount: '', note: '' }); setShowQForm(false);
+  };
+  const startEditQuote = q => { setQForm({ id: q.id, who: q.who || '', amount: q.amount == null ? '' : String(q.amount), note: q.note || '' }); setShowQForm(true); };
+  const commitContractor = () => { if (onSetContractor) onSetContractor(action.id, contractor); };
+  const onPickPhoto = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhotoErr(''); setUploading(true);
+    try {
+      const ext = ((file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
+      const path = `${action.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+      if (error) { setPhotoErr('Échec du téléversement.'); setUploading(false); return; }
+      if (onAddPhoto) onAddPhoto(action.id, { path, caption: '', at: new Date().toISOString() });
+    } catch (err) { setPhotoErr('Échec du téléversement.'); }
+    setUploading(false);
   };
 
   const pasteBlock = showPaste && (
@@ -907,6 +1026,88 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
           )}
         </div>
       )}
+
+      <SectionLab style={{ margin:'18px 0 6px' }}>Coût</SectionLab>
+      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginBottom:12 }}>
+        <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-end' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+            <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Estimé $</span>
+            <input type="number" value={costEst} onChange={e => setCostEst(e.target.value)} onBlur={commitCostEst}
+              onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} placeholder="—" style={{ ...inpStyle, width:96 }} />
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+            <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Réel $</span>
+            <input type="number" value={costAct} onChange={e => setCostAct(e.target.value)} onBlur={commitCostAct}
+              onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} placeholder="—" style={{ ...inpStyle, width:96 }} />
+          </div>
+          {ecart != null && (
+            <span style={{ marginLeft:'auto', alignSelf:'center', fontSize:11.5, fontFamily:T.mono, color: ecart > 0 ? T.r : ecart < 0 ? T.g : T.tx2 }}>
+              Écart {ecart > 0 ? '+' : ''}{money(ecart)}
+            </span>
+          )}
+        </div>
+        <div style={{ marginTop:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Devis</div>
+          {quotes.map(q => (
+            <div key={q.id} style={{ display:'flex', gap:8, alignItems:'center', padding:'7px 0', borderBottom:`1px solid ${T.bd}` }}>
+              <span style={{ flex:1, fontSize:12, color:T.tx }}>{q.who || '—'}{q.note ? ` · ${q.note}` : ''}</span>
+              <span style={{ fontSize:12, color:T.y, fontFamily:T.mono, minWidth:54, textAlign:'right' }}>{money(q.amount)}</span>
+              <button onClick={() => startEditQuote(q)} title="Modifier" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:12, padding:0, lineHeight:1 }}>✎</button>
+              <button onClick={() => onRemoveQuote && onRemoveQuote(action.id, q.id)} title="Retirer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1 }}>×</button>
+            </div>
+          ))}
+          {showQForm ? (
+            <div style={{ display:'flex', gap:7, flexWrap:'wrap', alignItems:'center', marginTop:8 }}>
+              <input value={qForm.who} onChange={e => setQForm(f => ({ ...f, who:e.target.value }))} placeholder="Entrepreneur" style={{ ...inpStyle, flex:1, minWidth:130 }} />
+              <input type="number" value={qForm.amount} onChange={e => setQForm(f => ({ ...f, amount:e.target.value }))} placeholder="Montant $" style={{ ...inpStyle, width:96 }} />
+              <input value={qForm.note} onChange={e => setQForm(f => ({ ...f, note:e.target.value }))} placeholder="Note" style={{ ...inpStyle, flex:1, minWidth:120 }} />
+              <button onClick={submitQuote} style={{ ...ss.btn, color:T.g, border:`1px solid ${T.g}44` }}>{qForm.id ? 'Enregistrer' : 'Ajouter'}</button>
+              <button onClick={() => { setQForm({ id:null, who:'', amount:'', note:'' }); setShowQForm(false); }} style={ss.btn}>Annuler</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowQForm(true)} style={{ ...ss.btn, marginTop:8, color:T.acc }}>+ Devis</button>
+          )}
+        </div>
+      </div>
+
+      <SectionLab style={{ margin:'18px 0 6px' }}>Entrepreneur</SectionLab>
+      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginBottom:12, display:'flex', flexDirection:'column', gap:8 }}>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <input value={contractor.name} onChange={e => setContractor(c => ({ ...c, name:e.target.value }))} onBlur={commitContractor} placeholder="Nom / entreprise" style={{ ...inpStyle, flex:1, minWidth:150 }} />
+          <input value={contractor.phone} onChange={e => setContractor(c => ({ ...c, phone:e.target.value }))} onBlur={commitContractor} placeholder="Téléphone" style={{ ...inpStyle, width:150 }} />
+        </div>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <input value={contractor.email} onChange={e => setContractor(c => ({ ...c, email:e.target.value }))} onBlur={commitContractor} placeholder="Courriel" style={{ ...inpStyle, flex:1, minWidth:150 }} />
+        </div>
+        <input value={contractor.notes} onChange={e => setContractor(c => ({ ...c, notes:e.target.value }))} onBlur={commitContractor} placeholder="Notes (devis, disponibilité…)" style={{ ...inpStyle }} />
+      </div>
+
+      <SectionLab style={{ margin:'18px 0 6px' }}>Photos</SectionLab>
+      <div style={{ marginBottom:12 }}>
+        {photos.length > 0 && (
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:8 }}>
+            {photos.map(p => (
+              <div key={p.id} style={{ width:104 }}>
+                <div style={{ position:'relative' }}>
+                  <div style={{ width:104, height:104, borderRadius:8, overflow:'hidden', background:T.s3, border:`1px solid ${T.bd2}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {signedUrls[p.path]
+                      ? <img src={signedUrls[p.path]} alt={p.caption || ''} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      : <span style={{ fontSize:9, color:T.tx3 }}>…</span>}
+                  </div>
+                  <button onClick={() => onRemovePhoto && onRemovePhoto(action.id, p.id)} title="Supprimer la photo"
+                    style={{ position:'absolute', top:-7, right:-7, width:20, height:20, borderRadius:'50%', background:T.s2, border:`1px solid ${T.bd2}`, color:T.r, fontSize:12, cursor:'pointer', lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>×</button>
+                </div>
+                {p.caption && <div style={{ fontSize:10, color:T.tx3, marginTop:3, lineHeight:1.3 }}>{p.caption}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        <label style={{ ...ss.btn, display:'inline-flex', alignItems:'center', gap:6, color: uploading ? T.tx3 : T.acc, cursor: uploading ? 'default' : 'pointer' }}>
+          {uploading ? 'Téléversement…' : '+ Photo'}
+          <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} disabled={uploading} style={{ display:'none' }} />
+        </label>
+        {photoErr && <span style={{ fontSize:11, color:T.r, marginLeft:8 }}>{photoErr}</span>}
+      </div>
 
       <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginTop:18 }}>
         <SectionLab style={{ margin:'0 0 6px' }}>Pourquoi</SectionLab>
@@ -1195,6 +1396,7 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
 function EntretienView({ maintenance, mDone, onToggleMaint, narrow }) {
   const [fSeason, setFSeason] = useState('all');
   const season = currentSeason();
+  const dueCount = maintenance.filter(t => maintDueState(t).due).length;
   const uniqueSeasons = [...new Set(maintenance.map(t => t.season))];
   const filtered = fSeason === 'all' ? maintenance : maintenance.filter(t => t.season === fSeason);
   const grouped = useMemo(() => {
@@ -1215,7 +1417,7 @@ function EntretienView({ maintenance, mDone, onToggleMaint, narrow }) {
         {uniqueSeasons.map(s => <option key={s}>{s}</option>)}
       </select>
       <span style={{ fontSize:11, color:T.tx3 }}>Saison actuelle: <span style={{ color:T.acc }}>{season}</span></span>
-      <span style={{ ...ss.pill('rgba(63,182,139,0.12)', T.g), marginLeft:'auto' }}>{maintenance.filter(t => mDone[t.id]).length}/{maintenance.length} complétés</span>
+      <span style={{ ...ss.pill(dueCount ? 'rgba(212,146,42,0.14)' : 'rgba(63,182,139,0.12)', dueCount ? T.y : T.g), marginLeft:'auto' }}>{dueCount ? `${dueCount} à faire maintenant` : 'À jour'}</span>
     </div>
   );
 
@@ -1224,28 +1426,41 @@ function EntretienView({ maintenance, mDone, onToggleMaint, narrow }) {
       {orderedSeasons.map(s => {
         const tasks = grouped[s];
         const isCur = seasonMatch(s, season);
-        const doneCount = tasks.filter(t => mDone[t.id]).length;
+        const doneCount = tasks.filter(t => maintDueState(t).doneThisCycle).length;
         return (
           <div key={s} style={{ marginBottom:20 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
               <span style={{ fontSize:12, fontWeight:600, color:T.tx }}>{s}</span>
               {isCur && <span style={{ ...ss.pill('rgba(63,182,139,0.14)', T.g), fontSize:9 }}>Maintenant</span>}
-              <span style={{ fontSize:10, color:T.tx3 }}>{doneCount}/{tasks.length} fait</span>
+              <span style={{ fontSize:10, color:T.tx3 }}>{doneCount}/{tasks.length} ce cycle</span>
             </div>
-            {tasks.map(t => (
+            {tasks.map(t => {
+              const ds = maintDueState(t);
+              const hist = (t.history || []).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+              return (
               <div key={t.id} style={{ display:'flex', gap:11, padding:'10px 12px',
-                background: mDone[t.id] ? 'rgba(63,182,139,0.05)' : isCur && !mDone[t.id] ? 'rgba(91,156,246,0.04)' : T.s1,
-                border:`1px solid ${isCur && !mDone[t.id] ? 'rgba(91,156,246,0.18)' : T.bd}`, borderRadius:8, marginBottom:6, alignItems:'flex-start' }}>
-                <input type="checkbox" checked={!!mDone[t.id]} onChange={e => onToggleMaint(t.id, e.target.checked)} style={{ width:17, height:17, cursor:'pointer', accentColor:T.g, flexShrink:0, marginTop:1 }} />
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, color: mDone[t.id] ? T.tx3 : T.tx, fontWeight:500, textDecoration: mDone[t.id] ? 'line-through' : 'none', marginBottom: t.detail ? 3 : 0 }}>{t.task}</div>
+                background: ds.due ? 'rgba(212,146,42,0.06)' : ds.doneThisCycle ? 'rgba(63,182,139,0.05)' : T.s1,
+                border:`1px solid ${ds.due ? 'rgba(212,146,42,0.28)' : T.bd}`, borderRadius:8, marginBottom:6, alignItems:'flex-start' }}>
+                <input type="checkbox" checked={ds.doneThisCycle} onChange={e => onToggleMaint(t.id, e.target.checked)} style={{ width:17, height:17, cursor:'pointer', accentColor:T.g, flexShrink:0, marginTop:1 }} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom: t.detail ? 3 : 0 }}>
+                    <span style={{ fontSize:13, color: ds.doneThisCycle ? T.tx3 : T.tx, fontWeight:500, textDecoration: ds.doneThisCycle ? 'line-through' : 'none' }}>{t.task}</span>
+                    {ds.due && <span style={{ ...ss.pill('rgba(212,146,42,0.16)', T.y), fontSize:9 }}>Dû</span>}
+                  </div>
                   <div style={{ fontSize:11.5, color:T.tx3, lineHeight:1.55 }}>{t.detail}</div>
-                  {mDone[t.id] && <div style={{ fontSize:10, color:T.g, marginTop:3 }}>✓ Complété le {mDone[t.id]}</div>}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:10, color: ds.doneThisCycle ? T.g : T.tx3 }}>{ds.last ? `Dernier: ${fmtDate(ds.last)}` : 'Jamais fait'}</span>
+                    <span style={{ fontSize:10, color:T.tx3 }}>· Revient: {t.season}</span>
+                  </div>
+                  {hist.length > 0 && (
+                    <div style={{ fontSize:9.5, color:T.tx3, fontFamily:T.mono, marginTop:3 }}>{hist.slice(0, 4).map(h => fmtDate(h.date)).join('  ·  ')}{hist.length > 4 ? '  …' : ''}</div>
+                  )}
                   {t.notes && <div style={{ fontSize:10, color:T.tx3, marginTop:2, fontFamily:T.mono }}>{t.notes}</div>}
                 </div>
                 <span style={{ fontSize:10, color:T.tx3, flexShrink:0, textAlign:'right', maxWidth:90 }}>{t.zone}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
         );
       })}
@@ -1284,7 +1499,7 @@ function PlanifierControl({ value, onSet }) {
 }
 
 // ─── CALENDAR VIEW (desktop) ────────────────────────────────────────────────────
-function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns = [], toggleBought, removeFromRun, toggleRunDone, deleteRun }) {
+function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns = [], toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto }) {
   const [weekStart, setWeekStart] = useState(() => toISO(startOfWeek(new Date())));
   const [pending, setPending] = useState(null);
   const [selId, setSelId] = useState(null);
@@ -1400,7 +1615,8 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
     detail = (
       <ActionView system={selSys} action={sel} status={statuses[sel.id] || sel.status} onStatusChange={onStatusChange}
         schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier"
-        materials={materials} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />
+        materials={materials} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan}
+        onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} />
     );
   } else {
     detail = (
@@ -1638,14 +1854,75 @@ function QuickAdd({ variant = 'sheet', triggerStyle, systems = [], materials = [
   );
 }
 
+// ─── SNAPSHOTS / RESTORE VIEW (Session 6) ───────────────────────────────────────
+function SnapshotsView({ snapshots = [], onRestore, onRefresh, narrow, onBack }) {
+  const [confirmId, setConfirmId] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const fmt = iso => { try { const d = new Date(iso); return `${d.toLocaleDateString('fr-CA', { month:'short', day:'numeric', year:'numeric' })} ${d.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' })}`; } catch (e) { return String(iso || ''); } };
+
+  const doRestore = async (snap) => {
+    setBusyId(snap.id);
+    await onRestore(snap);
+    setBusyId(null); setConfirmId(null);
+  };
+
+  const list = (
+    <div style={{ padding: narrow ? '12px 14px 24px' : '14px 16px 28px', maxWidth:760, margin:'0 auto', width:'100%', boxSizing:'border-box' }}>
+      {narrow && onBack && <BackBtn label="Retour" onClick={onBack} />}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+        <div style={{ fontSize:18, fontWeight:700, color:T.tx }}>Sauvegardes</div>
+        <button onClick={onRefresh} style={{ ...ss.btn, marginLeft:'auto' }}>Rafraîchir</button>
+      </div>
+      <div style={{ fontSize:11.5, color:T.tx3, lineHeight:1.6, marginBottom:14 }}>
+        Chaque écriture prend une copie du document. Restaurer remplace l'état courant par la copie choisie, après en avoir pris une sauvegarde de sécurité.
+      </div>
+      {snapshots.length === 0 && (
+        <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'18px 16px', textAlign:'center', fontSize:12.5, color:T.tx2 }}>Aucune sauvegarde pour l'instant.</div>
+      )}
+      {snapshots.map(snap => {
+        const sum = snapshotSummary(snap.state);
+        const confirming = confirmId === snap.id;
+        return (
+          <div key={snap.id} style={{ background:T.s1, border:`1px solid ${confirming ? 'rgba(217,95,95,0.35)' : T.bd}`, borderRadius:10, padding:'12px 13px', marginBottom:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              <span style={{ fontSize:12.5, fontWeight:600, color:T.tx }}>{snap.label || 'sans étiquette'}</span>
+              <span style={{ fontSize:10.5, color:T.tx3, fontFamily:T.mono, marginLeft:'auto' }}>{fmt(snap.created_at)}</span>
+            </div>
+            <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginTop:7, fontSize:10.5, color:T.tx3, fontFamily:T.mono }}>
+              <span>{sum.systems} systèmes</span>
+              <span>{sum.scheduled} planifiées</span>
+              <span>{sum.materials} matériaux</span>
+              <span>{sum.runs} courses</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, flexWrap:'wrap' }}>
+              {!confirming ? (
+                <button onClick={() => setConfirmId(snap.id)} style={{ ...ss.btn, color:T.acc, border:`1px solid rgba(91,156,246,0.3)` }}>Restaurer</button>
+              ) : (
+                <>
+                  <span style={{ fontSize:11, color:'#e9b0a6' }}>Remplacer l'état courant par cette copie ?</span>
+                  <button onClick={() => doRestore(snap)} disabled={busyId === snap.id} style={{ ...ss.btn, marginLeft:'auto', color:T.r, border:`1px solid rgba(217,95,95,0.4)`, background:'rgba(217,95,95,0.1)' }}>{busyId === snap.id ? '…' : 'Confirmer la restauration'}</button>
+                  <button onClick={() => setConfirmId(null)} style={ss.btn}>Annuler</button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (narrow) return <div>{list}</div>;
+  return <div style={{ flex:1, overflowY:'auto' }}>{list}</div>;
+}
+
 function PhoneShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, snapshots, loadSnapshots, restoreSnapshot, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let body;
   if (tab === 'projets') {
-    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />;
+    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} />;
     else if (system) body = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} onBack={() => setSelProject(null)} />;
     else body = <ProjectList systems={systems} statuses={statuses} onSelect={id => { setSelProject(id); setSelAction(null); }} />;
   } else if (tab === 'aujourdhui') {
@@ -1654,6 +1931,8 @@ function PhoneShell(props) {
     body = <AchatsView narrow shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} buyRuns={buyRuns} assignToRun={assignToRun} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} />;
   } else if (tab === 'entretien') {
     body = <EntretienView narrow maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
+  } else if (tab === 'snapshots') {
+    body = <SnapshotsView narrow snapshots={snapshots} onRestore={restoreSnapshot} onRefresh={loadSnapshots} onBack={() => setTab('projets')} />;
   }
 
   return (
@@ -1661,8 +1940,11 @@ function PhoneShell(props) {
       <div style={{ height:50, flexShrink:0, background:T.hdr, borderBottom:`1px solid ${T.bd}`, display:'flex', alignItems:'center', gap:10, padding:'0 14px' }}>
         <button onClick={onHome} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:6, padding:'4px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', fontFamily:T.font, letterSpacing:'0.02em' }}>KarlOS</button>
         <span style={{ fontFamily:T.serif, fontSize:15, fontWeight:600, color:T.acc2, letterSpacing:'0.06em' }}>Durin's Works</span>
+        <button onClick={() => setTab('snapshots')} title="Sauvegardes" style={{ marginLeft:'auto', width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background: tab === 'snapshots' ? 'rgba(91,156,246,0.14)' : T.s2, color: tab === 'snapshots' ? T.acc : T.tx2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+          <svg viewBox="0 0 24 24" width="16" height="16" style={{ stroke:'currentColor', fill:'none', strokeWidth:1.7 }}><rect x="2" y="3" width="20" height="4" rx="1"/><path d="M4 7l1.4 12.1a1 1 0 0 0 1 .9h11.2a1 1 0 0 0 1-.9L21 7"/><line x1="10" y1="11" x2="14" y2="11"/></svg>
+        </button>
         <QuickAdd variant="sheet"
-          triggerStyle={{ marginLeft:'auto', width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1 }}
+          triggerStyle={{ width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1 }}
           systems={systems} materials={shopItems} openActionId={selAction}
           addShopItem={addShopItem} saveShopItem={saveShopItem} addLogEntry={addLogEntry} scheduleAction={scheduleAction} assignToRun={assignToRun} />
         <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono, minWidth:12, textAlign:'center' }}>{saved ? '✓' : '…'}</span>
@@ -1690,17 +1972,18 @@ const DESK_NAV = [
   { id:'projets', label:'Projets' },
   { id:'achats', label:'Achats' },
   { id:'entretien', label:'Entretien' },
+  { id:'snapshots', label:'Sauvegardes' },
 ];
 
 function DesktopShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, snapshots, loadSnapshots, restoreSnapshot, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let main;
   if (tab === 'projets') {
     let detail;
-    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />;
+    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} />;
     else if (system) detail = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} />;
     else detail = (
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
@@ -1721,7 +2004,9 @@ function DesktopShell(props) {
   } else if (tab === 'entretien') {
     main = <EntretienView maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
   } else if (tab === 'calendrier') {
-    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} buyRuns={buyRuns} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} />;
+    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} buyRuns={buyRuns} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} setActionCost={setActionCost} addQuote={addQuote} updateQuote={updateQuote} removeQuote={removeQuote} setActionContractor={setActionContractor} addPhoto={addPhoto} removePhoto={removePhoto} />;
+  } else if (tab === 'snapshots') {
+    main = <SnapshotsView snapshots={snapshots} onRestore={restoreSnapshot} onRefresh={loadSnapshots} />;
   } else {
     main = <Placeholder title="Aujourd'hui" note="Optionnel. Se remplit quand tu programmes une action (Session 2)." />;
   }
@@ -1821,6 +2106,7 @@ export default function DurinsWorksApp() {
   const [schedules, setSchedules] = useState({});
   const [stepsDone, setStepsDone] = useState({});
   const [buyRuns, setBuyRuns] = useState([]);
+  const [snapshots, setSnapshots] = useState([]);
   const [, setRev] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(true);
@@ -1912,19 +2198,23 @@ export default function DurinsWorksApp() {
   }, [persist]);
 
   const toggleMaint = useCallback(async (taskId, checked) => {
-    const doneDate = checked ? today() : null;
-    setMDone(prev => ({ ...prev, [taskId]: doneDate }));
     const doc = stateRef.current;
-    if (doc) {
-      const m = (doc.maintenance || []).find(x => x.id === taskId);
-      if (m) {
-        m.history = m.history || [];
-        if (checked) { if (!m.history.some(h => h.date === today())) m.history.push({ date: today() }); }
-        else { m.history = m.history.filter(h => h.date !== today()); }
+    const m = doc && (doc.maintenance || []).find(x => x.id === taskId);
+    if (m) {
+      m.history = m.history || [];
+      if (checked) {
+        if (!m.history.some(h => h.date === today())) m.history.push({ date: today() });
+      } else {
+        // Uncheck the current cycle: drop every completion at or after this cycle's start,
+        // so a task done earlier this cycle (not just today) returns to "due".
+        const cycleStart = currentCycleStartISO(m.season);
+        m.history = m.history.filter(h => !(h.date && h.date >= cycleStart));
       }
     }
+    setMDone(prev => ({ ...prev, [taskId]: m ? lastDoneISO(m) : null }));
+    bump();
     await persist('entretien ' + taskId);
-  }, [persist]);
+  }, [persist, bump]);
 
   const saveShopItem = useCallback(async (id, updates) => {
     setShopItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
@@ -2114,6 +2404,136 @@ export default function DurinsWorksApp() {
     persist('course suppr ' + runId);
   }, [persist, bump]);
 
+  // ── Session 6: cost ───────────────────────────────────────────────────────────
+  const setActionCost = useCallback((actionId, patch) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) {
+        const cur = a.cost || { estimate: null, actual: null, quotes: [] };
+        a.cost = { estimate: cur.estimate ?? null, actual: cur.actual ?? null, quotes: cur.quotes || [], ...patch };
+      }
+    }));
+    bump();
+    persist('coût ' + actionId);
+  }, [persist, bump]);
+
+  const addQuote = useCallback((actionId, quote) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) {
+        a.cost = a.cost || { estimate: null, actual: null, quotes: [] };
+        a.cost.quotes = a.cost.quotes || [];
+        a.cost.quotes.push({ id: 'q' + Date.now(), who: (quote.who || '').trim(), amount: quote.amount == null ? null : quote.amount, note: (quote.note || '').trim() });
+      }
+    }));
+    bump();
+    persist('devis ajout ' + actionId);
+  }, [persist, bump]);
+
+  const updateQuote = useCallback((actionId, quoteId, patch) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId && a.cost && a.cost.quotes) a.cost.quotes = a.cost.quotes.map(q => q.id === quoteId ? { ...q, ...patch } : q);
+    }));
+    bump();
+    persist('devis maj ' + actionId);
+  }, [persist, bump]);
+
+  const removeQuote = useCallback((actionId, quoteId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId && a.cost && a.cost.quotes) a.cost.quotes = a.cost.quotes.filter(q => q.id !== quoteId);
+    }));
+    bump();
+    persist('devis suppr ' + actionId);
+  }, [persist, bump]);
+
+  // ── Session 6: contractor ─────────────────────────────────────────────────────
+  const setActionContractor = useCallback((actionId, contractor) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    const empty = !contractor || !['name', 'phone', 'email', 'notes'].some(k => (contractor[k] || '').trim());
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) a.contractor = empty ? null : {
+        name: (contractor.name || '').trim(), phone: (contractor.phone || '').trim(),
+        email: (contractor.email || '').trim(), notes: (contractor.notes || '').trim(),
+      };
+    }));
+    bump();
+    persist('entrepreneur ' + actionId);
+  }, [persist, bump]);
+
+  // ── Session 6: photos (paths only; blobs live in the private storage bucket) ───
+  const addPhoto = useCallback((actionId, photo) => {
+    const doc = stateRef.current;
+    if (!doc || !photo || !photo.path) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) {
+        a.photos = a.photos || [];
+        a.photos.push({ id: photo.id || ('ph' + Date.now()), path: photo.path, caption: photo.caption || '', at: photo.at || new Date().toISOString() });
+      }
+    }));
+    bump();
+    persist('photo ajout ' + actionId);
+  }, [persist, bump]);
+
+  const removePhoto = useCallback((actionId, photoId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    let path = null;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) {
+        const ph = (a.photos || []).find(p => p.id === photoId);
+        if (ph) path = ph.path;
+        a.photos = (a.photos || []).filter(p => p.id !== photoId);
+      }
+    }));
+    if (path) supabase.storage.from(PHOTO_BUCKET).remove([path]).catch(() => {});
+    bump();
+    persist('photo suppr ' + actionId);
+  }, [persist, bump]);
+
+  // ── Session 6: snapshots + restore ────────────────────────────────────────────
+  const loadSnapshots = useCallback(async () => {
+    try {
+      const { data } = await supabase.from('durins_works_snapshots')
+        .select('id, label, created_at, state').order('id', { ascending: false });
+      setSnapshots(data || []);
+    } catch (e) { console.error('Durin\'s Works snapshots load error:', e); }
+  }, []);
+
+  const restoreSnapshot = useCallback(async (snap) => {
+    const snapState = snap && snap.state;
+    if (!snapState || !Array.isArray(snapState.systems)) return;
+    flash();
+    try {
+      // 1. Snapshot the current live document first, unconditionally, then mark the session
+      //    snapped so persist() does not add a duplicate.
+      const current = stateRef.current;
+      if (current) {
+        await supabase.from('durins_works_snapshots').insert({ label: 'pré-restauration ' + today(), state: current });
+        snappedRef.current = true;
+      }
+      // 2. Swap in a deep clone of the chosen state and 3. write it under the version guard.
+      const clone = JSON.parse(JSON.stringify(snapState));
+      stateRef.current = clone;
+      await persist('restauration snapshot ' + (snap.id || ''));
+      // 4. Reload every in-memory shape from the restored document.
+      const { st, md, items, sched, sd, runs } = hydrateDoc(clone);
+      setStatuses(st); setMDone(md); setShopItems(items); setSchedules(sched); setStepsDone(sd); setBuyRuns(runs);
+      setSelProject(null); setSelAction(null);
+      bump();
+      loadSnapshots();
+    } catch (e) { console.error('Durin\'s Works restore error:', e); }
+  }, [persist, bump, loadSnapshots]);
+
+  // Lazy-load the snapshot list the first time the Sauvegardes surface opens.
+  useEffect(() => { if (tab === 'snapshots') loadSnapshots(); }, [tab, loadSnapshots]);
+
   if (loading) {
     return (
       <div style={{ fontFamily:T.font, display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:T.bg, color:T.tx2, fontSize:13 }}>
@@ -2132,6 +2552,8 @@ export default function DurinsWorksApp() {
     onStatusChange: changeStatus, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem,
     stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan,
     buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun,
+    setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto,
+    snapshots, loadSnapshots, restoreSnapshot,
     saved, onHome: () => navigate('/'),
   };
 

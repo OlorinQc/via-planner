@@ -4,7 +4,7 @@ description: |
   Durin's Works is Karl's private house and renovation execution app for the property at 8235, Avenue Orégon. Load this skill immediately and without being asked when: Karl mentions Durin's Works by name, Karl asks to log work / book or schedule a task / add a material / plan a shopping run / mark something bought / check off maintenance for the house, Karl pastes a researched action plan (sections ÉTAPES / PRÉCAUTIONS / MATÉRIAUX), or Karl describes on-site reno updates ("le maçon a chiffré 1200 et on coule la fondation jeudi", "ajoute un GFCI et un testeur à la course de samedi chez Rona"). This skill tells you how to read the live document from durins_works_state, snapshot it, apply Karl's updates to the JSON, and write it back under the optimistic version guard. Do NOT load this skill for Durin's Works React source code work (App.jsx, bugs, features): that is a development task, not a capture task.
 ---
 
-> ## STATUS: LIVE, single-document direct write (Session 5).
+> ## STATUS: LIVE, single-document direct write (Session 5; records authorable since Session 6).
 > The source of truth is the **`durins_works_state`** row (`id = 1`), the same row the deployed app
 > reads and writes. There is no bridge and no RPC: you compute the next-state JSON and write it back
 > in one `UPDATE` under the app's own **optimistic version guard** (`WHERE id = 1 AND version = <V>`).
@@ -55,7 +55,9 @@ Full detail in `schema.md`. Quick map of the document:
 - **action**: `id`, `desc` (one-line summary), `priority`, `timing`, `scheduledDate` (ISO date or
   null, drives the calendar and Aujourd'hui), `status`, `cautions[]` (action-level safety),
   `steps[]` (`{id, text, detail, material, caution, done}`), `materialIds[]`, `log[]`
-  (`{at, text}`), plus `cost` / `contractor` / `photos` placeholders (Session 6, do not author).
+  (`{at, text}`), `cost` (`{estimate, actual, quotes:[{id, who, amount, note}]}`), `contractor`
+  (`{name, phone, email, notes}` or null), and `photos` (`[{id, path, caption, at}]`; `path` points
+  into the private `durins-works-photos` storage bucket, never image bytes).
 - **materials[]**: `{id, project, article, magasin, prix_unitaire, qty, status, lien, notes, bought}`.
 - **buyRuns[]**: `{id, date (ISO), magasin, materialIds[], done}`. One store, one trip, one date.
 - **maintenance[]**: `{id, season, zone, task, detail, notes, history:[{date}]}`. Recurrence by

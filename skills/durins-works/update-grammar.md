@@ -84,6 +84,31 @@ Parse the authoring format below into steps, cautions, and materials, then on th
 - for each parsed material: dedupe by `article`, create if new, and link its id into
   `action.materialIds`.
 
+### 10. setCost - set an action's estimate or actual amount
+On `action.cost` (create `{ estimate: null, actual: null, quotes: [] }` if missing), set `estimate`
+and/or `actual` to a plain number or null. Carry the rest of `cost` through.
+"l'estimé de la fondation est 1500" -> `a4-1.cost.estimate = 1500`. "le coût réel des prises GFCI est
+980$" -> `a7-4.cost.actual = 980`. Never wrap the amount in a currency object.
+
+### 11. addQuote - add (or edit / remove) a contractor quote on an action
+Push to `action.cost.quotes` a `{ id: "q<base>", who, amount, note }` (amount a number or null).
+"devis du maçon Tremblay à 1200 sur la fondation" -> push `{ who: "Maçonnerie Tremblay", amount: 1200,
+note: "" }` to `a4-1.cost.quotes`. To edit, match the quote by `id` or `who` and change its fields; to
+remove, filter it out. Adding a quote does not change `estimate` or `actual`.
+
+### 12. setContractor - set the action's contractor card
+Set `action.contractor` to `{ name, phone, email, notes }`, or `null` when nothing is known. Carry
+fields you are not changing. "l'électricien c'est Hydro-Pro, 514-555-0199" -> `a7-4.contractor =
+{ name: "Hydro-Pro", phone: "514-555-0199", email: "", notes: "" }`. "enlève l'entrepreneur" ->
+`contractor = null`.
+
+### 13. addPhotoLink - attach a photo by path or URL
+Push to `action.photos` a `{ id: "ph<base>", path, caption, at: "<now ISO>" }`. The app uploads photos
+from the phone into the private `durins-works-photos` bucket and stores only the object `path`; from
+this skill you can attach a photo only when Karl gives you a path or URL, since you cannot upload a
+file. "ajoute la photo <path> sur la fondation, légende fissure" -> push with `caption: "fissure"`.
+Never embed image bytes or base64 in the document.
+
 ---
 
 ## Worked example: one sentence, several verbs

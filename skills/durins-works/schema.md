@@ -23,6 +23,12 @@ Supabase project `ngdbtgsbtyfghdyqbazj`.
 | state | jsonb | full document copy taken before a change |
 | created_at | timestamptz | default `now()` |
 
+### durins-works-photos (private storage bucket)
+On-site photos upload here from the app. The document stores only the object `path` (e.g.
+`"a7-4/<timestamp>.jpg"`) inside `action.photos[]`, never the image bytes; the bucket is private and
+the app mints short-lived signed URLs to show thumbnails. From this skill, attach only a `path` or URL
+Karl gives you; you cannot upload a file.
+
 ### Legacy, do NOT use
 `durins_works_shopping_items`, `durins_works_action_statuses`,
 `durins_works_maintenance_completions` are Phase 1 tables, superseded by the single document. The
@@ -62,9 +68,11 @@ skill and the app can both write safely.
           ],
           "materialIds": ["m12", "m13"],                  // ids into state.materials
           "log": [{ "at": "2026-06-21T14:00:00.000Z", "text": "Macon a confirme, devis 1200$" }],
-          "cost": { "estimate": null, "actual": null, "quotes": [] },   // Session 6, do not author
-          "contractor": null,                              // Session 6, do not author
-          "photos": [],                                    // Session 6, do not author
+          "cost": { "estimate": 600, "actual": null,        // numbers or null; quotes is a list
+                    "quotes": [{ "id": "q1", "who": "Hydro-Pro", "amount": 580, "note": "GFCI + main d'oeuvre" }] },
+          "contractor": { "name": "Hydro-Pro", "phone": "514-555-0199", "email": "", "notes": "" }, // or null
+          "photos": [{ "id": "ph1", "path": "a7-4/1718900000000.jpg", "caption": "prise a risque",
+                       "at": "2026-06-21T14:00:00.000Z" }],   // path into durins-works-photos bucket
           "composantes": ["ELEC-PRISE-001"], "source": "INSP-P42-43", "notes": "..."
         }
       ]
@@ -117,6 +125,8 @@ Match the app's id style and check against the existing document so you never co
   `materials[].id`; pick a value not already present.
 - Buy run: `"r" + <timestamp>` (optionally `"_" + index` when creating several at once).
 - Step: `"st" + <timestamp> + "_" + index` within an action's `steps`.
+- Quote: `"q" + <timestamp>` within an action's `cost.quotes`.
+- Photo: `"ph" + <timestamp>` within an action's `photos`.
 - Systems, actions, and maintenance ids are seeded (`s7`, `a7-4`, `M-02`) and you do not invent new
   ones; you reference them.
 
