@@ -394,13 +394,17 @@ function projectMaterials(sys, materials) {
   return { matched, subtotal };
 }
 
-const MatRow = ({ m }) => (
+const MatRow = ({ m, onRemove }) => (
   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 0', borderBottom:`1px solid ${T.bd}` }}>
     <span style={{ flex:1, fontSize:12.5, color:T.tx }}>{m.article}</span>
     {m.qty > 1 && <span style={{ fontSize:11, color:T.tx3, fontFamily:T.mono }}>x{m.qty}</span>}
     <span style={{ fontSize:12, color:T.y, fontFamily:T.mono, minWidth:60, textAlign:'right' }}>
       {money(m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : null)}
     </span>
+    {onRemove && (
+      <button onClick={onRemove} title="Retirer du plan" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1, flexShrink:0 }}
+        onMouseEnter={e => e.currentTarget.style.color = T.r} onMouseLeave={e => e.currentTarget.style.color = T.tx3}>×</button>
+    )}
   </div>
 );
 
@@ -521,11 +525,156 @@ function ProjectDashboard({ system, statuses, materials, onOpenAction, onBack })
   );
 }
 
-// ─── ACTION VIEW (basic, Session 1) ─────────────────────────────────────────────
-function ActionView({ system, action, status, onStatusChange, onBack, backLabel, schedule, onSchedule }) {
+// ─── SECTION 7 PLAN PARSER ──────────────────────────────────────────────────────
+// Tolerant parser for the authoring format (blueprint section 7). Turns an
+// ACTION / PRÉCAUTIONS / ÉTAPES / MATÉRIAUX block into { steps, cautions, materials }.
+const stripAccents = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const planHeader = line => {
+  const h = stripAccents(line.split(':')[0].trim()).toUpperCase();
+  if (h === 'ACTION') return 'action';
+  if (h === 'PRECAUTIONS') return 'cautions';
+  if (h === 'ETAPES') return 'steps';
+  if (h === 'MATERIAUX' || h === 'MATERIEL' || h === 'MATERIELS') return 'materials';
+  return null;
+};
+function parseMaterialLine(line) {
+  let str = line.replace(/^[-•*]\s*/, '').trim();
+  let magasin = '', prix = null, qty = 1;
+  const paren = str.match(/\(([^)]*)\)/);
+  if (paren) {
+    str = str.replace(paren[0], '').trim();
+    paren[1].split(',').forEach(tok => {
+      const t = tok.trim();
+      if (!t) return;
+      const q = t.match(/^x\s*(\d+)$/i);
+      const p = t.match(/(\d+(?:[.,]\d+)?)/);
+      if (q) qty = parseInt(q[1], 10);
+      else if (/[$]/.test(t) || /^~/.test(t)) { if (p) prix = parseFloat(p[1].replace(',', '.')); }
+      else if (!magasin) magasin = t;
+    });
+  }
+  const qm = str.match(/\bx\s*(\d+)\b/i);
+  if (qm) { qty = parseInt(qm[1], 10); str = str.replace(qm[0], '').trim(); }
+  if (prix == null) {
+    const pm = str.match(/~?\s*(\d+(?:[.,]\d+)?)\s*\$/);
+    if (pm) { prix = parseFloat(pm[1].replace(',', '.')); str = str.replace(pm[0], '').trim(); }
+  }
+  str = str.replace(/[,\s]+$/, '').trim();
+  return { article: str, magasin, prix_unitaire: prix, qty };
+}
+function parseActionPlan(raw) {
+  const lines = (raw || '').split(/\r?\n/);
+  const steps = [], cautions = [], materials = [];
+  let section = null, cur = null, lastField = null;
+  let hasSteps = false, hasCautions = false, hasMaterials = false;
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+    const head = planHeader(trimmed);
+    if (head) {
+      section = head; cur = null; lastField = null;
+      if (head === 'cautions') hasCautions = true;
+      if (head === 'steps') hasSteps = true;
+      if (head === 'materials') hasMaterials = true;
+      continue;
+    }
+    if (section === 'cautions') {
+      const c = trimmed.replace(/^[-•*]\s*/, '').trim();
+      if (c) cautions.push(c);
+    } else if (section === 'materials') {
+      const m = parseMaterialLine(trimmed);
+      if (m.article) materials.push(m);
+    } else if (section === 'steps') {
+      const num = trimmed.match(/^(\d+)[.)]\s*(.*)$/);
+      if (num) {
+        cur = { text: num[2].trim(), detail: '', material: '', caution: '' };
+        steps.push(cur); lastField = 'text';
+      } else {
+        const sub = trimmed.match(/^(d[ée]tail|mat[ée]riel|material|caution|pr[ée]caution)\s*:\s*(.*)$/i);
+        if (sub && cur) {
+          const key = stripAccents(sub[1]).toLowerCase();
+          const val = sub[2].trim();
+          if (key.startsWith('detail')) { cur.detail = val; lastField = 'detail'; }
+          else if (key.startsWith('mat')) { cur.material = val; lastField = 'material'; }
+          else { cur.caution = val; lastField = 'caution'; }
+        } else if (cur) {
+          const f = lastField || 'text';
+          cur[f] = (cur[f] ? cur[f] + ' ' : '') + trimmed;
+        }
+      }
+    }
+  }
+  return { steps, cautions, materials, hasSteps, hasCautions, hasMaterials };
+}
+
+// ─── ACTION VIEW (execution screen, Session 3) ──────────────────────────────────
+function ActionView({ system, action, status, onStatusChange, onBack, backLabel, schedule, onSchedule,
+  materials = [], stepsDone = {}, onToggleStep, onAddLog, onLinkMaterial, onAddMaterial, onUnlinkMaterial, onApplyPlan }) {
   const wc = WSTATUS[status] || WSTATUS['À faire'];
   const steps = action.steps || [];
   const cautions = action.cautions || [];
+  const linkedIds = action.materialIds || [];
+  const linkedMats = linkedIds.map(id => materials.find(m => m.id === id)).filter(Boolean);
+  const matSubtotal = linkedMats.reduce((s, m) => s + (m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : 0), 0);
+  const unlinkedMats = materials.filter(m => !linkedIds.includes(m.id));
+  const log = action.log || [];
+  const doneOf = s => (s.id && stepsDone[`${action.id}:${s.id}`] != null) ? stepsDone[`${action.id}:${s.id}`] : !!s.done;
+  const doneCount = steps.filter(doneOf).length;
+
+  const [expanded, setExpanded] = useState({});
+  const [logText, setLogText] = useState('');
+  const [matMode, setMatMode] = useState(null);
+  const [linkSel, setLinkSel] = useState('');
+  const [newMat, setNewMat] = useState({ article:'', magasin:'', prix_unitaire:'', qty:1 });
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [pasteErr, setPasteErr] = useState('');
+
+  useEffect(() => {
+    setExpanded({}); setLogText(''); setMatMode(null); setLinkSel('');
+    setNewMat({ article:'', magasin:'', prix_unitaire:'', qty:1 });
+    setShowPaste(false); setPasteText(''); setPasteErr('');
+  }, [action.id]);
+
+  const inpStyle = { background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:5, padding:'6px 9px', fontSize:12, color:T.tx, fontFamily:T.font, outline:'none', boxSizing:'border-box' };
+  const fmtLog = iso => { const d = new Date(iso); return `${d.toLocaleDateString('fr-CA', { month:'short', day:'numeric' })} ${d.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' })}`; };
+
+  const submitLog = () => { const t = logText.trim(); if (!t || !onAddLog) return; onAddLog(action.id, t); setLogText(''); };
+  const submitLink = () => { if (!linkSel || !onLinkMaterial) return; onLinkMaterial(action.id, linkSel); setLinkSel(''); setMatMode(null); };
+  const submitNewMat = () => {
+    const article = newMat.article.trim();
+    if (!article || !onAddMaterial) return;
+    onAddMaterial(action.id, {
+      article, magasin: newMat.magasin.trim(),
+      prix_unitaire: newMat.prix_unitaire !== '' ? parseFloat(newMat.prix_unitaire) : null,
+      qty: parseInt(newMat.qty, 10) || 1,
+    }, system.name);
+    setNewMat({ article:'', magasin:'', prix_unitaire:'', qty:1 }); setMatMode(null);
+  };
+  const applyPaste = () => {
+    const parsed = parseActionPlan(pasteText);
+    if (!parsed.hasSteps && !parsed.hasCautions && !parsed.hasMaterials) {
+      setPasteErr('Format non reconnu. Utilise les sections ÉTAPES, PRÉCAUTIONS, MATÉRIAUX.'); return;
+    }
+    if (onApplyPlan) onApplyPlan(action.id, parsed, system.name);
+    setPasteText(''); setShowPaste(false); setPasteErr('');
+  };
+
+  const pasteBlock = showPaste && (
+    <div style={{ background:T.s1, border:`1px solid ${T.bd2}`, borderRadius:9, padding:'11px 12px', marginBottom:12 }}>
+      <SectionLab style={{ margin:'0 0 6px' }}>Coller un plan</SectionLab>
+      <div style={{ fontSize:11, color:T.tx3, lineHeight:1.5, marginBottom:8 }}>Sections ÉTAPES (étapes numérotées avec detail: / material: / caution:), PRÉCAUTIONS, MATÉRIAUX.</div>
+      <textarea value={pasteText} onChange={e => { setPasteText(e.target.value); if (pasteErr) setPasteErr(''); }} rows={8}
+        placeholder={"ÉTAPES:\n  1. ...\n     material: ...\nMATÉRIAUX:\n  - ... x2 (Rona, ~25$)"}
+        style={{ width:'100%', boxSizing:'border-box', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:6, padding:'8px 10px', fontSize:12, color:T.tx, fontFamily:T.mono, outline:'none', lineHeight:1.5, resize:'vertical' }} />
+      {pasteErr && <div style={{ fontSize:11, color:T.r, marginTop:6 }}>{pasteErr}</div>}
+      <div style={{ display:'flex', gap:7, marginTop:8 }}>
+        <button onClick={applyPaste} disabled={!pasteText.trim()} style={{ ...ss.btn, color: pasteText.trim() ? T.g : T.tx3, border:`1px solid ${pasteText.trim() ? T.g + '44' : T.bd}`, background: pasteText.trim() ? 'rgba(63,182,139,0.12)' : T.s3 }}>Appliquer le plan</button>
+        <button onClick={() => { setShowPaste(false); setPasteErr(''); }} style={ss.btn}>Annuler</button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ padding:'14px 16px 28px', maxWidth:760, margin:'0 auto', width:'100%', boxSizing:'border-box' }}>
       <BackBtn label={backLabel || system.name} onClick={onBack} />
@@ -554,36 +703,121 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
         </div>
       )}
 
-      {steps.length > 0 && (
+      {steps.length > 0 ? (
         <>
-          <SectionLab style={{ margin:'6px 0 4px' }}>Étapes</SectionLab>
-          <div style={{ marginBottom:6 }}>
-            {steps.map((s, i) => (
-              <div key={s.id || i} style={{ display:'flex', gap:10, padding:'11px 0', borderBottom:`1px solid ${T.bd}` }}>
-                <div style={{ flexShrink:0, width:24, height:24, borderRadius:'50%', background:T.s3, border:`1px solid ${T.bd2}`, color:T.acc, fontSize:12, fontWeight:600, fontFamily:T.mono, display:'flex', alignItems:'center', justifyContent:'center' }}>{i + 1}</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, color:T.tx, lineHeight:1.45 }}>{s.text}</div>
-                  {s.detail && <div style={{ fontSize:11.5, color:T.tx3, lineHeight:1.55, marginTop:3 }}>{s.detail}</div>}
-                  {(s.material || s.caution) && (
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:6 }}>
-                      {s.material && <span style={{ fontSize:10.5, background:'rgba(91,156,246,0.10)', color:T.acc, border:`1px solid rgba(91,156,246,0.22)`, padding:'2px 7px', borderRadius:5 }}>⛬ {s.material}</span>}
-                      {s.caution && <span style={{ fontSize:10.5, background:'rgba(217,95,95,0.11)', color:'#e98a78', border:`1px solid rgba(217,95,95,0.25)`, padding:'2px 7px', borderRadius:5 }}>⚠ {s.caution}</span>}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div style={{ display:'flex', alignItems:'center', gap:8, margin:'6px 0 6px' }}>
+            <SectionLab style={{ margin:0 }}>Étapes</SectionLab>
+            <span style={{ fontSize:10.5, color: doneCount === steps.length ? T.g : T.tx3, fontFamily:T.mono, marginLeft:'auto' }}>{doneCount} / {steps.length} faites</span>
           </div>
+          <div style={{ marginBottom:8 }}>
+            {steps.map((s, i) => {
+              const key = s.id || i;
+              const done = doneOf(s);
+              const open = !!expanded[key];
+              const hasDetail = !!s.detail;
+              return (
+                <div key={key} style={{ display:'flex', gap:10, padding:'11px 0', borderBottom:`1px solid ${T.bd}` }}>
+                  <button onClick={() => onToggleStep && onToggleStep(action.id, s.id)} title={done ? 'Marquer à faire' : 'Marquer faite'}
+                    style={{ flexShrink:0, width:24, height:24, borderRadius:'50%', background: done ? 'rgba(63,182,139,0.16)' : T.s3, border:`1px solid ${done ? T.g : T.bd2}`, color: done ? T.g : T.acc, fontSize:12, fontWeight:600, fontFamily:T.mono, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+                    {done ? '✓' : i + 1}
+                  </button>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div onClick={() => hasDetail && setExpanded(p => ({ ...p, [key]: !open }))}
+                      style={{ fontSize:13, color: done ? T.tx3 : T.tx, lineHeight:1.45, textDecoration: done ? 'line-through' : 'none', cursor: hasDetail ? 'pointer' : 'default', display:'flex', gap:6, alignItems:'baseline' }}>
+                      <span style={{ flex:1 }}>{s.text}</span>
+                      {hasDetail && <span style={{ fontSize:10, color:T.tx3, flexShrink:0 }}>{open ? '▾' : '▸'}</span>}
+                    </div>
+                    {open && s.detail && <div style={{ fontSize:11.5, color:T.tx3, lineHeight:1.55, marginTop:4 }}>{s.detail}</div>}
+                    {(s.material || s.caution) && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:6 }}>
+                        {s.material && <span style={{ fontSize:10.5, background:'rgba(91,156,246,0.10)', color:T.acc, border:`1px solid rgba(91,156,246,0.22)`, padding:'2px 7px', borderRadius:5 }}>⛬ {s.material}</span>}
+                        {s.caution && <span style={{ fontSize:10.5, background:'rgba(217,95,95,0.11)', color:'#e98a78', border:`1px solid rgba(217,95,95,0.25)`, padding:'2px 7px', borderRadius:5 }}>⚠ {s.caution}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={() => setShowPaste(v => !v)} style={{ ...ss.btn, marginBottom:12 }}>Coller un plan (remplacer les étapes)</button>
+          {pasteBlock}
+        </>
+      ) : (
+        <>
+          <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'18px 16px', textAlign:'center', marginBottom:12 }}>
+            <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.6 }}>Le plan détaillé de cette action n'est pas encore rédigé.</div>
+            {!showPaste && <button onClick={() => setShowPaste(true)} style={{ ...ss.btn, marginTop:12, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Coller un plan</button>}
+          </div>
+          {pasteBlock}
         </>
       )}
 
-      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginTop:14 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, margin:'18px 0 4px' }}>
+        <SectionLab style={{ margin:0 }}>Matériaux</SectionLab>
+      </div>
+      {linkedMats.length > 0 ? (
+        <>
+          {linkedMats.map(m => <MatRow key={m.id} m={m} onRemove={() => onUnlinkMaterial && onUnlinkMaterial(action.id, m.id)} />)}
+          <SubtotalRow label="Matériaux de cette action" value={matSubtotal} />
+        </>
+      ) : (
+        <div style={{ fontSize:11.5, color:T.tx3, fontStyle:'italic' }}>Aucun matériau lié à cette action.</div>
+      )}
+      {matMode === null && (
+        <button onClick={() => setMatMode(unlinkedMats.length ? 'link' : 'new')} style={{ ...ss.btn, marginTop:10, color:T.acc }}>+ Ajouter un matériau</button>
+      )}
+      {matMode !== null && (
+        <div style={{ background:T.s1, border:`1px solid ${T.bd2}`, borderRadius:9, padding:'11px 12px', marginTop:10 }}>
+          <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+            <button onClick={() => unlinkedMats.length && setMatMode('link')} disabled={!unlinkedMats.length} style={{ ...ss.btn, color: matMode === 'link' ? T.acc : T.tx3, border:`1px solid ${matMode === 'link' ? T.acc : T.bd2}`, opacity: unlinkedMats.length ? 1 : 0.5 }}>Lier un existant</button>
+            <button onClick={() => setMatMode('new')} style={{ ...ss.btn, color: matMode === 'new' ? T.acc : T.tx3, border:`1px solid ${matMode === 'new' ? T.acc : T.bd2}` }}>Nouveau</button>
+            <button onClick={() => setMatMode(null)} style={{ ...ss.btn, marginLeft:'auto' }}>Fermer</button>
+          </div>
+          {matMode === 'link' && (
+            <div style={{ display:'flex', gap:7, flexWrap:'wrap', alignItems:'center' }}>
+              <select value={linkSel} onChange={e => setLinkSel(e.target.value)} style={{ ...inpStyle, flex:1, minWidth:160, cursor:'pointer' }}>
+                <option value="">Choisir un matériau…</option>
+                {unlinkedMats.map(m => <option key={m.id} value={m.id}>{m.article}{m.project ? ` · ${m.project}` : ''}</option>)}
+              </select>
+              <button onClick={submitLink} disabled={!linkSel} style={{ ...ss.btn, color: linkSel ? T.g : T.tx3, border:`1px solid ${linkSel ? T.g + '44' : T.bd}` }}>Lier</button>
+            </div>
+          )}
+          {matMode === 'new' && (
+            <div style={{ display:'flex', gap:7, flexWrap:'wrap', alignItems:'flex-end' }}>
+              <input value={newMat.article} onChange={e => setNewMat(r => ({ ...r, article:e.target.value }))} placeholder="Article *" style={{ ...inpStyle, flex:1, minWidth:150 }} />
+              <input value={newMat.magasin} onChange={e => setNewMat(r => ({ ...r, magasin:e.target.value }))} placeholder="Magasin" style={{ ...inpStyle, width:110 }} />
+              <input type="number" value={newMat.prix_unitaire} onChange={e => setNewMat(r => ({ ...r, prix_unitaire:e.target.value }))} placeholder="Prix $" style={{ ...inpStyle, width:74 }} />
+              <input type="number" min={1} value={newMat.qty} onChange={e => setNewMat(r => ({ ...r, qty:e.target.value }))} style={{ ...inpStyle, width:54 }} />
+              <button onClick={submitNewMat} disabled={!newMat.article.trim()} style={{ ...ss.btn, color: newMat.article.trim() ? T.g : T.tx3, border:`1px solid ${newMat.article.trim() ? T.g + '44' : T.bd}` }}>Créer et lier</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginTop:18 }}>
         <SectionLab style={{ margin:'0 0 6px' }}>Pourquoi</SectionLab>
         <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.65 }}>{system.pourquoi}</div>
       </div>
 
+      <SectionLab style={{ margin:'18px 0 6px' }}>Journal</SectionLab>
+      {log.length > 0 && (
+        <div style={{ marginBottom:8 }}>
+          {log.slice().reverse().map((e, i) => (
+            <div key={i} style={{ display:'flex', gap:9, padding:'8px 0', borderBottom:`1px solid ${T.bd}` }}>
+              <span style={{ fontSize:10, color:T.tx3, fontFamily:T.mono, flexShrink:0, minWidth:78 }}>{fmtLog(e.at)}</span>
+              <span style={{ fontSize:12, color:T.tx2, lineHeight:1.5, flex:1 }}>{e.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display:'flex', gap:7, alignItems:'center' }}>
+        <input value={logText} onChange={e => setLogText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') submitLog(); }}
+          placeholder="Noter (ex: maçon appelé, devis 1200, RDV le 24)" style={{ ...inpStyle, flex:1 }} />
+        <button onClick={submitLog} disabled={!logText.trim()} style={{ ...ss.btn, color: logText.trim() ? T.acc : T.tx3 }}>Ajouter</button>
+      </div>
+
       {action.composantes?.length > 0 && (
-        <div style={{ marginTop:12 }}>
+        <div style={{ marginTop:16 }}>
           <SectionLab style={{ margin:'0 0 6px' }}>Composantes</SectionLab>
           <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
             {action.composantes.map(c => <span key={c} style={{ fontSize:11, background:T.s3, color:T.acc, padding:'2px 7px', borderRadius:4, fontFamily:T.mono }}>{c}</span>)}
@@ -935,7 +1169,7 @@ function PlanifierControl({ value, onSet }) {
 }
 
 // ─── CALENDAR VIEW (desktop) ────────────────────────────────────────────────────
-function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange }) {
+function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan }) {
   const [weekStart, setWeekStart] = useState(() => toISO(startOfWeek(new Date())));
   const [pending, setPending] = useState(null);
   const [selId, setSelId] = useState(null);
@@ -1009,7 +1243,8 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
 
   const detail = sel ? (
     <ActionView system={selSys} action={sel} status={statuses[sel.id] || sel.status} onStatusChange={onStatusChange}
-      schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier" />
+      schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier"
+      materials={materials} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />
   ) : (
     <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:10, padding:24, textAlign:'center' }}>
       <div style={{ fontSize:28, opacity:0.12 }}>🗓</div>
@@ -1080,13 +1315,13 @@ const TabIcon = ({ id, color }) => (
 );
 
 function PhoneShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let body;
   if (tab === 'projets') {
-    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} />;
+    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />;
     else if (system) body = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} onBack={() => setSelProject(null)} />;
     else body = <ProjectList systems={systems} statuses={statuses} onSelect={id => { setSelProject(id); setSelAction(null); }} />;
   } else if (tab === 'aujourdhui') {
@@ -1131,14 +1366,14 @@ const DESK_NAV = [
 ];
 
 function DesktopShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let main;
   if (tab === 'projets') {
     let detail;
-    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" />;
+    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />;
     else if (system) detail = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} />;
     else detail = (
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
@@ -1159,7 +1394,7 @@ function DesktopShell(props) {
   } else if (tab === 'entretien') {
     main = <EntretienView maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
   } else if (tab === 'calendrier') {
-    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} />;
+    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} />;
   } else {
     main = <Placeholder title="Aujourd'hui" note="Optionnel. Se remplit quand tu programmes une action (Session 2)." />;
   }
@@ -1232,7 +1467,9 @@ function hydrateDoc(doc) {
   const items = (doc.materials || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const sched = {};
   (doc.systems || []).forEach(s => (s.actions || []).forEach(a => { if (a.scheduledDate) sched[a.id] = a.scheduledDate; }));
-  return { st, md, items, sched };
+  const sd = {};
+  (doc.systems || []).forEach(s => (s.actions || []).forEach(a => (a.steps || []).forEach(st2 => { if (st2.id) sd[`${a.id}:${st2.id}`] = !!st2.done; })));
+  return { st, md, items, sched, sd };
 }
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────────────
@@ -1246,6 +1483,8 @@ export default function DurinsWorksApp() {
   const [mDone, setMDone] = useState({});
   const [shopItems, setShopItems] = useState([]);
   const [schedules, setSchedules] = useState({});
+  const [stepsDone, setStepsDone] = useState({});
+  const [, setRev] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(true);
 
@@ -1281,8 +1520,8 @@ export default function DurinsWorksApp() {
         }
         stateRef.current = doc;
         versionRef.current = version;
-        const { st, md, items, sched } = hydrateDoc(doc);
-        setStatuses(st); setMDone(md); setShopItems(items); setSchedules(sched);
+        const { st, md, items, sched, sd } = hydrateDoc(doc);
+        setStatuses(st); setMDone(md); setShopItems(items); setSchedules(sched); setStepsDone(sd);
       } catch (e) { console.error('Durin\'s Works load error:', e); }
       setLoading(false);
     };
@@ -1290,6 +1529,7 @@ export default function DurinsWorksApp() {
   }, []);
 
   const flash = () => { setSaved(false); setTimeout(() => setSaved(true), 900); };
+  const bump = useCallback(() => setRev(r => r + 1), []);
 
   // Persist the whole document with an optimistic version guard + once-per-session snapshot.
   const persist = useCallback(async (label) => {
@@ -1371,6 +1611,105 @@ export default function DurinsWorksApp() {
     await persist('achat suppr');
   }, [persist]);
 
+  const toggleStep = useCallback((actionId, stepId) => {
+    if (!stepId) return;
+    const doc = stateRef.current;
+    if (!doc) return;
+    let next = false;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) (a.steps || []).forEach(st2 => { if (st2.id === stepId) { st2.done = !st2.done; next = st2.done; } });
+    }));
+    setStepsDone(prev => ({ ...prev, [`${actionId}:${stepId}`]: next }));
+    persist('étape ' + actionId);
+  }, [persist]);
+
+  const addLogEntry = useCallback((actionId, text) => {
+    const t = (text || '').trim();
+    if (!t) return;
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) { a.log = a.log || []; a.log.push({ at: new Date().toISOString(), text: t }); }
+    }));
+    bump();
+    persist('journal ' + actionId);
+  }, [persist, bump]);
+
+  const linkExistingMaterial = useCallback((actionId, materialId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) { a.materialIds = a.materialIds || []; if (!a.materialIds.includes(materialId)) a.materialIds.push(materialId); }
+    }));
+    bump();
+    persist('lien matériau ' + actionId);
+  }, [persist, bump]);
+
+  const addActionMaterial = useCallback((actionId, item, systemName) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    const row = { id: 'm' + Date.now(), sort_order: Date.now(), bought: false, status: 'À trouver',
+      project: systemName || '', article: '', magasin: '', prix_unitaire: null, qty: 1, lien: '', notes: '', ...item };
+    doc.materials = [...(doc.materials || []), row];
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) { a.materialIds = a.materialIds || []; a.materialIds.push(row.id); }
+    }));
+    setShopItems(prev => [...prev, row]);
+    bump();
+    persist('matériau ajout ' + actionId);
+  }, [persist, bump]);
+
+  const unlinkMaterial = useCallback((actionId, materialId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) a.materialIds = (a.materialIds || []).filter(x => x !== materialId);
+    }));
+    bump();
+    persist('retrait lien ' + actionId);
+  }, [persist, bump]);
+
+  const applyPlan = useCallback((actionId, parsed, systemName) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    let action = null;
+    doc.systems.forEach(s => s.actions.forEach(a => { if (a.id === actionId) action = a; }));
+    if (!action) return;
+    const base = Date.now();
+    if (parsed.hasSteps) {
+      action.steps = parsed.steps.map((st2, i) => ({
+        id: 'st' + base + '_' + i, text: st2.text || '', detail: st2.detail || '',
+        material: st2.material || '', caution: st2.caution || '', done: false,
+      }));
+    }
+    if (parsed.hasCautions) action.cautions = parsed.cautions.slice();
+    const newMats = [];
+    if (parsed.hasMaterials) {
+      action.materialIds = action.materialIds || [];
+      parsed.materials.forEach((pm, i) => {
+        const key = (pm.article || '').trim().toLowerCase();
+        if (!key) return;
+        const existing = (doc.materials || []).find(m => (m.article || '').trim().toLowerCase() === key)
+          || newMats.find(m => (m.article || '').trim().toLowerCase() === key);
+        if (existing) { if (!action.materialIds.includes(existing.id)) action.materialIds.push(existing.id); }
+        else {
+          const row = { id: 'm' + base + '_' + i, sort_order: base + i, bought: false, status: 'À trouver',
+            project: systemName || '', article: pm.article, magasin: pm.magasin || '',
+            prix_unitaire: pm.prix_unitaire == null ? null : pm.prix_unitaire, qty: pm.qty || 1, lien: '', notes: '' };
+          newMats.push(row);
+          action.materialIds.push(row.id);
+        }
+      });
+      if (newMats.length) doc.materials = [...(doc.materials || []), ...newMats];
+    }
+    if (newMats.length) setShopItems(prev => [...prev, ...newMats]);
+    if (parsed.hasSteps) {
+      setStepsDone(prev => { const n = { ...prev }; action.steps.forEach(st2 => { n[`${actionId}:${st2.id}`] = false; }); return n; });
+    }
+    bump();
+    persist('plan collé ' + actionId);
+  }, [persist, bump]);
+
   if (loading) {
     return (
       <div style={{ fontFamily:T.font, display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:T.bg, color:T.tx2, fontSize:13 }}>
@@ -1387,6 +1726,7 @@ export default function DurinsWorksApp() {
     tab, setTab, systems, maintenance, statuses, mDone, shopItems,
     selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction,
     onStatusChange: changeStatus, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem,
+    stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan,
     saved, onHome: () => navigate('/'),
   };
 
