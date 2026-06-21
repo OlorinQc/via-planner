@@ -394,6 +394,13 @@ function projectMaterials(sys, materials) {
   return { matched, subtotal };
 }
 
+function runItems(run, materials) {
+  const items = (run.materialIds || []).map(id => materials.find(m => m.id === id)).filter(Boolean);
+  const subtotal = items.reduce((s, m) => s + (m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : 0), 0);
+  const allBought = items.length > 0 && items.every(m => m.bought);
+  return { items, subtotal, allBought };
+}
+
 const MatRow = ({ m, onRemove }) => (
   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 0', borderBottom:`1px solid ${T.bd}` }}>
     <span style={{ flex:1, fontSize:12.5, color:T.tx }}>{m.article}</span>
@@ -849,27 +856,41 @@ function Placeholder({ title, note }) {
 }
 
 // ─── ACHATS VIEW (responsive) ───────────────────────────────────────────────────
-function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, addShopItem, narrow }) {
-  const [fProject, setFProject] = useState('all');
-  const [fStatus, setFStatus] = useState('all');
+function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, addShopItem, narrow,
+  buyRuns = [], assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun }) {
+  const [bucket, setBucket] = useState('aplanifier');
   const [editCell, setEditCell] = useState(null);
   const [editVal, setEditVal] = useState('');
   const [addingRow, setAddingRow] = useState(false);
   const [newRow, setNewRow] = useState({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
+  const [selected, setSelected] = useState({});
+  const [runDate, setRunDate] = useState(todayISO());
 
-  const projects = useMemo(() => [...new Set(shopItems.map(i => i.project))].sort(), [shopItems]);
-  const filtered = useMemo(() => shopItems.filter(i => {
-    if (fProject !== 'all' && i.project !== fProject) return false;
-    if (fStatus !== 'all' && i.status !== fStatus) return false;
-    return true;
-  }), [shopItems, fProject, fStatus]);
-  const grouped = useMemo(() => {
-    const g = {};
-    filtered.forEach(i => { if (!g[i.project]) g[i.project] = []; g[i.project].push(i); });
-    return g;
-  }, [filtered]);
-  const grandTotal = useMemo(() => filtered.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0), [filtered]);
   const fmtMoney = n => n.toLocaleString('fr-CA', { style:'currency', currency:'CAD', maximumFractionDigits:0 });
+  const projects = useMemo(() => [...new Set(shopItems.map(i => i.project).filter(Boolean))].sort(), [shopItems]);
+  const storeOf = i => (i.magasin || '').trim() || 'Magasin à confirmer';
+
+  const inRunIds = useMemo(() => { const s = new Set(); (buyRuns || []).forEach(r => (r.materialIds || []).forEach(id => s.add(id))); return s; }, [buyRuns]);
+  const aPlanifier = useMemo(() => shopItems.filter(i => !i.bought && !inRunIds.has(i.id)), [shopItems, inRunIds]);
+  const achetes = useMemo(() => shopItems.filter(i => i.bought), [shopItems]);
+  const bucketItems = bucket === 'aplanifier' ? aPlanifier : bucket === 'achetes' ? achetes : bucket === 'tout' ? shopItems : [];
+  const groupedByStore = useMemo(() => {
+    const g = {};
+    bucketItems.forEach(i => { const k = storeOf(i); (g[k] = g[k] || []).push(i); });
+    return g;
+  }, [bucketItems]);
+  const bucketTotal = bucketItems.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0);
+
+  const selectable = bucket === 'aplanifier';
+  const selIds = Object.keys(selected).filter(id => selected[id] && shopItems.some(i => i.id === id));
+  const selTotal = shopItems.filter(i => selIds.includes(i.id)).reduce((s, i) => s + (i.prix_unitaire ? i.prix_unitaire * (i.qty || 1) : 0), 0);
+  const toggleSel = id => setSelected(p => ({ ...p, [id]: !p[id] }));
+  const clearSel = () => setSelected({});
+  const doAssign = () => { if (!selIds.length || !runDate || !assignToRun) return; assignToRun(selIds, runDate); clearSel(); };
+  const doMarkBought = () => { if (!toggleBought) return; selIds.forEach(id => { const m = shopItems.find(x => x.id === id); if (m && !m.bought) toggleBought(id); }); clearSel(); };
+
+  const runsSorted = (buyRuns || []).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const fmtRunDate = iso => { const d = new Date(iso + 'T00:00'); return `${DOW_FR[(d.getDay() + 6) % 7]} ${dayNum(iso)} ${monShort(iso)}`; };
 
   const startEdit = (id, field, val) => { setEditCell({ id, field }); setEditVal(String(val ?? '')); };
   const commitEdit = async (id, field) => {
@@ -881,90 +902,12 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
     setEditCell(null);
   };
   const addRow = async () => {
-    if (!newRow.project.trim() || !newRow.article.trim()) return;
+    if (!newRow.article.trim()) return;
     const item = { ...newRow, prix_unitaire: newRow.prix_unitaire !== '' ? parseFloat(newRow.prix_unitaire) : null, qty: parseInt(newRow.qty) || 1 };
     await addShopItem(item);
     setNewRow({ project:'', article:'', magasin:'', prix_unitaire:'', qty:1, status:'À trouver', lien:'', notes:'' });
     setAddingRow(false);
   };
-
-  const filterBar = (
-    <div style={{ padding:'8px 12px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1, flexWrap:'wrap', flexShrink:0 }}>
-      <select value={fProject} onChange={e => setFProject(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'4px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
-        <option value="all">Tous les projets</option>
-        {projects.map(p => <option key={p}>{p}</option>)}
-      </select>
-      <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'4px 8px', fontSize:11, color:T.tx, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
-        <option value="all">Tous statuts</option>
-        {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
-      </select>
-      <span style={{ marginLeft:'auto', fontSize:12, color:T.y, fontFamily:T.mono }}>{grandTotal > 0 ? fmtMoney(grandTotal) : ''}</span>
-      <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Article</button>
-    </div>
-  );
-
-  const cellStyle = (w) => ({ width:w, padding:'6px 8px', borderRight:`1px solid ${T.bd3}`, fontSize:11, color:T.tx, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'text', flexShrink:0, boxSizing:'border-box' });
-  const inpStyle = { background:'transparent', border:'none', outline:`1px solid ${T.acc}`, borderRadius:2, padding:'1px 4px', fontSize:11, color:T.tx, fontFamily:T.font, width:'100%', boxSizing:'border-box' };
-  const hdrStyle = (w) => ({ width:w, padding:'5px 8px', fontSize:9, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px', borderRight:`1px solid ${T.bd3}`, flexShrink:0, boxSizing:'border-box' });
-  const EditableCell = ({ id, field, val, width, type = 'text' }) => {
-    const isEditing = editCell?.id === id && editCell?.field === field;
-    return (
-      <div style={cellStyle(width)} onClick={() => !isEditing && startEdit(id, field, val)}>
-        {isEditing
-          ? <input autoFocus value={editVal} type={type} onChange={e => setEditVal(e.target.value)} onBlur={() => commitEdit(id, field)}
-              onKeyDown={e => { if (e.key === 'Enter') commitEdit(id, field); if (e.key === 'Escape') setEditCell(null); }} style={inpStyle} />
-          : <span style={{ color: val == null || val === '' ? T.tx3 : T.tx, fontStyle: val == null || val === '' ? 'italic' : 'normal' }}>
-              {field === 'prix_unitaire' && val != null ? `${val}$` : val || '—'}
-            </span>}
-      </div>
-    );
-  };
-  const cols = [
-    { key:'article', label:'Article', w:220 },
-    { key:'magasin', label:'Magasin', w:110 },
-    { key:'prix_unitaire', label:'Prix', w:70, type:'number' },
-    { key:'qty', label:'Qté', w:50, type:'number' },
-    { key:'status', label:'Statut', w:120 },
-    { key:'notes', label:'Notes', w:160 },
-  ];
-  const wideTable = Object.entries(grouped).map(([project, items]) => {
-    const projTotal = items.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0);
-    return (
-      <div key={project}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:T.s2, borderBottom:`1px solid ${T.bd}`, borderTop:`1px solid ${T.bd}`, position:'sticky', top:0, zIndex:2 }}>
-          <span style={{ fontSize:12, fontWeight:700, color:T.tx }}>{project}</span>
-          {projTotal > 0 && <span style={{ fontSize:10, color:T.y, fontFamily:T.mono }}>{fmtMoney(projTotal)}</span>}
-          <span style={{ fontSize:10, color:T.tx3 }}>{items.length} article{items.length > 1 ? 's' : ''}</span>
-        </div>
-        <div style={{ display:'flex', alignItems:'center', background:T.hdr, borderBottom:`1px solid ${T.bd}`, position:'sticky', top:34, zIndex:1 }}>
-          {cols.map(c => <div key={c.key} style={hdrStyle(c.w)}>{c.label}</div>)}
-          <div style={{ width:32, flexShrink:0 }} />
-        </div>
-        {items.map((item, idx) => (
-          <div key={item.id} style={{ display:'flex', alignItems:'center', borderBottom:`1px solid ${T.bd3}`, background: idx % 2 === 0 ? T.bg : T.s1 }}
-            onMouseEnter={e => e.currentTarget.style.background = T.s2}
-            onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? T.bg : T.s1}>
-            <EditableCell id={item.id} field="article" val={item.article} width={220} />
-            <EditableCell id={item.id} field="magasin" val={item.magasin} width={110} />
-            <EditableCell id={item.id} field="prix_unitaire" val={item.prix_unitaire} width={70} type="number" />
-            <EditableCell id={item.id} field="qty" val={item.qty} width={50} type="number" />
-            <div style={{ ...cellStyle(120), padding:'4px 6px' }}>
-              <select value={item.status} onChange={e => { saveShopItem(item.id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === item.id ? { ...i, status:e.target.value } : i)); }}
-                style={{ background:(PSTATUS[item.status] || PSTATUS['À trouver']).bg, color:(PSTATUS[item.status] || PSTATUS['À trouver']).tx, border:'none', borderRadius:4, padding:'2px 5px', fontSize:10, cursor:'pointer', fontFamily:T.font, outline:'none', width:'100%' }}>
-                {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-            <EditableCell id={item.id} field="notes" val={item.notes} width={160} />
-            <div style={{ width:32, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <button onClick={() => deleteShopItem(item.id)} title="Supprimer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1 }}
-                onMouseEnter={e => e.currentTarget.style.color = T.r} onMouseLeave={e => e.currentTarget.style.color = T.tx3}>✕</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  });
-
   const cardEdit = (item, field, opts = {}) => {
     const editing = editCell?.id === item.id && editCell?.field === field;
     const val = item[field];
@@ -976,39 +919,110 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
     }
     return <span onClick={() => startEdit(item.id, field, val)} style={{ cursor:'text', color: val === '' || val == null ? T.tx3 : T.tx, fontStyle: val === '' || val == null ? 'italic' : 'normal', fontSize:opts.fs || 12 }}>{display}</span>;
   };
-  const narrowCards = (
-    <div style={{ padding:'10px 12px 24px' }}>
-      {Object.entries(grouped).map(([project, items]) => {
-        const projTotal = items.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0);
+
+  const buckets = [
+    { id:'aplanifier', label:'À planifier' },
+    { id:'courses', label:'Courses' },
+    { id:'achetes', label:'Achetés' },
+    { id:'tout', label:'Tout' },
+  ];
+  const topBar = (
+    <div style={{ padding:'8px 12px', borderBottom:`1px solid ${T.bd}`, display:'flex', gap:8, alignItems:'center', background:T.s1, flexWrap:'wrap', flexShrink:0, position:'sticky', top:0, zIndex:3 }}>
+      <div style={{ display:'flex', gap:0, background:T.s2, border:`1px solid ${T.bd}`, borderRadius:8, padding:2 }}>
+        {buckets.map(b => (
+          <button key={b.id} onClick={() => { setBucket(b.id); clearSel(); }}
+            style={{ border:'none', background: bucket === b.id ? T.s3 : 'transparent', color: bucket === b.id ? T.tx : T.tx3, fontSize:11.5, padding:'5px 10px', borderRadius:6, fontFamily:T.font, cursor:'pointer' }}>{b.label}</button>
+        ))}
+      </div>
+      {bucket !== 'courses' && <span style={{ marginLeft:'auto', fontSize:12, color:T.y, fontFamily:T.mono }}>{bucketTotal > 0 ? fmtMoney(bucketTotal) : ''}</span>}
+      <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, marginLeft: bucket === 'courses' ? 'auto' : 0, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Article</button>
+    </div>
+  );
+
+  const materialCard = item => (
+    <div key={item.id} style={{ background:T.s1, border:`1px solid ${selected[item.id] ? T.acc : T.bd}`, borderRadius:9, padding:'11px 12px' }}>
+      <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+        {selectable && <input type="checkbox" checked={!!selected[item.id]} onChange={() => toggleSel(item.id)} style={{ width:16, height:16, marginTop:2, cursor:'pointer', accentColor:T.acc, flexShrink:0 }} />}
+        <div style={{ flex:1, lineHeight:1.4 }}>{cardEdit(item, 'article', { fs:13 })}</div>
+        {item.bought && <span style={{ ...ss.pill('rgba(63,182,139,0.14)', T.g), fontSize:9 }}>acheté</span>}
+        <button onClick={() => deleteShopItem(item.id)} title="Supprimer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:15, padding:0, lineHeight:1, flexShrink:0 }}>✕</button>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, flexWrap:'wrap' }}>
+        {cardEdit(item, 'magasin', { fs:11.5, w:120 })}
+        <span style={{ color:T.y, fontFamily:T.mono }}>{cardEdit(item, 'prix_unitaire', { type:'number', w:70, fs:12 })}</span>
+        <span style={{ color:T.tx3, fontFamily:T.mono, fontSize:11 }}>x {cardEdit(item, 'qty', { type:'number', w:44, fs:11 })}</span>
+        {bucket === 'achetes'
+          ? <button onClick={() => toggleBought && toggleBought(item.id)} style={{ ...ss.btn, marginLeft:'auto', fontSize:10.5 }}>Annuler achat</button>
+          : <select value={item.status} onChange={e => { saveShopItem(item.id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === item.id ? { ...i, status:e.target.value } : i)); }}
+              style={{ marginLeft:'auto', background:(PSTATUS[item.status] || PSTATUS['À trouver']).bg, color:(PSTATUS[item.status] || PSTATUS['À trouver']).tx, border:'none', borderRadius:5, padding:'3px 7px', fontSize:10.5, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
+              {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
+            </select>}
+      </div>
+      <div style={{ marginTop:8, lineHeight:1.5 }}>{cardEdit(item, 'notes', { fs:11 })}</div>
+    </div>
+  );
+
+  const materialBody = (
+    <div style={{ padding: narrow ? '10px 12px 20px' : '12px 16px 20px' }}>
+      {Object.keys(groupedByStore).sort().map(store => {
+        const items = groupedByStore[store];
+        const sub = items.filter(i => i.prix_unitaire).reduce((s, i) => s + i.prix_unitaire * (i.qty || 1), 0);
         return (
-          <div key={project} style={{ marginBottom:16 }}>
+          <div key={store} style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-              <span style={{ fontSize:12.5, fontWeight:700, color:T.tx }}>{project}</span>
-              {projTotal > 0 && <span style={{ fontSize:11, color:T.y, fontFamily:T.mono }}>{fmtMoney(projTotal)}</span>}
+              <span style={{ fontSize:12.5, fontWeight:700, color:T.tx }}>{store}</span>
+              {sub > 0 && <span style={{ fontSize:11, color:T.y, fontFamily:T.mono }}>{fmtMoney(sub)}</span>}
               <span style={{ fontSize:10, color:T.tx3, marginLeft:'auto' }}>{items.length} article{items.length > 1 ? 's' : ''}</span>
             </div>
-            {items.map(item => (
-              <div key={item.id} style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'11px 12px', marginBottom:8 }}>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                  <div style={{ flex:1, lineHeight:1.4 }}>{cardEdit(item, 'article', { fs:13 })}</div>
-                  <button onClick={() => deleteShopItem(item.id)} title="Supprimer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:15, padding:0, lineHeight:1, flexShrink:0 }}>✕</button>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, flexWrap:'wrap' }}>
-                  {cardEdit(item, 'magasin', { fs:11.5, w:120 })}
-                  <span style={{ color:T.y, fontFamily:T.mono }}>{cardEdit(item, 'prix_unitaire', { type:'number', w:70, fs:12 })}</span>
-                  <span style={{ color:T.tx3, fontFamily:T.mono, fontSize:11 }}>x {cardEdit(item, 'qty', { type:'number', w:44, fs:11 })}</span>
-                  <select value={item.status} onChange={e => { saveShopItem(item.id, { status:e.target.value }); setShopItems(prev => prev.map(i => i.id === item.id ? { ...i, status:e.target.value } : i)); }}
-                    style={{ marginLeft:'auto', background:(PSTATUS[item.status] || PSTATUS['À trouver']).bg, color:(PSTATUS[item.status] || PSTATUS['À trouver']).tx, border:'none', borderRadius:5, padding:'3px 7px', fontSize:10.5, cursor:'pointer', fontFamily:T.font, outline:'none' }}>
-                    {Object.keys(PSTATUS).map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginTop:8, lineHeight:1.5 }}>{cardEdit(item, 'notes', { fs:11 })}</div>
-              </div>
-            ))}
+            <div style={{ display:'grid', gridTemplateColumns: narrow ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap:8 }}>
+              {items.map(materialCard)}
+            </div>
           </div>
         );
       })}
-      {filtered.length === 0 && !addingRow && <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>Aucun article trouvé.</div>}
+      {bucketItems.length === 0 && <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>{bucket === 'aplanifier' ? 'Rien à planifier. Tout est dans une course ou déjà acheté.' : bucket === 'achetes' ? "Aucun achat pour l'instant." : 'Aucun article.'}</div>}
+    </div>
+  );
+
+  const coursesBody = (
+    <div style={{ padding: narrow ? '10px 12px 24px' : '12px 16px 24px' }}>
+      {runsSorted.length === 0 && <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13, lineHeight:1.6 }}>Aucune course planifiée. Sélectionne des matériaux dans « À planifier » et mets-les dans une course.</div>}
+      {runsSorted.map(run => {
+        const { items, subtotal, allBought } = runItems(run, shopItems);
+        return (
+          <div key={run.id} style={{ background:T.s1, border:`1px solid ${run.done || allBought ? 'rgba(63,182,139,0.3)' : T.bd}`, borderRadius:10, padding:'12px 13px', marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={{ ...ss.pill('rgba(212,146,42,0.16)', T.y), fontSize:10 }}>🛒 {fmtRunDate(run.date)}</span>
+              <span style={{ fontSize:13, fontWeight:700, color:T.tx }}>{(run.magasin || '').trim() || 'Magasin à confirmer'}</span>
+              <span style={{ fontSize:11, color:T.y, fontFamily:T.mono, marginLeft:'auto' }}>{fmtMoney(subtotal)}</span>
+            </div>
+            {items.map(m => (
+              <div key={m.id} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom:`1px solid ${T.bd}` }}>
+                <input type="checkbox" checked={!!m.bought} onChange={() => toggleBought && toggleBought(m.id)} style={{ width:16, height:16, cursor:'pointer', accentColor:T.g, flexShrink:0 }} />
+                <span style={{ flex:1, fontSize:12.5, color: m.bought ? T.tx3 : T.tx, textDecoration: m.bought ? 'line-through' : 'none' }}>{m.article}</span>
+                {m.qty > 1 && <span style={{ fontSize:11, color:T.tx3, fontFamily:T.mono }}>x{m.qty}</span>}
+                <span style={{ fontSize:12, color:T.y, fontFamily:T.mono, minWidth:54, textAlign:'right' }}>{money(m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : null)}</span>
+                <button onClick={() => removeFromRun && removeFromRun(run.id, m.id)} title="Retirer de la course" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1, flexShrink:0 }}>×</button>
+              </div>
+            ))}
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10 }}>
+              <button onClick={() => toggleRunDone && toggleRunDone(run.id)} style={{ ...ss.btn, color: run.done ? T.g : T.tx2, border:`1px solid ${run.done ? T.g + '44' : T.bd2}`, background: run.done ? 'rgba(63,182,139,0.12)' : T.s2 }}>{run.done ? '✓ Course faite' : 'Marquer course faite'}</button>
+              <button onClick={() => deleteRun && deleteRun(run.id)} title="Supprimer la course" style={{ ...ss.btn, marginLeft:'auto', color:T.tx3 }}>Supprimer</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const selBar = selectable && selIds.length > 0 && (
+    <div style={{ position:'sticky', bottom:0, zIndex:3, background:T.s2, borderTop:`1px solid ${T.bd2}`, padding:'10px 12px', display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', flexShrink:0 }}>
+      <span style={{ fontSize:12, color:T.tx }}>{selIds.length} sélectionné{selIds.length > 1 ? 's' : ''}</span>
+      <span style={{ fontSize:12, color:T.y, fontFamily:T.mono }}>{fmtMoney(selTotal)}</span>
+      <button onClick={clearSel} style={{ ...ss.btn, fontSize:10.5 }}>Effacer</button>
+      <input type="date" value={runDate} onChange={e => setRunDate(e.target.value)} style={{ marginLeft:'auto', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:6, padding:'4px 8px', fontSize:11, color:T.tx2, fontFamily:T.font, colorScheme:'dark', cursor:'pointer' }} />
+      <button onClick={doAssign} disabled={!runDate} style={{ ...ss.btn, color:T.y, border:`1px solid rgba(212,146,42,0.35)`, background:'rgba(212,146,42,0.12)' }}>Mettre dans une course</button>
+      <button onClick={doMarkBought} style={{ ...ss.btn, color:T.g, border:`1px solid ${T.g}44`, background:'rgba(63,182,139,0.12)' }}>Marquer acheté</button>
     </div>
   );
 
@@ -1018,12 +1032,6 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
         <span style={{ fontSize:12, fontWeight:700, color:T.acc }}>Nouvel article</span>
       </div>
       <div style={{ padding:'12px 16px', background:T.s1, display:'flex', flexWrap:'wrap', gap:10 }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Projet *</span>
-          <input value={newRow.project} onChange={e => setNewRow(r => ({ ...r, project:e.target.value }))} list="proj-list" placeholder="Projet…"
-            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
-          <datalist id="proj-list">{projects.map(p => <option key={p} value={p} />)}</datalist>
-        </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Article *</span>
           <input value={newRow.article} onChange={e => setNewRow(r => ({ ...r, article:e.target.value }))} placeholder="Description…"
@@ -1045,33 +1053,33 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
             style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:50 }} />
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Projet</span>
+          <input value={newRow.project} onChange={e => setNewRow(r => ({ ...r, project:e.target.value }))} list="dw-proj-list" placeholder="(optionnel)"
+            style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:150 }} />
+          <datalist id="dw-proj-list">{projects.map(p => <option key={p} value={p} />)}</datalist>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <span style={{ fontSize:9, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.5px' }}>Notes</span>
           <input value={newRow.notes} onChange={e => setNewRow(r => ({ ...r, notes:e.target.value }))} placeholder="…"
             style={{ background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:4, padding:'5px 8px', fontSize:11, color:T.tx, fontFamily:T.font, outline:'none', width:160 }} />
         </div>
         <div style={{ display:'flex', alignItems:'flex-end', gap:6 }}>
-          <button onClick={addRow} disabled={!newRow.project.trim() || !newRow.article.trim()}
-            style={{ ...ss.btn, background:newRow.project && newRow.article ? 'rgba(63,182,139,0.15)' : T.s3, color:newRow.project && newRow.article ? T.g : T.tx3, border:`1px solid ${newRow.project && newRow.article ? T.g + '44' : T.bd}` }}>Ajouter</button>
+          <button onClick={addRow} disabled={!newRow.article.trim()}
+            style={{ ...ss.btn, background:newRow.article.trim() ? 'rgba(63,182,139,0.15)' : T.s3, color:newRow.article.trim() ? T.g : T.tx3, border:`1px solid ${newRow.article.trim() ? T.g + '44' : T.bd}` }}>Ajouter</button>
           <button onClick={() => setAddingRow(false)} style={ss.btn}>Annuler</button>
         </div>
       </div>
     </div>
   );
 
-  if (narrow) return <div>{filterBar}{narrowCards}{addForm}</div>;
+  const body = bucket === 'courses' ? coursesBody : materialBody;
+
+  if (narrow) return <div>{topBar}{body}{addForm}{selBar}</div>;
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      {filterBar}
-      <div style={{ flex:1, overflowY:'auto' }}>
-        {wideTable}
-        {addForm}
-        {filtered.length === 0 && !addingRow && (
-          <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>
-            Aucun article trouvé.
-            <button onClick={() => setAddingRow(true)} style={{ ...ss.btn, marginTop:12, display:'block', margin:'12px auto 0', color:T.acc }}>+ Ajouter un article</button>
-          </div>
-        )}
-      </div>
+      {topBar}
+      <div style={{ flex:1, overflowY:'auto' }}>{body}{addForm}</div>
+      {selBar}
     </div>
   );
 }
@@ -1169,10 +1177,11 @@ function PlanifierControl({ value, onSet }) {
 }
 
 // ─── CALENDAR VIEW (desktop) ────────────────────────────────────────────────────
-function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan }) {
+function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns = [], toggleBought, removeFromRun, toggleRunDone, deleteRun }) {
   const [weekStart, setWeekStart] = useState(() => toISO(startOfWeek(new Date())));
   const [pending, setPending] = useState(null);
   const [selId, setSelId] = useState(null);
+  const [selRun, setSelRun] = useState(null);
 
   const allActions = useMemo(() => systems.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name }))), [systems]);
   const byId = id => allActions.find(a => a.id === id);
@@ -1183,6 +1192,8 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
 
   const sel = selId ? byId(selId) : null;
   const selSys = sel ? systems.find(s => s.id === sel.sysId) : null;
+  const runsForDay = iso => (buyRuns || []).filter(r => r.date === iso);
+  const selRunObj = selRun ? (buyRuns || []).find(r => r.id === selRun) : null;
   const rangeLabel = `${dayNum(days[0])} ${monShort(days[0])} – ${dayNum(days[6])} ${monShort(days[6])}`;
   const navBtn = { background:T.s2, border:`1px solid ${T.bd2}`, borderRadius:6, padding:'4px 9px', fontSize:12, color:T.tx2, cursor:'pointer', fontFamily:T.font };
 
@@ -1208,13 +1219,23 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
               {acts.map(a => {
                 const hot = a.priority === 'Urgent' || a.priority === 'Danger';
                 return (
-                  <div key={a.id} onClick={e => { e.stopPropagation(); setSelId(a.id); }}
+                  <div key={a.id} onClick={e => { e.stopPropagation(); setSelId(a.id); setSelRun(null); }}
                     style={{ background: hot ? 'rgba(217,95,95,0.16)' : 'rgba(91,156,246,0.14)', border:`1px solid ${hot ? 'rgba(217,95,95,0.4)' : 'rgba(91,156,246,0.35)'}`, borderRadius:5, padding:'4px 6px', cursor:'pointer' }}>
                     <div style={{ fontSize:9.5, color: hot ? T.r : T.acc, fontWeight:600, lineHeight:1.25, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{a.desc}</div>
                     <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3 }}>
                       <span style={{ fontSize:8, color:T.tx3, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.sysName}</span>
                       <span onClick={e => { e.stopPropagation(); scheduleAction(a.id, null); }} title="Retirer" style={{ fontSize:12, color:T.tx3, cursor:'pointer', lineHeight:1 }}>×</span>
                     </div>
+                  </div>
+                );
+              })}
+              {runsForDay(iso).map(r => {
+                const ri = runItems(r, materials);
+                return (
+                  <div key={r.id} onClick={e => { e.stopPropagation(); setSelRun(r.id); setSelId(null); }}
+                    style={{ background:'rgba(212,146,42,0.14)', border:`1px solid ${r.done || ri.allBought ? 'rgba(63,182,139,0.45)' : 'rgba(212,146,42,0.4)'}`, borderRadius:5, padding:'4px 6px', cursor:'pointer' }}>
+                    <div style={{ fontSize:9.5, color:T.y, fontWeight:600, lineHeight:1.25, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>🛒 {(r.magasin || '').trim() || 'Magasin à confirmer'}</div>
+                    <div style={{ fontSize:8, color:T.tx3, marginTop:3 }}>{ri.items.length} article{ri.items.length > 1 ? 's' : ''} · {money(ri.subtotal)}</div>
                   </div>
                 );
               })}
@@ -1241,16 +1262,47 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
     </div>
   );
 
-  const detail = sel ? (
-    <ActionView system={selSys} action={sel} status={statuses[sel.id] || sel.status} onStatusChange={onStatusChange}
-      schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier"
-      materials={materials} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />
-  ) : (
-    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:10, padding:24, textAlign:'center' }}>
-      <div style={{ fontSize:28, opacity:0.12 }}>🗓</div>
-      <span style={{ fontSize:12, color:T.tx3, fontStyle:'italic', maxWidth:220, lineHeight:1.6 }}>Clique une tâche pour l'ouvrir, ou choisis une tâche « à planifier » puis un jour.</span>
-    </div>
-  );
+  let detail;
+  if (selRunObj) {
+    const rb = runItems(selRunObj, materials);
+    detail = (
+      <div style={{ padding:'14px 16px 28px' }}>
+        <BackBtn label="Calendrier" onClick={() => setSelRun(null)} />
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+          <span style={{ ...ss.pill('rgba(212,146,42,0.16)', T.y), fontSize:11 }}>🛒 {fmtSched(selRunObj.date)}</span>
+          <span style={{ marginLeft:'auto', fontSize:12, color:T.y, fontFamily:T.mono }}>{money(rb.subtotal)}</span>
+        </div>
+        <div style={{ fontSize:17, fontWeight:700, color:T.tx, marginBottom:12 }}>{(selRunObj.magasin || '').trim() || 'Magasin à confirmer'}</div>
+        {rb.items.map(m => (
+          <div key={m.id} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom:`1px solid ${T.bd}` }}>
+            <input type="checkbox" checked={!!m.bought} onChange={() => toggleBought && toggleBought(m.id)} style={{ width:16, height:16, cursor:'pointer', accentColor:T.g, flexShrink:0 }} />
+            <span style={{ flex:1, fontSize:12.5, color: m.bought ? T.tx3 : T.tx, textDecoration: m.bought ? 'line-through' : 'none' }}>{m.article}</span>
+            {m.qty > 1 && <span style={{ fontSize:11, color:T.tx3, fontFamily:T.mono }}>x{m.qty}</span>}
+            <span style={{ fontSize:12, color:T.y, fontFamily:T.mono, minWidth:54, textAlign:'right' }}>{money(m.prix_unitaire ? m.prix_unitaire * (m.qty || 1) : null)}</span>
+            <button onClick={() => removeFromRun && removeFromRun(selRunObj.id, m.id)} title="Retirer" style={{ background:'transparent', border:'none', cursor:'pointer', color:T.tx3, fontSize:14, padding:0, lineHeight:1 }}>×</button>
+          </div>
+        ))}
+        {rb.items.length === 0 && <div style={{ fontSize:12, color:T.tx3, fontStyle:'italic', padding:'10px 0' }}>Course vide.</div>}
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:14 }}>
+          <button onClick={() => toggleRunDone && toggleRunDone(selRunObj.id)} style={{ ...ss.btn, color: selRunObj.done ? T.g : T.tx2, border:`1px solid ${selRunObj.done ? T.g + '44' : T.bd2}`, background: selRunObj.done ? 'rgba(63,182,139,0.12)' : T.s2 }}>{selRunObj.done ? '✓ Course faite' : 'Marquer course faite'}</button>
+          <button onClick={() => { if (deleteRun) deleteRun(selRunObj.id); setSelRun(null); }} style={{ ...ss.btn, marginLeft:'auto', color:T.tx3 }}>Supprimer</button>
+        </div>
+      </div>
+    );
+  } else if (sel) {
+    detail = (
+      <ActionView system={selSys} action={sel} status={statuses[sel.id] || sel.status} onStatusChange={onStatusChange}
+        schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier"
+        materials={materials} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} />
+    );
+  } else {
+    detail = (
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:10, padding:24, textAlign:'center' }}>
+        <div style={{ fontSize:28, opacity:0.12 }}>🗓</div>
+        <span style={{ fontSize:12, color:T.tx3, fontStyle:'italic', maxWidth:220, lineHeight:1.6 }}>Clique une tâche ou une course pour l'ouvrir, ou choisis une tâche « à planifier » puis un jour.</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
@@ -1261,16 +1313,20 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
 }
 
 // ─── AUJOURD'HUI VIEW (phone) ───────────────────────────────────────────────────
-function AujourdhuiView({ systems, statuses, schedules, onOpenAction }) {
+function AujourdhuiView({ systems, statuses, schedules, onOpenAction, buyRuns = [], materials = [], toggleBought }) {
   const all = systems.flatMap(s => s.actions.map(a => ({ ...a, sysId:s.id, sysName:s.name })));
   const todays = all.filter(a => schedules[a.id] && schedules[a.id] <= todayISO() && (statuses[a.id] || a.status) !== 'Fait')
     .sort((x, y) => schedules[x.id] < schedules[y.id] ? -1 : schedules[x.id] > schedules[y.id] ? 1 : (PRIORITY_ORDER[x.priority] ?? 9) - (PRIORITY_ORDER[y.priority] ?? 9));
+  const todaysRuns = (buyRuns || []).filter(r => r.date <= todayISO() && !r.done)
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
   return (
     <div style={{ padding:'14px 14px 24px' }}>
       <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.07em', textTransform:'uppercase', margin:'2px 0 4px' }}>Aujourd'hui</div>
       <div style={{ fontSize:11, color:T.tx3, marginBottom:12 }}>Ce qui est planifié pour aujourd'hui ou en retard.</div>
+
+      <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', margin:'4px 0 8px' }}>À faire</div>
       {todays.length === 0 ? (
-        <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'22px 16px', textAlign:'center' }}>
+        <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'18px 16px', textAlign:'center' }}>
           <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.6 }}>Rien de planifié pour aujourd'hui.</div>
           <div style={{ fontSize:11, color:T.tx3, marginTop:6 }}>Ouvre une action dans un projet et touche « Planifier » pour la programmer.</div>
         </div>
@@ -1290,6 +1346,30 @@ function AujourdhuiView({ systems, statuses, schedules, onOpenAction }) {
               {overdue && <span style={{ ...ss.pill('rgba(217,95,95,0.14)', T.r), fontSize:9 }}>En retard</span>}
               <span style={{ marginLeft:'auto' }}><WStatusBadge s={statuses[a.id] || a.status} /></span>
             </div>
+          </div>
+        );
+      })}
+
+      <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', margin:'18px 0 8px' }}>À acheter</div>
+      {todaysRuns.length === 0 ? (
+        <div style={{ fontSize:11.5, color:T.tx3, fontStyle:'italic' }}>Aucune course prévue.</div>
+      ) : todaysRuns.map(run => {
+        const { items, subtotal } = runItems(run, materials);
+        const overdue = run.date < todayISO();
+        return (
+          <div key={run.id} style={{ background:T.s1, border:`1px solid ${T.bd}`, borderLeft:`3px solid ${T.y}`, borderRadius:10, padding:'12px 13px', marginBottom:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+              <span style={{ fontSize:11, color:T.y, fontWeight:600 }}>🛒 {(run.magasin || '').trim() || 'Magasin à confirmer'}</span>
+              {overdue && <span style={{ ...ss.pill('rgba(217,95,95,0.14)', T.r), fontSize:9 }}>En retard</span>}
+              <span style={{ marginLeft:'auto', fontSize:11, color:T.y, fontFamily:T.mono }}>{money(subtotal)}</span>
+            </div>
+            {items.map(m => (
+              <div key={m.id} style={{ display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom:`1px solid ${T.bd}` }}>
+                <input type="checkbox" checked={!!m.bought} onChange={() => toggleBought && toggleBought(m.id)} style={{ width:16, height:16, cursor:'pointer', accentColor:T.g, flexShrink:0 }} />
+                <span style={{ flex:1, fontSize:12, color: m.bought ? T.tx3 : T.tx, textDecoration: m.bought ? 'line-through' : 'none' }}>{m.article}</span>
+                {m.qty > 1 && <span style={{ fontSize:10.5, color:T.tx3, fontFamily:T.mono }}>x{m.qty}</span>}
+              </div>
+            ))}
           </div>
         );
       })}
@@ -1315,7 +1395,7 @@ const TabIcon = ({ id, color }) => (
 );
 
 function PhoneShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
@@ -1325,9 +1405,9 @@ function PhoneShell(props) {
     else if (system) body = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} onBack={() => setSelProject(null)} />;
     else body = <ProjectList systems={systems} statuses={statuses} onSelect={id => { setSelProject(id); setSelAction(null); }} />;
   } else if (tab === 'aujourdhui') {
-    body = <AujourdhuiView systems={systems} statuses={statuses} schedules={schedules} onOpenAction={(sysId, aid) => { setSelProject(sysId); setSelAction(aid); setTab('projets'); }} />;
+    body = <AujourdhuiView systems={systems} statuses={statuses} schedules={schedules} onOpenAction={(sysId, aid) => { setSelProject(sysId); setSelAction(aid); setTab('projets'); }} buyRuns={buyRuns} materials={shopItems} toggleBought={toggleBought} />;
   } else if (tab === 'achats') {
-    body = <AchatsView narrow shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />;
+    body = <AchatsView narrow shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} buyRuns={buyRuns} assignToRun={assignToRun} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} />;
   } else if (tab === 'entretien') {
     body = <EntretienView narrow maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
   }
@@ -1366,7 +1446,7 @@ const DESK_NAV = [
 ];
 
 function DesktopShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
@@ -1390,11 +1470,11 @@ function DesktopShell(props) {
       </div>
     );
   } else if (tab === 'achats') {
-    main = <AchatsView shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} />;
+    main = <AchatsView shopItems={shopItems} setShopItems={setShopItems} saveShopItem={saveShopItem} deleteShopItem={deleteShopItem} addShopItem={addShopItem} buyRuns={buyRuns} assignToRun={assignToRun} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} />;
   } else if (tab === 'entretien') {
     main = <EntretienView maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
   } else if (tab === 'calendrier') {
-    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} />;
+    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} buyRuns={buyRuns} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} />;
   } else {
     main = <Placeholder title="Aujourd'hui" note="Optionnel. Se remplit quand tu programmes une action (Session 2)." />;
   }
@@ -1469,7 +1549,8 @@ function hydrateDoc(doc) {
   (doc.systems || []).forEach(s => (s.actions || []).forEach(a => { if (a.scheduledDate) sched[a.id] = a.scheduledDate; }));
   const sd = {};
   (doc.systems || []).forEach(s => (s.actions || []).forEach(a => (a.steps || []).forEach(st2 => { if (st2.id) sd[`${a.id}:${st2.id}`] = !!st2.done; })));
-  return { st, md, items, sched, sd };
+  const runs = (doc.buyRuns || []).slice();
+  return { st, md, items, sched, sd, runs };
 }
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────────────
@@ -1484,6 +1565,7 @@ export default function DurinsWorksApp() {
   const [shopItems, setShopItems] = useState([]);
   const [schedules, setSchedules] = useState({});
   const [stepsDone, setStepsDone] = useState({});
+  const [buyRuns, setBuyRuns] = useState([]);
   const [, setRev] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(true);
@@ -1520,8 +1602,8 @@ export default function DurinsWorksApp() {
         }
         stateRef.current = doc;
         versionRef.current = version;
-        const { st, md, items, sched, sd } = hydrateDoc(doc);
-        setStatuses(st); setMDone(md); setShopItems(items); setSchedules(sched); setStepsDone(sd);
+        const { st, md, items, sched, sd, runs } = hydrateDoc(doc);
+        setStatuses(st); setMDone(md); setShopItems(items); setSchedules(sched); setStepsDone(sd); setBuyRuns(runs);
       } catch (e) { console.error('Durin\'s Works load error:', e); }
       setLoading(false);
     };
@@ -1710,6 +1792,72 @@ export default function DurinsWorksApp() {
     persist('plan collé ' + actionId);
   }, [persist, bump]);
 
+  const assignToRun = useCallback((materialIds, date) => {
+    if (!date || !materialIds || !materialIds.length) return;
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.buyRuns = doc.buyRuns || [];
+    const mats = doc.materials || [];
+    const byStore = {};
+    materialIds.forEach(id => {
+      const m = mats.find(x => x.id === id);
+      if (!m) return;
+      const store = (m.magasin || '').trim() || 'Magasin à confirmer';
+      (byStore[store] = byStore[store] || []).push(id);
+    });
+    const base = Date.now();
+    Object.keys(byStore).forEach((store, i) => {
+      let run = doc.buyRuns.find(r => r.date === date && (((r.magasin || '').trim() || 'Magasin à confirmer') === store));
+      if (!run) {
+        run = { id: 'r' + base + '_' + i, date, magasin: store === 'Magasin à confirmer' ? '' : store, materialIds: [], done: false };
+        doc.buyRuns.push(run);
+      }
+      byStore[store].forEach(id => { if (!run.materialIds.includes(id)) run.materialIds.push(id); });
+    });
+    setBuyRuns(doc.buyRuns.slice());
+    bump();
+    persist('course assign ' + date);
+  }, [persist, bump]);
+
+  const toggleBought = useCallback((materialId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    let nb = false;
+    doc.materials = (doc.materials || []).map(m => { if (m.id === materialId) { nb = !m.bought; return { ...m, bought: nb }; } return m; });
+    setShopItems(doc.materials.slice());
+    bump();
+    persist('acheté ' + materialId);
+  }, [persist, bump]);
+
+  const removeFromRun = useCallback((runId, materialId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.buyRuns = (doc.buyRuns || [])
+      .map(r => r.id === runId ? { ...r, materialIds: (r.materialIds || []).filter(id => id !== materialId) } : r)
+      .filter(r => (r.materialIds || []).length);
+    setBuyRuns(doc.buyRuns.slice());
+    bump();
+    persist('retrait course ' + runId);
+  }, [persist, bump]);
+
+  const toggleRunDone = useCallback((runId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.buyRuns = (doc.buyRuns || []).map(r => r.id === runId ? { ...r, done: !r.done } : r);
+    setBuyRuns(doc.buyRuns.slice());
+    bump();
+    persist('course faite ' + runId);
+  }, [persist, bump]);
+
+  const deleteRun = useCallback((runId) => {
+    const doc = stateRef.current;
+    if (!doc) return;
+    doc.buyRuns = (doc.buyRuns || []).filter(r => r.id !== runId);
+    setBuyRuns(doc.buyRuns.slice());
+    bump();
+    persist('course suppr ' + runId);
+  }, [persist, bump]);
+
   if (loading) {
     return (
       <div style={{ fontFamily:T.font, display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:T.bg, color:T.tx2, fontSize:13 }}>
@@ -1727,6 +1875,7 @@ export default function DurinsWorksApp() {
     selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction,
     onStatusChange: changeStatus, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem,
     stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan,
+    buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun,
     saved, onHome: () => navigate('/'),
   };
 
