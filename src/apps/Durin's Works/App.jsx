@@ -614,6 +614,113 @@ function parseActionPlan(raw) {
   return { steps, cautions, materials, hasSteps, hasCautions, hasMaterials };
 }
 
+// ─── QUICK-ADD PARSER (Session 5 capture) ───────────────────────────────────────
+// Pure functions: turn one short French sentence into a single proposed change.
+// Intent order: run -> log (explicit verb/colon) -> schedule (verb or date) -> material (default).
+const DOW_FULL = { dimanche:0, lundi:1, mardi:2, mercredi:3, jeudi:4, vendredi:5, samedi:6 };
+const DOW_ABBR = { dim:0, lun:1, mar:2, mer:3, jeu:4, ven:5, sam:6 };
+const MONTHS_FULL = { janvier:0, fevrier:1, mars:2, avril:3, mai:4, juin:5, juillet:6, aout:7, septembre:8, octobre:9, novembre:10, decembre:11 };
+const STORE_RE = /\bchez\s+([A-ZÀ-Ý][\wÀ-ÿ.'’\-]*(?:\s+[A-ZÀ-Ý][\wÀ-ÿ.'’\-]*){0,2})/;
+
+function parseFrDate(token) {
+  if (!token) return null;
+  const t = stripAccents(String(token)).toLowerCase().trim();
+  if (!t) return null;
+  const iso = t.match(/(\d{4}-\d{2}-\d{2})/); if (iso) return iso[1];
+  if (/aujourd'?hui|aujourdhui/.test(t)) return todayISO();
+  if (/apres[- ]demain/.test(t)) return toISO(addDays(new Date(), 2));
+  if (/\bdemain\b/.test(t)) return toISO(addDays(new Date(), 1));
+  const dn = t.match(/\b(dimanche|lundi|mardi|mercredi|jeudi|vendredi|samedi|dim|lun|mar|mer|jeu|ven|sam)\b/);
+  if (dn) { const w = (DOW_FULL[dn[1]] != null) ? DOW_FULL[dn[1]] : DOW_ABBR[dn[1]]; const now = new Date(); const diff = (w - now.getDay() + 7) % 7; return toISO(addDays(now, diff)); }
+  const dm = t.match(/\b(\d{1,2})\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b(?:\s+(\d{4}))?/);
+  if (dm) { const day = parseInt(dm[1], 10), mon = MONTHS_FULL[dm[2]]; const now = new Date(); const year = dm[3] ? parseInt(dm[3], 10) : now.getFullYear(); let d = new Date(year, mon, day); if (!dm[3] && toISO(d) < todayISO()) d = new Date(year + 1, mon, day); return toISO(d); }
+  const dom = t.match(/\ble\s+(\d{1,2})\b/) || t.match(/^(\d{1,2})$/);
+  if (dom) { const day = parseInt(dom[1], 10), now = new Date(); let d = new Date(now.getFullYear(), now.getMonth(), day); if (toISO(d) < todayISO()) d = new Date(now.getFullYear(), now.getMonth() + 1, day); return toISO(d); }
+  return null;
+}
+const DATE_RE = /\d{4}-\d{2}-\d{2}|aujourd'?hui|apres[- ]demain|\bdemain\b|\b(?:dimanche|lundi|mardi|mercredi|jeudi|vendredi|samedi|dim|lun|mar|mer|jeu|ven|sam)\b|\b\d{1,2}\s+(?:janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)(?:\s+\d{4})?\b|\ble\s+\d{1,2}\b/;
+function findDate(text) {
+  const t = stripAccents(String(text || '')).toLowerCase();
+  const m = t.match(DATE_RE);
+  if (!m) return { iso: null };
+  const iso = parseFrDate(m[0]);
+  return iso ? { iso, token: m[0] } : { iso: null };
+}
+function extractMaterial(text) {
+  let s = String(text || '').trim().replace(/^(?:ajoute[rz]?|achete[rz]?|acheter|add|mettre|met)\s+/i, '').trim();
+  let project = '', magasin = '', prix_unitaire = null, qty = 1;
+  const pourM = s.match(/\bpour\s+([^,]+?)\s*$/i);
+  if (pourM) { project = pourM[1].trim(); s = s.slice(0, pourM.index).trim(); }
+  const chezM = s.match(STORE_RE);
+  if (chezM) { magasin = chezM[1].trim(); s = (s.slice(0, chezM.index) + ' ' + s.slice(chezM.index + chezM[0].length)).trim(); }
+  const qtyM = s.match(/\bx\s*(\d+)\b/i);
+  if (qtyM) { qty = parseInt(qtyM[1], 10); s = (s.slice(0, qtyM.index) + ' ' + s.slice(qtyM.index + qtyM[0].length)).trim(); }
+  const prixM = s.match(/~?\s*(\d+(?:[.,]\d+)?)\s*\$/);
+  if (prixM) { prix_unitaire = parseFloat(prixM[1].replace(',', '.')); s = (s.slice(0, prixM.index) + ' ' + s.slice(prixM.index + prixM[0].length)).trim(); }
+  s = s.replace(/\s{2,}/g, ' ').replace(/[,\s]+$/, '').replace(/^[,\s]+/, '').trim();
+  return { article: s, magasin, prix_unitaire, qty, project };
+}
+function extractRun(text) {
+  const s = String(text || '').trim();
+  let m = s.match(/^(.*?)\s*(?:dans|à|a)\b\s+(?:la\s+)?courses?\b(.*)$/i);
+  if (!m) m = s.match(/^(.*?)\bcourses?\b(.*)$/i);
+  let itemsPart = m ? m[1] : s;
+  itemsPart = itemsPart.replace(/^(?:ajoute[rz]?|achete[rz]?|acheter|add|mettre|met)\s+/i, '').trim().replace(/[,\s]+$/, '');
+  const chezM = s.match(STORE_RE);
+  const magasin = chezM ? chezM[1].trim() : '';
+  const dt = findDate(s);
+  const rawItems = itemsPart.split(/\s+et\s+|,|\+/i).map(x => x.trim()).filter(Boolean);
+  const items = rawItems.map(x => { const mm = extractMaterial(x); return { article: mm.article, magasin: mm.magasin, prix_unitaire: mm.prix_unitaire, qty: mm.qty }; }).filter(it => it.article);
+  return { items, magasin, dateISO: dt.iso || null };
+}
+function parseQuickAdd(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return { intent: null };
+  const low = stripAccents(raw).toLowerCase();
+  if (/\bcourses?\b/.test(low)) return { intent: 'run', run: extractRun(raw) };
+  let lm = raw.match(/^(?:journal|note|noter|consigner|log)\s+sur\s+(.+?)\s*:\s*(.+)$/i);
+  if (lm) return { intent: 'log', log: { targetQuery: stripAccents(lm[1]).toLowerCase().trim(), text: lm[2].trim() } };
+  lm = raw.match(/^(?:journal|note|noter|consigner|log)\s*:\s*(.+)$/i) || raw.match(/^(?:journal|note|noter|consigner|log)\s+(.+)$/i);
+  if (lm) return { intent: 'log', log: { targetQuery: '', text: lm[1].trim() } };
+  const schedVerb = /\b(planifie|planifier|cedule|ceduler|programme|programmer|prevoir|prevois)\b/.test(low);
+  const dt = findDate(raw);
+  if (schedVerb || dt.iso) {
+    let q = low.replace(/\b(planifie|planifier|cedule|ceduler|programme|programmer|prevoir|prevois)\b/g, ' ');
+    if (dt.token) q = q.replace(dt.token, ' ');
+    q = q.replace(/\b(le|la|les|l|pour|au|aux|du|des|de|d|cette|ce|action|tache)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    return { intent: 'schedule', schedule: { dateISO: dt.iso || null, targetQuery: q, schedVerb, needDate: !dt.iso } };
+  }
+  const colon = raw.match(/^(.+?)\s*:\s*(.+)$/);
+  if (colon) return { intent: 'log', log: { targetQuery: stripAccents(colon[1]).toLowerCase().trim(), text: colon[2].trim(), soft: true } };
+  return { intent: 'material', material: extractMaterial(raw) };
+}
+
+// Flatten every action with its system name (for the quick-add target picker).
+function flatActions(systems) {
+  const all = [];
+  (systems || []).forEach(s => (s.actions || []).forEach(a => all.push({ id: a.id, desc: a.desc, sysName: s.name })));
+  return all;
+}
+// Resolve an action by id token or accent-insensitive substring of desc. Returns only real
+// matches (best first); empty array when the query is blank or nothing matches, so the caller
+// can fall back to the open action or force Karl to pick.
+function resolveActions(query, systems) {
+  const q = stripAccents(String(query || '')).toLowerCase().trim();
+  if (!q) return [];
+  const all = flatActions(systems);
+  const byId = all.filter(a => a.id.toLowerCase() === q);
+  if (byId.length) return byId;
+  return all.filter(a => stripAccents(a.desc || '').toLowerCase().includes(q));
+}
+function resolveMaterial(query, materials) {
+  const q = stripAccents(String(query || '')).toLowerCase().trim();
+  if (!q) return null;
+  const list = materials || [];
+  return list.find(m => m.id.toLowerCase() === q)
+    || list.find(m => stripAccents(m.article || '').toLowerCase().includes(q))
+    || null;
+}
+
 // ─── ACTION VIEW (execution screen, Session 3) ──────────────────────────────────
 function ActionView({ system, action, status, onStatusChange, onBack, backLabel, schedule, onSchedule,
   materials = [], stepsDone = {}, onToggleStep, onAddLog, onLinkMaterial, onAddMaterial, onUnlinkMaterial, onApplyPlan }) {
@@ -1394,6 +1501,143 @@ const TabIcon = ({ id, color }) => (
   <svg viewBox="0 0 24 24" width="20" height="20" style={{ stroke:color, fill:'none', strokeWidth:1.6 }} dangerouslySetInnerHTML={{ __html: TAB_ICONS[id] }} />
 );
 
+// ─── QUICK-ADD SURFACE (Session 5) ──────────────────────────────────────────────
+const shortDesc = (d, n = 46) => { d = d || ''; return d.length > n ? d.slice(0, n) + '…' : d; };
+
+function QuickAdd({ variant = 'sheet', triggerStyle, systems = [], materials = [], openActionId = null,
+  addShopItem, saveShopItem, addLogEntry, scheduleAction, assignToRun }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [override, setOverride] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const parsed = useMemo(() => parseQuickAdd(text), [text]);
+  const intent = parsed.intent;
+  const q = intent === 'log' ? (parsed.log ? parsed.log.targetQuery : '')
+          : intent === 'schedule' ? (parsed.schedule ? parsed.schedule.targetQuery : '') : '';
+  const matches = useMemo(() => (intent === 'log' || intent === 'schedule') ? resolveActions(q, systems) : [], [intent, q, systems]);
+  const allActions = useMemo(() => flatActions(systems), [systems]);
+  const queryEmpty = !stripAccents(String(q || '')).trim();
+  const defaultActionId = matches[0] ? matches[0].id : (queryEmpty ? (openActionId || null) : null);
+  const targetActionId = override || defaultActionId || null;
+  const targetAction = allActions.find(a => a.id === targetActionId) || null;
+
+  const close = () => { setOpen(false); setText(''); setOverride(null); };
+
+  const canConfirm =
+    intent === 'material' ? !!(parsed.material && parsed.material.article) :
+    intent === 'log' ? !!(targetActionId && parsed.log && parsed.log.text) :
+    intent === 'schedule' ? !!(targetActionId && parsed.schedule && parsed.schedule.dateISO) :
+    intent === 'run' ? !!(parsed.run && parsed.run.dateISO && parsed.run.items.length) : false;
+
+  const commit = async () => {
+    if (!canConfirm || busy) return;
+    setBusy(true);
+    try {
+      if (intent === 'material') {
+        const mm = parsed.material;
+        await addShopItem({ project: mm.project || '', article: mm.article, magasin: mm.magasin || '', prix_unitaire: mm.prix_unitaire, qty: mm.qty || 1, status: 'À trouver', lien: '', notes: '' });
+      } else if (intent === 'log') {
+        addLogEntry(targetActionId, parsed.log.text);
+      } else if (intent === 'schedule') {
+        scheduleAction(targetActionId, parsed.schedule.dateISO);
+      } else if (intent === 'run') {
+        const r = parsed.run; const ids = [];
+        for (const it of r.items) {
+          const ex = resolveMaterial(it.article, materials);
+          if (ex) {
+            if (r.magasin && (ex.magasin || '') !== r.magasin && saveShopItem) await saveShopItem(ex.id, { magasin: r.magasin });
+            ids.push(ex.id);
+          } else {
+            const row = await addShopItem({ project: '', article: it.article, magasin: r.magasin || it.magasin || '', prix_unitaire: it.prix_unitaire, qty: it.qty || 1, status: 'À trouver', lien: '', notes: '' });
+            if (row && row.id) ids.push(row.id);
+          }
+        }
+        if (ids.length) assignToRun(ids, r.dateISO);
+      }
+      close();
+    } finally { setBusy(false); }
+  };
+
+  const inp = { width:'100%', boxSizing:'border-box', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:7, padding:'9px 11px', fontSize:13, color:T.tx, fontFamily:T.font, outline:'none' };
+  const sel = { width:'100%', boxSizing:'border-box', background:T.s3, border:`1px solid ${T.bd2}`, borderRadius:6, padding:'6px 8px', fontSize:11.5, color:T.tx, fontFamily:T.font, outline:'none', marginTop:8 };
+  const chip = (bg, tx) => ({ background:bg, color:tx, borderRadius:6, padding:'2px 7px', fontSize:10.5, fontWeight:600, whiteSpace:'nowrap' });
+  const meta = { material:{ label:'Matériau', c:T.y }, log:{ label:'Journal', c:T.acc }, schedule:{ label:'Planifier', c:T.acc }, run:{ label:'Course', c:T.y } }[intent] || null;
+
+  const preview = text.trim() && meta && (
+    <div style={{ marginTop:10, background:T.s2, border:`1px solid ${T.bd}`, borderRadius:9, padding:'10px 11px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+        <span style={chip(meta.c + '22', meta.c)}>{meta.label}</span>
+        {intent === 'material' && <span style={{ fontSize:12.5, color: parsed.material.article ? T.tx : T.tx3 }}>{parsed.material.article || 'article ?'}</span>}
+        {(intent === 'log' || intent === 'schedule') && <span style={{ fontSize:12.5, color: targetAction ? T.tx : T.tx3, flex:1, minWidth:0 }}>{targetAction ? '« ' + shortDesc(targetAction.desc) + ' »' : 'choisir une action'}</span>}
+        {intent === 'schedule' && <span style={{ marginLeft:'auto', fontSize:11.5, fontFamily:T.mono, color: parsed.schedule.dateISO ? T.acc : T.r }}>{parsed.schedule.dateISO ? fmtDate(parsed.schedule.dateISO) : 'ajoute une date'}</span>}
+        {intent === 'run' && <span style={{ marginLeft:'auto', fontSize:11.5, fontFamily:T.mono, color: parsed.run.dateISO ? T.y : T.r }}>{parsed.run.dateISO ? fmtDate(parsed.run.dateISO) : 'ajoute une date'}{parsed.run.magasin ? ' · ' + parsed.run.magasin : ''}</span>}
+      </div>
+      {intent === 'material' && (
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:7 }}>
+          {parsed.material.magasin && <span style={chip(T.s3, T.tx2)}>{parsed.material.magasin}</span>}
+          {parsed.material.prix_unitaire != null && <span style={chip(T.s3, T.y)}>{parsed.material.prix_unitaire}$</span>}
+          {parsed.material.qty > 1 && <span style={chip(T.s3, T.tx2)}>x{parsed.material.qty}</span>}
+          {parsed.material.project && <span style={chip(T.s3, T.tx2)}>pour {parsed.material.project}</span>}
+        </div>
+      )}
+      {intent === 'log' && <div style={{ fontSize:12, color:T.tx2, marginTop:7, lineHeight:1.5 }}>{parsed.log.text}</div>}
+      {intent === 'run' && (
+        <div style={{ marginTop:7, display:'flex', flexDirection:'column', gap:4 }}>
+          {parsed.run.items.map((it, i) => { const ex = resolveMaterial(it.article, materials); return (
+            <div key={i} style={{ fontSize:12, display:'flex', gap:7, alignItems:'baseline' }}>
+              <span style={{ color:T.tx }}>{it.article}{it.qty > 1 ? ' x' + it.qty : ''}</span>
+              <span style={{ fontSize:10, color: ex ? T.g : T.acc }}>{ex ? 'existant' : 'nouveau'}</span>
+            </div>
+          ); })}
+        </div>
+      )}
+      {(intent === 'log' || intent === 'schedule') && (
+        <select value={targetActionId || ''} onChange={e => setOverride(e.target.value)} style={sel}>
+          <option value="">Choisir une action…</option>
+          {allActions.map(a => <option key={a.id} value={a.id}>{a.id} · {shortDesc(a.desc, 50)}</option>)}
+        </select>
+      )}
+    </div>
+  );
+
+  const body = (
+    <div onClick={e => e.stopPropagation()} style={ variant === 'sheet'
+      ? { width:'100%', background:T.s1, borderTop:`1px solid ${T.bd2}`, borderRadius:'14px 14px 0 0', padding:'14px 14px 18px', boxSizing:'border-box', maxHeight:'82vh', overflowY:'auto' }
+      : { width:380, maxWidth:'92vw', background:T.s1, border:`1px solid ${T.bd2}`, borderRadius:12, padding:14, boxShadow:'0 12px 40px rgba(0,0,0,0.5)', boxSizing:'border-box' } }>
+      <div style={{ display:'flex', alignItems:'center', marginBottom:9 }}>
+        <span style={{ fontFamily:T.serif, fontSize:13, fontWeight:600, color:T.acc2, letterSpacing:'0.04em' }}>Ajout rapide</span>
+        <button onClick={close} style={{ marginLeft:'auto', background:'transparent', border:'none', color:T.tx3, fontSize:18, cursor:'pointer', lineHeight:1 }}>×</button>
+      </div>
+      <input autoFocus value={text} onChange={e => { setText(e.target.value); setOverride(null); }}
+        onKeyDown={e => { if (e.key === 'Enter' && canConfirm) commit(); else if (e.key === 'Escape') close(); }}
+        placeholder="ex: GFCI 15A chez Rona 25$ x2 pour électricité" style={inp} />
+      {preview}
+      <div style={{ display:'flex', gap:8, marginTop:11, alignItems:'center' }}>
+        <button onClick={commit} disabled={!canConfirm || busy}
+          style={{ ...ss.btn, padding:'7px 13px', fontSize:12, color: canConfirm ? T.g : T.tx3, border:`1px solid ${canConfirm ? T.g + '55' : T.bd}`, background: canConfirm ? 'rgba(63,182,139,0.14)' : T.s2, cursor: canConfirm ? 'pointer' : 'default' }}>
+          {busy ? '…' : 'Confirmer'}
+        </button>
+        <button onClick={close} style={{ ...ss.btn, padding:'7px 13px', fontSize:12 }}>Annuler</button>
+        <span style={{ marginLeft:'auto', fontSize:9.5, color:T.tx3, textAlign:'right', lineHeight:1.3 }}>matériau · journal: … · planifier … jour · … dans la course de …</span>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <button onClick={() => setOpen(o => !o)} title="Ajout rapide" style={triggerStyle}>+</button>
+      {open && (variant === 'sheet'
+        ? <div onClick={close} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'flex-end' }}>{body}</div>
+        : <>
+            <div onClick={close} style={{ position:'fixed', inset:0, zIndex:999 }} />
+            <div style={{ position:'fixed', top:52, right:16, zIndex:1000 }}>{body}</div>
+          </>
+      )}
+    </>
+  );
+}
+
 function PhoneShell(props) {
   const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
@@ -1417,7 +1661,10 @@ function PhoneShell(props) {
       <div style={{ height:50, flexShrink:0, background:T.hdr, borderBottom:`1px solid ${T.bd}`, display:'flex', alignItems:'center', gap:10, padding:'0 14px' }}>
         <button onClick={onHome} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:6, padding:'4px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', fontFamily:T.font, letterSpacing:'0.02em' }}>KarlOS</button>
         <span style={{ fontFamily:T.serif, fontSize:15, fontWeight:600, color:T.acc2, letterSpacing:'0.06em' }}>Durin's Works</span>
-        <button title="Ajout rapide (à venir)" style={{ marginLeft:'auto', width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1 }}>+</button>
+        <QuickAdd variant="sheet"
+          triggerStyle={{ marginLeft:'auto', width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1 }}
+          systems={systems} materials={shopItems} openActionId={selAction}
+          addShopItem={addShopItem} saveShopItem={saveShopItem} addLogEntry={addLogEntry} scheduleAction={scheduleAction} assignToRun={assignToRun} />
         <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono, minWidth:12, textAlign:'center' }}>{saved ? '✓' : '…'}</span>
       </div>
       <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', WebkitOverflowScrolling:'touch' }}>{body}</div>
@@ -1502,7 +1749,15 @@ function DesktopShell(props) {
           <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono }}>{saved ? '✓' : '…'}</span>
         </div>
       </div>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>{main}</div>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+        {main}
+        <div style={{ position:'absolute', top:10, right:14, zIndex:25 }}>
+          <QuickAdd variant="popover"
+            triggerStyle={{ width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1, boxShadow:'0 2px 10px rgba(0,0,0,0.35)' }}
+            systems={systems} materials={shopItems} openActionId={selAction}
+            addShopItem={addShopItem} saveShopItem={saveShopItem} addLogEntry={addLogEntry} scheduleAction={scheduleAction} assignToRun={assignToRun} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -1684,6 +1939,7 @@ export default function DurinsWorksApp() {
     const doc = stateRef.current;
     if (doc) doc.materials = [...(doc.materials || []), row];
     await persist('achat ajout');
+    return row;
   }, [persist]);
 
   const deleteShopItem = useCallback(async (id) => {
