@@ -410,6 +410,18 @@ const snapshotSummary = state => {
   return { systems: systems.length, scheduled, materials: ((state && state.materials) || []).length, runs: ((state && state.buyRuns) || []).length };
 };
 
+// Keep only the newest `keep` snapshots by id (blueprint 3.4). Identity id == chronological
+// order, so the newest 30 by id are the newest 30 in time. One extra delete, fire-and-forget
+// at every insert site, wrapped so a prune failure can never block or fail a write.
+const pruneSnapshots = async (keep = 30) => {
+  try {
+    const { data } = await supabase.from('durins_works_snapshots')
+      .select('id').order('id', { ascending: false }).range(keep, keep);
+    const cutoff = data && data[0] && data[0].id;
+    if (cutoff != null) await supabase.from('durins_works_snapshots').delete().lte('id', cutoff);
+  } catch (e) { console.error("Durin's Works snapshot prune error:", e); }
+};
+
 // Per-project cost roll-up across its actions (estimates and actuals).
 const projectCost = sys => {
   let est = 0, act = 0, hasEst = false, hasAct = false;
@@ -497,6 +509,7 @@ function ProjectList({ systems, statuses, selProject, onSelect, embedded }) {
     <div style={{ padding: embedded ? '10px' : '14px 14px 24px' }}>
       {!embedded && <div style={{ fontSize:10, fontWeight:700, color:T.tx3, letterSpacing:'0.07em', textTransform:'uppercase', margin:'2px 0 4px' }}>Projets</div>}
       {!embedded && <div style={{ fontSize:11, color:T.tx3, marginBottom:12 }}>Choisis un chantier pour voir son plan et ses matériaux.</div>}
+      {ordered.length === 0 && <EmptyState title="Aucun projet." hint="Les systèmes de la maison apparaîtront ici une fois le document chargé." />}
       {ordered.map(sys => {
         const pc = PRIORITY[sys.priority] || PRIORITY['—'];
         const { done, total, pct } = sysProgress(sys, statuses);
@@ -785,7 +798,7 @@ function resolveMaterial(query, materials) {
 // ─── ACTION VIEW (execution screen, Session 3) ──────────────────────────────────
 function ActionView({ system, action, status, onStatusChange, onBack, backLabel, schedule, onSchedule,
   materials = [], stepsDone = {}, onToggleStep, onAddLog, onLinkMaterial, onAddMaterial, onUnlinkMaterial, onApplyPlan,
-  onSetCost, onAddQuote, onUpdateQuote, onRemoveQuote, onSetContractor, onAddPhoto, onRemovePhoto }) {
+  onSetCost, onAddQuote, onUpdateQuote, onRemoveQuote, onSetContractor, onAddPhoto, onRemovePhoto, onUpdatePhoto }) {
   const wc = WSTATUS[status] || WSTATUS['À faire'];
   const steps = action.steps || [];
   const cautions = action.cautions || [];
@@ -977,10 +990,10 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
         </>
       ) : (
         <>
-          <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:9, padding:'18px 16px', textAlign:'center', marginBottom:12 }}>
-            <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.6 }}>Le plan détaillé de cette action n'est pas encore rédigé.</div>
-            {!showPaste && <button onClick={() => setShowPaste(true)} style={{ ...ss.btn, marginTop:12, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Coller un plan</button>}
-          </div>
+          <EmptyState style={{ marginBottom:12 }}
+            title="Le plan détaillé de cette action n'est pas encore rédigé."
+            hint="Colle un plan structuré (étapes, précautions, matériaux) pour le suivre ici."
+            action={!showPaste && <button onClick={() => setShowPaste(true)} style={{ ...ss.btn, color:T.acc, border:`1px solid rgba(91,156,246,0.25)`, background:'rgba(91,156,246,0.08)' }}>+ Coller un plan</button>} />
           {pasteBlock}
         </>
       )}
@@ -1097,7 +1110,9 @@ function ActionView({ system, action, status, onStatusChange, onBack, backLabel,
                   <button onClick={() => onRemovePhoto && onRemovePhoto(action.id, p.id)} title="Supprimer la photo"
                     style={{ position:'absolute', top:-7, right:-7, width:20, height:20, borderRadius:'50%', background:T.s2, border:`1px solid ${T.bd2}`, color:T.r, fontSize:12, cursor:'pointer', lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>×</button>
                 </div>
-                {p.caption && <div style={{ fontSize:10, color:T.tx3, marginTop:3, lineHeight:1.3 }}>{p.caption}</div>}
+                <input defaultValue={p.caption || ''} placeholder="Légende"
+                  onBlur={e => { const v = e.target.value.trim(); if (v !== (p.caption || '') && onUpdatePhoto) onUpdatePhoto(action.id, p.id, { caption: v }); }}
+                  style={{ ...inpStyle, width:'100%', fontSize:10, padding:'3px 5px', marginTop:4 }} />
               </div>
             ))}
           </div>
@@ -1159,6 +1174,17 @@ function Placeholder({ title, note }) {
       <div style={{ fontSize:13, fontWeight:700, color:T.tx2, letterSpacing:'0.04em' }}>{title}</div>
       <div style={{ fontSize:12, color:T.tx3, lineHeight:1.6, maxWidth:300 }}>{note}</div>
       <div style={{ fontSize:10, color:T.tx3, fontFamily:T.mono, marginTop:4, opacity:0.7 }}>À venir</div>
+    </div>
+  );
+}
+
+// ─── EMPTY STATE (shared card) ──────────────────────────────────────────────────
+function EmptyState({ title, hint, action, style }) {
+  return (
+    <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'20px 18px', textAlign:'center', ...style }}>
+      <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.6 }}>{title}</div>
+      {hint && <div style={{ fontSize:11, color:T.tx3, lineHeight:1.6, marginTop:5 }}>{hint}</div>}
+      {action && <div style={{ marginTop:12 }}>{action}</div>}
     </div>
   );
 }
@@ -1288,13 +1314,19 @@ function AchatsView({ shopItems, setShopItems, saveShopItem, deleteShopItem, add
           </div>
         );
       })}
-      {bucketItems.length === 0 && <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13 }}>{bucket === 'aplanifier' ? 'Rien à planifier. Tout est dans une course ou déjà acheté.' : bucket === 'achetes' ? "Aucun achat pour l'instant." : 'Aucun article.'}</div>}
+      {bucketItems.length === 0 && (
+        bucket === 'aplanifier'
+          ? <EmptyState title="Rien à planifier." hint="Tout est déjà dans une course ou marqué acheté." />
+          : bucket === 'achetes'
+          ? <EmptyState title="Aucun achat pour l'instant." hint="Coche « acheté » sur un matériau et il apparaîtra ici." />
+          : <EmptyState title="Aucun article." hint="Ajoute un matériau avec « + Article »." />
+      )}
     </div>
   );
 
   const coursesBody = (
     <div style={{ padding: narrow ? '10px 12px 24px' : '12px 16px 24px' }}>
-      {runsSorted.length === 0 && <div style={{ textAlign:'center', padding:'40px 20px', color:T.tx3, fontSize:13, lineHeight:1.6 }}>Aucune course planifiée. Sélectionne des matériaux dans « À planifier » et mets-les dans une course.</div>}
+      {runsSorted.length === 0 && <EmptyState title="Aucune course planifiée." hint="Dans « À planifier », sélectionne des matériaux puis « mettre dans une course »." />}
       {runsSorted.map(run => {
         const { items, subtotal, allBought } = runItems(run, shopItems);
         return (
@@ -1423,6 +1455,7 @@ function EntretienView({ maintenance, mDone, onToggleMaint, narrow }) {
 
   const list = (
     <div style={{ padding:'12px 14px 24px' }}>
+      {orderedSeasons.length === 0 && <EmptyState title="Rien dans cette saison." hint="Choisis « Toutes les saisons » pour voir tout l'entretien." />}
       {orderedSeasons.map(s => {
         const tasks = grouped[s];
         const isCur = seasonMatch(s, season);
@@ -1499,7 +1532,7 @@ function PlanifierControl({ value, onSet }) {
 }
 
 // ─── CALENDAR VIEW (desktop) ────────────────────────────────────────────────────
-function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns = [], toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto }) {
+function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusChange, materials, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns = [], toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, updatePhoto }) {
   const [weekStart, setWeekStart] = useState(() => toISO(startOfWeek(new Date())));
   const [pending, setPending] = useState(null);
   const [selId, setSelId] = useState(null);
@@ -1616,7 +1649,7 @@ function CalendarView({ systems, statuses, schedules, scheduleAction, onStatusCh
       <ActionView system={selSys} action={sel} status={statuses[sel.id] || sel.status} onStatusChange={onStatusChange}
         schedule={schedules[sel.id]} onSchedule={d => scheduleAction(sel.id, d)} onBack={() => setSelId(null)} backLabel="Calendrier"
         materials={materials} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan}
-        onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} />
+        onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} onUpdatePhoto={updatePhoto} />
     );
   } else {
     detail = (
@@ -1649,10 +1682,8 @@ function AujourdhuiView({ systems, statuses, schedules, onOpenAction, buyRuns = 
 
       <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', margin:'4px 0 8px' }}>À faire</div>
       {todays.length === 0 ? (
-        <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'18px 16px', textAlign:'center' }}>
-          <div style={{ fontSize:12.5, color:T.tx2, lineHeight:1.6 }}>Rien de planifié pour aujourd'hui.</div>
-          <div style={{ fontSize:11, color:T.tx3, marginTop:6 }}>Ouvre une action dans un projet et touche « Planifier » pour la programmer.</div>
-        </div>
+        <EmptyState title="Rien de planifié pour aujourd'hui."
+          hint="Ouvre une action dans un projet et touche « Planifier » pour la programmer." />
       ) : todays.map(a => {
         const pc = PRIORITY[a.priority] || PRIORITY['—'];
         const overdue = schedules[a.id] < todayISO();
@@ -1675,7 +1706,8 @@ function AujourdhuiView({ systems, statuses, schedules, onOpenAction, buyRuns = 
 
       <div style={{ fontSize:10, fontWeight:700, color:T.tx3, textTransform:'uppercase', letterSpacing:'0.06em', margin:'18px 0 8px' }}>À acheter</div>
       {todaysRuns.length === 0 ? (
-        <div style={{ fontSize:11.5, color:T.tx3, fontStyle:'italic' }}>Aucune course prévue.</div>
+        <EmptyState title="Aucune course prévue aujourd'hui."
+          hint="Crée une course dans Achats pour la voir apparaître ici." />
       ) : todaysRuns.map(run => {
         const { items, subtotal } = runItems(run, materials);
         const overdue = run.date < todayISO();
@@ -1877,7 +1909,7 @@ function SnapshotsView({ snapshots = [], onRestore, onRefresh, narrow, onBack })
         Chaque écriture prend une copie du document. Restaurer remplace l'état courant par la copie choisie, après en avoir pris une sauvegarde de sécurité.
       </div>
       {snapshots.length === 0 && (
-        <div style={{ background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:'18px 16px', textAlign:'center', fontSize:12.5, color:T.tx2 }}>Aucune sauvegarde pour l'instant.</div>
+        <EmptyState title="Aucune sauvegarde pour l'instant." hint="Une copie est prise automatiquement à la première écriture de chaque session." />
       )}
       {snapshots.map(snap => {
         const sum = snapshotSummary(snap.state);
@@ -1916,13 +1948,13 @@ function SnapshotsView({ snapshots = [], onRestore, onRefresh, narrow, onBack })
 }
 
 function PhoneShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, snapshots, loadSnapshots, restoreSnapshot, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, updatePhoto, snapshots, loadSnapshots, restoreSnapshot, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let body;
   if (tab === 'projets') {
-    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} />;
+    if (action) body = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} onUpdatePhoto={updatePhoto} />;
     else if (system) body = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} onBack={() => setSelProject(null)} />;
     else body = <ProjectList systems={systems} statuses={statuses} onSelect={id => { setSelProject(id); setSelAction(null); }} />;
   } else if (tab === 'aujourdhui') {
@@ -1937,17 +1969,17 @@ function PhoneShell(props) {
 
   return (
     <div style={{ fontFamily:T.font, display:'flex', flexDirection:'column', height:'100vh', background:T.bg, color:T.tx, overflow:'hidden' }}>
-      <div style={{ height:50, flexShrink:0, background:T.hdr, borderBottom:`1px solid ${T.bd}`, display:'flex', alignItems:'center', gap:10, padding:'0 14px' }}>
-        <button onClick={onHome} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:6, padding:'4px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', fontFamily:T.font, letterSpacing:'0.02em' }}>KarlOS</button>
-        <span style={{ fontFamily:T.serif, fontSize:15, fontWeight:600, color:T.acc2, letterSpacing:'0.06em' }}>Durin's Works</span>
-        <button onClick={() => setTab('snapshots')} title="Sauvegardes" style={{ marginLeft:'auto', width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background: tab === 'snapshots' ? 'rgba(91,156,246,0.14)' : T.s2, color: tab === 'snapshots' ? T.acc : T.tx2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+      <div style={{ height:50, flexShrink:0, background:T.hdr, borderBottom:`1px solid ${T.bd}`, display:'flex', alignItems:'center', gap:8, padding:'0 12px', minWidth:0 }}>
+        <button onClick={onHome} style={{ background:'rgba(91,156,246,0.12)', border:`1px solid rgba(91,156,246,0.2)`, borderRadius:6, padding:'4px 9px', fontSize:10, fontWeight:700, color:T.acc, cursor:'pointer', fontFamily:T.font, letterSpacing:'0.02em', flexShrink:0 }}>KarlOS</button>
+        <span style={{ fontFamily:T.serif, fontSize:15, fontWeight:600, color:T.acc2, letterSpacing:'0.06em', flexShrink:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>Durin's Works</span>
+        <button onClick={() => setTab('snapshots')} title="Sauvegardes" style={{ marginLeft:'auto', flexShrink:0, width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background: tab === 'snapshots' ? 'rgba(91,156,246,0.14)' : T.s2, color: tab === 'snapshots' ? T.acc : T.tx2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
           <svg viewBox="0 0 24 24" width="16" height="16" style={{ stroke:'currentColor', fill:'none', strokeWidth:1.7 }}><rect x="2" y="3" width="20" height="4" rx="1"/><path d="M4 7l1.4 12.1a1 1 0 0 0 1 .9h11.2a1 1 0 0 0 1-.9L21 7"/><line x1="10" y1="11" x2="14" y2="11"/></svg>
         </button>
         <QuickAdd variant="sheet"
-          triggerStyle={{ width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1 }}
+          triggerStyle={{ width:30, height:30, borderRadius:8, border:`1px solid ${T.bd2}`, background:T.s2, color:T.acc, fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', lineHeight:1, flexShrink:0 }}
           systems={systems} materials={shopItems} openActionId={selAction}
           addShopItem={addShopItem} saveShopItem={saveShopItem} addLogEntry={addLogEntry} scheduleAction={scheduleAction} assignToRun={assignToRun} />
-        <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono, minWidth:12, textAlign:'center' }}>{saved ? '✓' : '…'}</span>
+        <span style={{ fontSize:12, color: saved ? T.g : T.tx3, fontFamily:T.mono, minWidth:12, textAlign:'center', flexShrink:0 }}>{saved ? '✓' : '…'}</span>
       </div>
       <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', WebkitOverflowScrolling:'touch' }}>{body}</div>
       <div style={{ height:60, flexShrink:0, background:T.hdr, borderTop:`1px solid ${T.bd}`, display:'flex', alignItems:'stretch' }}>
@@ -1976,14 +2008,14 @@ const DESK_NAV = [
 ];
 
 function DesktopShell(props) {
-  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, snapshots, loadSnapshots, restoreSnapshot, saved, onHome } = props;
+  const { tab, setTab, systems, maintenance, statuses, mDone, shopItems, selProject, setSelProject, selAction, setSelAction, schedules, scheduleAction, onStatusChange, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem, stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan, buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun, setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, updatePhoto, snapshots, loadSnapshots, restoreSnapshot, saved, onHome } = props;
   const system = selProject ? systems.find(s => s.id === selProject) : null;
   const action = (system && selAction) ? system.actions.find(a => a.id === selAction) : null;
 
   let main;
   if (tab === 'projets') {
     let detail;
-    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} />;
+    if (action) detail = <ActionView system={system} action={action} status={statuses[action.id] || action.status} onStatusChange={onStatusChange} schedule={schedules[action.id]} onSchedule={d => scheduleAction(action.id, d)} onBack={() => setSelAction(null)} backLabel="Retour au projet" materials={shopItems} stepsDone={stepsDone} onToggleStep={toggleStep} onAddLog={addLogEntry} onLinkMaterial={linkExistingMaterial} onAddMaterial={addActionMaterial} onUnlinkMaterial={unlinkMaterial} onApplyPlan={applyPlan} onSetCost={setActionCost} onAddQuote={addQuote} onUpdateQuote={updateQuote} onRemoveQuote={removeQuote} onSetContractor={setActionContractor} onAddPhoto={addPhoto} onRemovePhoto={removePhoto} onUpdatePhoto={updatePhoto} />;
     else if (system) detail = <ProjectDashboard system={system} statuses={statuses} materials={shopItems} onOpenAction={id => setSelAction(id)} />;
     else detail = (
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
@@ -2004,7 +2036,7 @@ function DesktopShell(props) {
   } else if (tab === 'entretien') {
     main = <EntretienView maintenance={maintenance} mDone={mDone} onToggleMaint={toggleMaint} />;
   } else if (tab === 'calendrier') {
-    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} buyRuns={buyRuns} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} setActionCost={setActionCost} addQuote={addQuote} updateQuote={updateQuote} removeQuote={removeQuote} setActionContractor={setActionContractor} addPhoto={addPhoto} removePhoto={removePhoto} />;
+    main = <CalendarView systems={systems} statuses={statuses} schedules={schedules} scheduleAction={scheduleAction} onStatusChange={onStatusChange} materials={shopItems} stepsDone={stepsDone} toggleStep={toggleStep} addLogEntry={addLogEntry} linkExistingMaterial={linkExistingMaterial} addActionMaterial={addActionMaterial} unlinkMaterial={unlinkMaterial} applyPlan={applyPlan} buyRuns={buyRuns} toggleBought={toggleBought} removeFromRun={removeFromRun} toggleRunDone={toggleRunDone} deleteRun={deleteRun} setActionCost={setActionCost} addQuote={addQuote} updateQuote={updateQuote} removeQuote={removeQuote} setActionContractor={setActionContractor} addPhoto={addPhoto} removePhoto={removePhoto} updatePhoto={updatePhoto} />;
   } else if (tab === 'snapshots') {
     main = <SnapshotsView snapshots={snapshots} onRestore={restoreSnapshot} onRefresh={loadSnapshots} />;
   } else {
@@ -2163,6 +2195,7 @@ export default function DurinsWorksApp() {
       if (!snappedRef.current) {
         snappedRef.current = true;
         await supabase.from('durins_works_snapshots').insert({ label: label || ('auto ' + today()), state: doc });
+        pruneSnapshots();
       }
       const guard = versionRef.current;
       const { data } = await supabase.from('durins_works_state')
@@ -2497,6 +2530,16 @@ export default function DurinsWorksApp() {
     persist('photo suppr ' + actionId);
   }, [persist, bump]);
 
+  const updatePhoto = useCallback((actionId, photoId, patch) => {
+    const doc = stateRef.current;
+    if (!doc || !patch) return;
+    doc.systems.forEach(s => s.actions.forEach(a => {
+      if (a.id === actionId) a.photos = (a.photos || []).map(p => p.id === photoId ? { ...p, ...patch } : p);
+    }));
+    bump();
+    persist('photo edit ' + actionId);
+  }, [persist, bump]);
+
   // ── Session 6: snapshots + restore ────────────────────────────────────────────
   const loadSnapshots = useCallback(async () => {
     try {
@@ -2516,6 +2559,7 @@ export default function DurinsWorksApp() {
       const current = stateRef.current;
       if (current) {
         await supabase.from('durins_works_snapshots').insert({ label: 'pré-restauration ' + today(), state: current });
+        pruneSnapshots();
         snappedRef.current = true;
       }
       // 2. Swap in a deep clone of the chosen state and 3. write it under the version guard.
@@ -2552,7 +2596,7 @@ export default function DurinsWorksApp() {
     onStatusChange: changeStatus, toggleMaint, saveShopItem, setShopItems, addShopItem, deleteShopItem,
     stepsDone, toggleStep, addLogEntry, linkExistingMaterial, addActionMaterial, unlinkMaterial, applyPlan,
     buyRuns, assignToRun, toggleBought, removeFromRun, toggleRunDone, deleteRun,
-    setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto,
+    setActionCost, addQuote, updateQuote, removeQuote, setActionContractor, addPhoto, removePhoto, updatePhoto,
     snapshots, loadSnapshots, restoreSnapshot,
     saved, onHome: () => navigate('/'),
   };

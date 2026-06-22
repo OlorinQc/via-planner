@@ -58,11 +58,11 @@ const apps = [
     ),
   },
   {
-  id: "durins-works",
-  title: "Durin's Works",
-  desc: "Track renovations and maintenance.",
-  route: "/durins-works",
-  active: true,
+    id: "durins-works",
+    title: "Durin's Works",
+    desc: "Renovation plans · shopping runs · seasonal upkeep",
+    route: "/durins-works",
+    active: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
